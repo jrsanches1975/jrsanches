@@ -154,16 +154,26 @@ def playbook_entry(playbook, tipo, nivel):
     }
 
 
-def impacto_volume_estimado(pct_variacao_preco, elasticidade):
+def impacto_volume_estimado(pct_variacao_preco, elasticidade, own_kpis=None):
     impacto = elasticidade * pct_variacao_preco
     sinal = "a favor do concorrente" if impacto < 0 else "a seu favor"
-    return (f"Estimativa: {impacto:+.1f}% de deslocamento de demanda ({sinal}), "
-            f"usando elasticidade configurada ({elasticidade}) x variação de preço "
-            f"observada ({pct_variacao_preco:+.1f}%). Premissa, não dado medido.")
+    texto = (f"Estimativa: {impacto:+.1f}% de deslocamento de demanda ({sinal}), "
+             f"usando elasticidade configurada ({elasticidade}) x variação de preço "
+             f"observada ({pct_variacao_preco:+.1f}%). Premissa, não dado medido.")
+    if own_kpis and own_kpis.get("cpa") and own_kpis.get("roas") is not None:
+        texto += (f" Desempenho próprio atual no produto (Google/Meta Ads, últimos dados "
+                  f"importados): CPA R$ {own_kpis['cpa']:.2f}, ROAS {own_kpis['roas']:.2f}, "
+                  f"CTR {own_kpis['ctr_pct']:.2f}% — use como referência real para decidir "
+                  f"quanto de margem cabe sacrificar num price-match.")
+    return texto
 
 
-def make_alert(tipo, nivel, produto, concorrente, resumo, detalhes, evidencia_url, playbook):
+def make_alert(tipo, nivel, produto, concorrente, resumo, detalhes, evidencia_url, playbook,
+               impacto_volume_real=None):
     entry = playbook_entry(playbook, tipo, nivel)
+    impacto_volume = entry.get("impacto_volume", "")
+    if impacto_volume_real:
+        impacto_volume = f"{impacto_volume} {impacto_volume_real}"
     return {
         "data": now_iso(),
         "tipo": tipo,
@@ -174,7 +184,7 @@ def make_alert(tipo, nivel, produto, concorrente, resumo, detalhes, evidencia_ur
         "resumo": resumo,
         "detalhes": detalhes,
         "impacto_concorrencia": entry.get("impacto_concorrencia", ""),
-        "impacto_volume": entry.get("impacto_volume", ""),
+        "impacto_volume": impacto_volume,
         "estrategia": entry.get("estrategia", []),
         "kpis": entry.get("kpis", []),
         "evidencia_url": evidencia_url,
@@ -198,9 +208,10 @@ def classificar_aumento(pct_aumento, limiares):
     return "leve"
 
 
-def diff_precos(old_snap, new_snap, config, playbook):
+def diff_precos(old_snap, new_snap, config, playbook, own_perf=None):
     limiares = config["limiares"]
     elasticidade = config.get("elasticidade_estimada", -1.5)
+    own_perf = own_perf or {}
     alertas = []
 
     for produto, novos in new_snap.items():
@@ -218,26 +229,27 @@ def diff_precos(old_snap, new_snap, config, playbook):
             antigo = antigos[conc]
 
             # preço
+            kpis_proprios = own_perf.get(produto)
             if antigo.get("price") and novo.get("price") and antigo["price"] > 0:
                 pct = (novo["price"] - antigo["price"]) / antigo["price"] * 100
                 if pct <= -limiares["queda_preco_leve_pct"]:
                     nivel = classificar_queda(-pct, limiares)
+                    estimativa = impacto_volume_estimado(pct, elasticidade, kpis_proprios)
                     alertas.append(make_alert(
                         "queda_preco", nivel, produto, conc,
                         f"{conc} baixou o preço de '{produto}' de R$ {antigo['price']:.2f} "
                         f"para R$ {novo['price']:.2f} ({pct:+.1f}%).",
-                        {"price_antigo": antigo["price"], "price_novo": novo["price"],
-                         "pct": pct, "impacto_volume_estimado": impacto_volume_estimado(pct, elasticidade)},
-                        novo["url"], playbook))
+                        {"price_antigo": antigo["price"], "price_novo": novo["price"], "pct": pct},
+                        novo["url"], playbook, impacto_volume_real=estimativa))
                 elif pct >= limiares["aumento_preco_leve_pct"]:
                     nivel = classificar_aumento(pct, limiares)
+                    estimativa = impacto_volume_estimado(pct, elasticidade, kpis_proprios)
                     alertas.append(make_alert(
                         "aumento_preco_concorrente", nivel, produto, conc,
                         f"{conc} subiu o preço de '{produto}' de R$ {antigo['price']:.2f} "
                         f"para R$ {novo['price']:.2f} ({pct:+.1f}%).",
-                        {"price_antigo": antigo["price"], "price_novo": novo["price"],
-                         "pct": pct, "impacto_volume_estimado": impacto_volume_estimado(pct, elasticidade)},
-                        novo["url"], playbook))
+                        {"price_antigo": antigo["price"], "price_novo": novo["price"], "pct": pct},
+                        novo["url"], playbook, impacto_volume_real=estimativa))
 
             # desconto
             d_antigo = antigo.get("discount_pct") or 0
@@ -374,7 +386,8 @@ def print_console(alertas):
 
 
 # --------------------------------------------------------------------------- xlsx
-def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, config, meta, path):
+def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, config, meta, path,
+               own_perf=None):
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
@@ -490,6 +503,22 @@ def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, 
             ws.column_dimensions[get_column_letter(i)].width = w
         ws.freeze_panes = "A2"
 
+    # -- Desempenho Próprio (Google Ads / Meta Ads, via Windsor.ai)
+    if own_perf:
+        ws = wb.create_sheet("Desempenho Próprio")
+        cols4 = ["produto", "spend", "impressions", "clicks", "ctr_pct", "cpc",
+                 "conversions", "conversions_value", "cpa", "roas", "campanhas"]
+        ws.append([c.upper() for c in cols4])
+        style_header(ws, len(cols4))
+        for produto, v in own_perf.items():
+            ws.append([produto, v.get("spend"), v.get("impressions"), v.get("clicks"),
+                       v.get("ctr_pct"), v.get("cpc"), v.get("conversions"),
+                       v.get("conversions_value"), v.get("cpa"), v.get("roas"),
+                       "; ".join(v.get("campanhas", []))])
+        for i, w in enumerate([22, 12, 13, 10, 10, 10, 12, 16, 10, 8, 55], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
+
     # -- Limitacoes
     ws = wb.create_sheet("Limitações")
     notas = [
@@ -552,12 +581,34 @@ def render_card(a):
     </div>"""
 
 
-def write_html(alertas_rodada, config, meta, path):
+def render_own_kpi(produto, v):
+    cpa = f"R$ {v['cpa']:.2f}" if v.get("cpa") else "—"
+    roas = f"{v['roas']:.2f}" if v.get("roas") is not None else "—"
+    return f"""
+    <div class="own-kpi">
+      <div class="own-kpi-produto">{produto}</div>
+      <div class="own-kpi-row"><span>Invest.</span><strong>R$ {v.get('spend', 0):.2f}</strong></div>
+      <div class="own-kpi-row"><span>CTR</span><strong>{v.get('ctr_pct', 0):.2f}%</strong></div>
+      <div class="own-kpi-row"><span>CPA</span><strong>{cpa}</strong></div>
+      <div class="own-kpi-row"><span>ROAS</span><strong>{roas}</strong></div>
+    </div>"""
+
+
+def write_html(alertas_rodada, config, meta, path, own_perf=None):
     ordem = {"alta": 0, "media": 1, "baixa": 2}
     cards = "".join(render_card(a) for a in sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]]))
     if not cards:
         cards = ('<div class="empty">Nenhuma mudança detectada nesta rodada '
                   '(ou é a linha de base da 1ª execução).</div>')
+
+    own_kpi_section = ""
+    if own_perf:
+        own_cards = "".join(render_own_kpi(p, v) for p, v in own_perf.items())
+        own_kpi_section = f"""
+<section class="own-kpi-strip">
+  <h2>Desempenho próprio (Google/Meta Ads — últimos dados importados)</h2>
+  <div class="own-kpi-grid">{own_cards}</div>
+</section>"""
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <title>War Room — {config.get('marca', '')}</title>
@@ -586,6 +637,13 @@ def write_html(alertas_rodada, config, meta, path):
   .foot a {{ color: inherit; }}
   .empty {{ padding: 40px; opacity: .6; grid-column: 1 / -1; text-align: center; }}
   .caveat {{ padding: 0 32px 24px; font-size: .78rem; opacity: .6; max-width: 900px; }}
+  .own-kpi-strip {{ padding: 8px 32px 24px; border-bottom: 1px solid rgba(128,128,128,.25); }}
+  .own-kpi-strip h2 {{ font-size: .85rem; text-transform: uppercase; letter-spacing: .04em;
+                        opacity: .65; margin: 0 0 12px; font-weight: 600; }}
+  .own-kpi-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
+  .own-kpi {{ background: rgba(128,128,128,.08); border-radius: 8px; padding: 10px 14px; min-width: 150px; }}
+  .own-kpi-produto {{ font-weight: 700; font-size: .82rem; margin-bottom: 6px; }}
+  .own-kpi-row {{ display: flex; justify-content: space-between; gap: 10px; font-size: .76rem; opacity: .85; }}
 </style></head>
 <body>
 <header>
@@ -593,6 +651,7 @@ def write_html(alertas_rodada, config, meta, path):
   <p>Gerado em {meta['data']} · cadência configurada: {config.get('cadencia_sugerida_horas')}h ·
      {len(alertas_rodada)} alerta(s) nesta rodada</p>
 </header>
+{own_kpi_section}
 <div class="grid">{cards}</div>
 <p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os
 sinais de atividade em ads (Meta Ad Library / Google Ads Transparency Center) refletem
@@ -612,6 +671,9 @@ def main():
     ap.add_argument("--out", default="war-room.xlsx")
     ap.add_argument("--html", default="war-room.html")
     ap.add_argument("--ads-manual", default=None, help="JSON com contagem manual de anúncios ativos")
+    ap.add_argument("--own-performance", default=None,
+                     help="JSON {'por_produto': {...}} gerado por own_performance.py "
+                          "(desempenho real de Google/Meta Ads, via Windsor.ai)")
     ap.add_argument("--produtos", default=None, help="lista separada por vírgula p/ limitar a coleta")
     ap.add_argument("--per-produto", type=int, default=15)
     ap.add_argument("--history-dir", default=DEFAULT_HISTORY_DIR)
@@ -643,7 +705,11 @@ def main():
     snapshot_novo = collect_snapshot(config, token, produtos_filter, args.per_produto)
     snapshot_antigo = load_json(snap_path, {})
 
-    alertas = diff_precos(snapshot_antigo, snapshot_novo, config, playbook)
+    own_perf = {}
+    if args.own_performance:
+        own_perf = load_json(args.own_performance, {}).get("por_produto", {})
+
+    alertas = diff_precos(snapshot_antigo, snapshot_novo, config, playbook, own_perf=own_perf)
 
     ads_entries = []
     if args.ads_manual:
@@ -661,8 +727,9 @@ def main():
     save_json(current_run_path, alertas)
 
     meta = {"data": now_iso()}
-    write_xlsx(alertas, alertas_log, snapshot_novo, ads_entries, load_json(ads_hist_path, {}), config, meta, args.out)
-    write_html(alertas, config, meta, args.html)
+    write_xlsx(alertas, alertas_log, snapshot_novo, ads_entries, load_json(ads_hist_path, {}), config, meta, args.out,
+               own_perf=own_perf)
+    write_html(alertas, config, meta, args.html, own_perf=own_perf)
     print_console(alertas)
 
     if not args.ads_manual:

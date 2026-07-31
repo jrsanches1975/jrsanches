@@ -3,19 +3,31 @@
 
   "marca": "Joie",
 
-  "_comentario_produtos": "Cada produto próprio que você quer vigiar. termo_busca_ml é o que será pesquisado no Mercado Livre (use um termo genérico o bastante para trazer os concorrentes, ex. 'whey protein isolado' e não o nome exclusivo do seu produto). preco_proprio/ticket_medio servem de referência para os alertas.",
+  "_comentario_produtos": "Cada produto próprio que você quer vigiar. termo_busca_ml é o que será pesquisado no Mercado Livre (use um termo genérico o bastante para trazer os concorrentes, ex. 'whey protein isolado' e não o nome exclusivo do seu produto). preco_proprio/ticket_medio servem de referência para os alertas. campanhas_google_ads/campanhas_meta_ads (opcionais) são substrings do nome da campanha usadas por scripts/own_performance.py para casar o desempenho real de mídia (via Windsor.ai) com este produto — sem elas, o produto fica sem 'Desempenho Próprio' no relatório, mas o resto funciona normal.",
   "produtos_monitorados": [
     {
-      "nome": "Whey Silk Protein",
-      "termo_busca_ml": "whey protein isolado",
+      "nome": "Faciderm",
+      "termo_busca_ml": "sérum facial vitamina c",
       "preco_proprio": 149.90,
-      "ticket_medio": 149.90
+      "ticket_medio": 149.90,
+      "campanhas_google_ads": ["Faciderm"],
+      "campanhas_meta_ads": ["Faciderm"]
     },
     {
-      "nome": "Creatina",
-      "termo_busca_ml": "creatina monohidratada 300g",
-      "preco_proprio": 89.90,
-      "ticket_medio": 89.90
+      "nome": "Amaze",
+      "termo_busca_ml": "polivitamínico feminino",
+      "preco_proprio": 99.90,
+      "ticket_medio": 99.90,
+      "campanhas_google_ads": ["Amaze"],
+      "campanhas_meta_ads": ["Amaze"]
+    },
+    {
+      "nome": "Linha Joie Fit",
+      "termo_busca_ml": "whey protein isolado",
+      "preco_proprio": 129.90,
+      "ticket_medio": 129.90,
+      "campanhas_google_ads": ["Joie Fit"],
+      "campanhas_meta_ads": ["Joie Fit"]
     }
   ],
 

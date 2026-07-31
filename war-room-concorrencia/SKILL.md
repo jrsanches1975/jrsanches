@@ -71,6 +71,9 @@ prometer cobertura ao usuário.
 - Concorrentes e produtos já mapeados (nome do seller no Mercado Livre, termo de busca).
   Se ainda não sabe quem monitorar, rode primeiro `radar-keywords-concorrentes` ou
   `brand-bidding-monitor` para identificar os concorrentes antes de configurar esta skill.
+- **Opcional, para o passo 5 (desempenho próprio):** conector Windsor.ai conectado
+  (Google Ads no mínimo; Meta/GA4 se quiser incluir também). Sem isso, a skill funciona
+  normalmente — só fica sem a calibração por dado real.
 
 ## Fluxo de trabalho
 
@@ -143,6 +146,54 @@ Esta skill não roda sozinha em background; quem agenda é a sessão do Claude C
 - Em cada execução agendada, leia `scripts/history/alerts.json`: se houver alerta de
   severidade **alta**, avise o usuário imediatamente (mensagem direta, ou rascunho de
   e-mail via Gmail MCP) em vez de esperar o usuário puxar o relatório.
+
+### 5. Enriquecer com desempenho próprio real (Google Ads / Meta Ads, via Windsor.ai)
+
+Isto é o que transforma o "impacto estimado no volume" de um chute em algo calibrado
+com dado de verdade. O script não coleta Google Ads/Meta sozinho — quem faz isso é você
+(o agente), usando o MCP do **Windsor.ai** (já traz Google Ads/Meta/GA4/300+ conectores):
+
+1. Confirme quais contas estão conectadas: `mcp__Windsor_ai__get_connectors`. Se faltar
+   Meta ou GA4, gere o link de autorização com
+   `mcp__Windsor_ai__get_connector_connect_info` (connector `facebook` / `googleanalytics4`)
+   e peça para o usuário clicar — é OAuth, não dá para autorizar por ele.
+2. Descubra os campos certos com `get_fields` (não adivinhe IDs) e puxe os dados com
+   `get_data` — ex.: `fields: ["date","campaign","impressions","clicks","spend",
+   "conversions","conversions_value","roas","cpa"]`, `date_preset: "last_30d"`. Se o
+   retorno estourar o limite de tokens, agregue com jq/python no arquivo salvo em vez de
+   pedir tudo de novo.
+3. Grave o retorno bruto num JSON `{"connector": "google_ads", "registros": [...]}` (um
+   arquivo por conector: `google_ads`, `facebook`) e rode:
+   ```bash
+   python own_performance.py --input google-ads-30d.json --input meta-30d.json \
+     --config config.json --out ../outputs/own-performance-por-produto.json
+   ```
+   Isso agrega por campanha e casa com `produtos_monitorados[].campanhas_google_ads` /
+   `campanhas_meta_ads` do config (o script avisa quais campanhas não casaram, para
+   você ajustar o config).
+4. Rode o `war_room.py` passando `--own-performance ../outputs/own-performance-por-produto.json`
+   junto dos outros argumentos. Isso faz três coisas: (a) enriquece o texto de impacto
+   estimado nos alertas de preço com o CPA/ROAS/CTR reais do produto; (b) adiciona a aba
+   **Desempenho Próprio** no xlsx; (c) adiciona uma faixa de KPIs reais no topo do
+   dashboard HTML.
+
+**Automação de verdade (rodando sem precisar de você acionar):** o Windsor.ai tem
+destinos nativos (Google Sheets, BigQuery, Postgres etc. — ver `get_destinations`) com
+agendamento próprio (`hourly`/`daily`/`15_min`/`30_min`), que rodam no lado do
+Windsor.ai, independente da sessão do Claude Code. Isso é preferível a montar isso no
+**Make.com**: não há conector de Make instalado nesta conta, então qualquer automação
+lá exigiria montar o cenário manualmente no site do Make e colar as credenciais — o
+Windsor.ai já está autenticado aqui e resolve o mesmo problema sem essa camada extra.
+Se o usuário já tiver Make e preferir usá-lo mesmo assim, ofereça montar o blueprint
+(JSON do cenário) para ele importar, deixando claro que a ativação final é manual, do
+lado dele.
+
+Para criar o destino: `get_destination_setup_info(destination_type="googlesheets")` dá
+o `setup_url` (o usuário autoriza uma vez) e os `target_fields`/`schedule_types`; depois
+disso, `create_destination_task` grava a tarefa recorrente. Uma vez com a planilha
+alimentada automaticamente, o Google Drive (já conectado) permite ler o arquivo em
+qualquer sessão futura e alimentar o `own_performance.py` sem precisar rechamar
+`get_data` toda vez.
 
 ## O playbook de resposta (o que muda por tipo de mudança)
 

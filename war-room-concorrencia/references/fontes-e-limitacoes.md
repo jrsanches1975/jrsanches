@@ -66,6 +66,17 @@ Reusa o mesmo actor do `radar-keywords-concorrentes`
   própria conta, ele pode comparar o próprio CPC/impression share como leitura indireta
   da pressão competitiva, mas isso não vem de scraping de terceiro.
 
+## Desempenho PRÓPRIO (Google Ads / Meta Ads / GA4) — isto sim é dado real
+
+Tudo que foi dito acima sobre "gasto não é público" vale para o **concorrente**. Para a
+própria marca é diferente: se a conta estiver conectada no **Windsor.ai** (MCP já
+disponível neste ambiente), `get_data` traz spend, impressões, cliques, conversões,
+ROAS, CPA etc. **reais**, por campanha e por dia — não é proxy, é o dado da própria
+conta. É isso que `scripts/own_performance.py` agrega por produto e o `war_room.py`
+usa (via `--own-performance`) para trocar a estimativa genérica de elasticidade por uma
+leitura calibrada com o desempenho real da marca naquele produto. GA4 entra do mesmo
+jeito quando conectado (conector `googleanalytics4` no Windsor.ai).
+
 ## "Instantâneo"
 
 Toda automação aqui é **por polling** (rodar o monitor e comparar com a rodada
