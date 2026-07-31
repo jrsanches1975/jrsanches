@@ -1,0 +1,56 @@
+{
+  "_comentario_token": "NUNCA grave um token real aqui — este arquivo vai para o Git. Exporte APIFY_TOKEN no ambiente antes de rodar, ou passe --token na linha de comando.",
+
+  "marca": "Joie",
+
+  "_comentario_produtos": "Cada produto próprio que você quer vigiar. termo_busca_ml é o que será pesquisado no Mercado Livre (use um termo genérico o bastante para trazer os concorrentes, ex. 'whey protein isolado' e não o nome exclusivo do seu produto). preco_proprio/ticket_medio servem de referência para os alertas.",
+  "produtos_monitorados": [
+    {
+      "nome": "Whey Silk Protein",
+      "termo_busca_ml": "whey protein isolado",
+      "preco_proprio": 149.90,
+      "ticket_medio": 149.90
+    },
+    {
+      "nome": "Creatina",
+      "termo_busca_ml": "creatina monohidratada 300g",
+      "preco_proprio": 89.90,
+      "ticket_medio": 89.90
+    }
+  ],
+
+  "_comentario_concorrentes": "sellers_ml = nicknames que aparecem no Mercado Livre (pode ter mais de um por concorrente, ex. loja oficial + distribuidor). dominio_site, meta_page e google_advertiser são usados só para montar os links de checagem manual do Ad Library / Ads Transparency Center — não precisam ser exatos, é o texto de busca.",
+  "concorrentes": [
+    {
+      "nome": "Black Skull",
+      "sellers_ml": ["BLACK SKULL", "BLACKSKULL OFICIAL"],
+      "dominio_site": "blackskull.com.br",
+      "meta_page": "Black Skull",
+      "google_advertiser": "Black Skull"
+    },
+    {
+      "nome": "Growth Supplements",
+      "sellers_ml": ["GROWTH SUPPLEMENTS"],
+      "dominio_site": "growthsupplements.com.br",
+      "meta_page": "Growth Supplements",
+      "google_advertiser": "Growth Supplements"
+    }
+  ],
+
+  "_comentario_limiares": "Cortes que definem a severidade de cada tipo de alerta. Calibre com o usuário na 1a rodada.",
+  "limiares": {
+    "queda_preco_leve_pct": 5,
+    "queda_preco_moderada_pct": 15,
+    "aumento_preco_leve_pct": 5,
+    "aumento_preco_moderado_pct": 15,
+    "salto_posicao_min": 3,
+    "crescimento_reviews_pct": 15,
+    "aumento_ads_min_unidades": 3
+  },
+
+  "_comentario_elasticidade": "Premissa usada SÓ para o cálculo de impacto estimado no volume (impacto_% = elasticidade x variação_%_preço_concorrente). É uma estimativa configurável, não um dado medido — ajuste se tiver histórico próprio melhor. Elasticidade cruzada tipicamente negativa em magnitude (ex. -1.5 significa: cada 1% de queda no preço do concorrente desloca ~1.5% de demanda para ele, na direção oposta do seu volume).",
+  "elasticidade_estimada": -1.5,
+
+  "_comentario_cadencia": "Sugestão de intervalo (em horas) para agendar via /loop ou CronCreate. Comece conservador para não estourar saldo Apify.",
+  "cadencia_sugerida_horas": 6
+}

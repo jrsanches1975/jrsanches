@@ -1,0 +1,6 @@
+scripts/history/*.json
+scripts/config.json
+scripts/ads-manual.json
+outputs/
+__pycache__/
+*.pyc

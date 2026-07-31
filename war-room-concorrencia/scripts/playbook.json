@@ -1,0 +1,137 @@
+{
+  "_comentario": "Versão legível e detalhada em references/playbook-resposta.md. Mantenha os dois em sincronia ao editar.",
+
+  "queda_preco": {
+    "leve": {
+      "impacto_concorrencia": "Ajuste normal de mercado; baixo risco de migração de demanda relevante.",
+      "impacto_volume": "Marginal — geralmente dentro do ruído normal de conversão.",
+      "estrategia": [
+        "Monitorar 2-3 rodadas antes de reagir",
+        "Não alocar budget de defesa ainda",
+        "Preparar cupom de contingência caso vire tendência"
+      ],
+      "kpis": ["CTR do anúncio equivalente", "Taxa de conversão do SKU equivalente"]
+    },
+    "moderada": {
+      "impacto_concorrencia": "Diferencial de preço passa a aparecer em comparações; risco real de perder Buy Box/1a posição em produto-commodity.",
+      "impacto_volume": "Perceptível na conversão do SKU equivalente em 3-7 dias (ver estimativa por elasticidade).",
+      "estrategia": [
+        "Avaliar price-match parcial (cobrir só a diferença que tira do 'melhor preço')",
+        "Reforçar frete grátis/parcelamento como diferencial não-preço",
+        "Ativar cupom pontual no SKU equivalente"
+      ],
+      "kpis": ["CAC", "ROAS do SKU", "Taxa de conversão", "Posição média/Buy Box no ML", "Ticket médio"]
+    },
+    "agressiva": {
+      "impacto_concorrencia": "Sinal de liquidação de estoque, novo substituto ou guerra de preço deliberada. Risco alto de canibalização no curto prazo.",
+      "impacto_volume": "Estimativa por elasticidade deve ser tratada como piso — quedas agressivas convertem desproporcionalmente mais (efeito ancoragem).",
+      "estrategia": [
+        "Price-match seletivo só nos SKUs mais expostos, não na linha toda",
+        "Reforçar prova social (reviews/garantia) para justificar não seguir a queda",
+        "Campanha de retenção/e-mail para base já convertida",
+        "Checar se é liquidação temporária antes de comprometer margem de forma permanente"
+      ],
+      "kpis": ["Margem de contribuição", "ROAS", "CAC", "Share of search/Buy Box", "Taxa de conversão", "Ticket médio"]
+    }
+  },
+
+  "novo_desconto": {
+    "default": {
+      "impacto_concorrencia": "Desconto por tempo limitado costuma converter mais rápido que uma baixa de preço permanente (efeito urgência).",
+      "impacto_volume": "Tratar como a queda de preço equivalente, com efeito concentrado na janela do cupom (não distribuído).",
+      "estrategia": [
+        "Cupom-espelho de curta duração no produto equivalente",
+        "Destacar frete grátis/parcelamento se não puder cobrir o desconto",
+        "Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado"
+      ],
+      "kpis": ["CTR", "Taxa de conversão", "CAC no período do cupom", "ROAS da campanha ativa"]
+    }
+  },
+
+  "aumento_preco_concorrente": {
+    "leve": {
+      "impacto_concorrencia": "Pequena janela de oportunidade de posição/volume.",
+      "impacto_volume": "Ganho potencial marginal (ver estimativa por elasticidade, sentido positivo).",
+      "estrategia": ["Monitorar; não é necessário agir ainda"],
+      "kpis": ["Share of search"]
+    },
+    "moderada": {
+      "impacto_concorrencia": "Janela real de oportunidade para ganhar posição/Buy Box e volume sem sacrificar margem.",
+      "impacto_volume": "Ganho potencial relevante (ver estimativa por elasticidade, sentido positivo).",
+      "estrategia": [
+        "Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura",
+        "Atualizar comparativos de preço em conteúdo/anúncio"
+      ],
+      "kpis": ["Share of search/impressões", "ROAS", "CAC"]
+    },
+    "agressiva": {
+      "impacto_concorrencia": "Vantagem de preço grande; janela de oportunidade forte.",
+      "impacto_volume": "Ganho potencial alto (ver estimativa por elasticidade, sentido positivo) — tratar como teto otimista.",
+      "estrategia": [
+        "Reforçar investimento em mídia paga no SKU equivalente",
+        "Considerar reduzir desconto próprio parcialmente para capturar margem, permanecendo mais barato",
+        "Atualizar comparativos de preço em conteúdo/anúncio"
+      ],
+      "kpis": ["Share of search/impressões", "ROAS", "Margem de contribuição", "CAC"]
+    }
+  },
+
+  "salto_visibilidade_ml": {
+    "default": {
+      "impacto_concorrencia": "Mais impressões para o concorrente no mesmo termo; nas primeiras posições do ML o CTR cai muito rápido por posição perdida.",
+      "impacto_volume": "Correlacionado com perda de share of search; não quantificável com precisão sem dados de leilão — tratar como alerta de atenção.",
+      "estrategia": [
+        "Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)",
+        "Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa",
+        "Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento"
+      ],
+      "kpis": ["Posição média na busca", "CTR", "Taxa de conversão", "Impression share (Mercado Ads)"]
+    }
+  },
+
+  "aumento_atividade_ads": {
+    "moderado": {
+      "impacto_concorrencia": "Concorrente testando novos criativos/públicos ou expandindo campanha.",
+      "impacto_volume": "Não mensurável (sinal de atividade, não de gasto). Monitorar conversão própria nas próximas rodadas.",
+      "estrategia": [
+        "Auditar os criativos novos via Ad Library/Ads Transparency Center (mensagem, oferta, gancho)",
+        "Ajustar mensagem própria se o concorrente estiver batendo em um ângulo que funciona"
+      ],
+      "kpis": ["CTR", "Frequência/fadiga de criativo próprio", "CPM (se disponível na própria conta)"]
+    },
+    "forte": {
+      "impacto_concorrencia": "Expansão relevante de investimento — pode ser lançamento de produto, novo aporte de budget, ou campanha sazonal.",
+      "impacto_volume": "Não mensurável (sinal de atividade, não de gasto). Risco de perda de share of voice se não houver resposta.",
+      "estrategia": [
+        "Reforçar defesa de marca (campanha de marca própria com CPC baixo)",
+        "Revisar orçamento próprio nos mesmos públicos/termos",
+        "Considerar acelerar lançamento próprio que estava represado"
+      ],
+      "kpis": ["CPC", "CPA", "ROAS", "Share of voice", "Taxa de conversão"]
+    }
+  },
+
+  "concorrente_sumiu": {
+    "default": {
+      "impacto_concorrencia": "Janela de oportunidade temporária — menos competição direta pelo termo/posição.",
+      "impacto_volume": "Oportunidade de ganho de share enquanto durar; não é permanente até confirmar (pode ser reposição de estoque em dias).",
+      "estrategia": [
+        "Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã",
+        "Não reduzir preço proativamente — a demanda já não tem para onde ir"
+      ],
+      "kpis": ["Share of search", "Volume/conversão do SKU equivalente", "ROAS"]
+    }
+  },
+
+  "novo_entrante": {
+    "default": {
+      "impacto_concorrencia": "Aumento da concorrência direta no mesmo termo de busca; dilui share entre mais players.",
+      "impacto_volume": "Risco difuso, maior quanto mais barato/melhor avaliado for o novo entrante.",
+      "estrategia": [
+        "Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas",
+        "Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta"
+      ],
+      "kpis": ["Share of search", "Posição média", "Taxa de conversão"]
+    }
+  }
+}

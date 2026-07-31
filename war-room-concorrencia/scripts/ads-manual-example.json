@@ -1,0 +1,8 @@
+[
+  {
+    "_comentario": "Preencha DEPOIS de checar manualmente os links impressos pelo war_room.py (Meta Ad Library / Google Ads Transparency Center). Cada linha = uma contagem observada em uma data. O script compara a contagem mais recente por concorrente+canal com a anterior salva em scripts/history/ads-history.json."
+  },
+  {"data": "2026-07-01", "concorrente": "Black Skull", "canal": "meta_ad_library", "anuncios_ativos": 4},
+  {"data": "2026-07-01", "concorrente": "Black Skull", "canal": "google_ads_transparency", "anuncios_ativos": 2},
+  {"data": "2026-07-01", "concorrente": "Growth Supplements", "canal": "meta_ad_library", "anuncios_ativos": 6}
+]
