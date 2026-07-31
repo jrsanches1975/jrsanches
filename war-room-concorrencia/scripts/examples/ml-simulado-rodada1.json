@@ -1,0 +1,32 @@
+{
+  "Faciderm": {
+    "Black Skull": {
+      "seller": "BLACK SKULL", "title": "Sérum Facial Vitamina C Black Skull 30ml",
+      "price": 89.90, "original_price": 89.90, "discount_pct": 0, "position": 2,
+      "reviews": 340, "rating": 4.6, "url": "https://mercadolivre.com.br/simulado/black-skull-faciderm",
+      "total_listagens": 1
+    }
+  },
+  "Amaze": {
+    "Growth Supplements": {
+      "seller": "GROWTH SUPPLEMENTS", "title": "Polivitamínico Feminino Growth",
+      "price": 79.90, "original_price": 79.90, "discount_pct": 0, "position": 1,
+      "reviews": 520, "rating": 4.7, "url": "https://mercadolivre.com.br/simulado/growth-amaze",
+      "total_listagens": 1
+    },
+    "Black Skull": {
+      "seller": "BLACK SKULL", "title": "Multivitamínico Black Skull",
+      "price": 84.90, "original_price": 84.90, "discount_pct": 0, "position": 4,
+      "reviews": 60, "rating": 4.3, "url": "https://mercadolivre.com.br/simulado/black-skull-amaze",
+      "total_listagens": 1
+    }
+  },
+  "Linha Joie Fit": {
+    "Black Skull": {
+      "seller": "BLACK SKULL", "title": "Whey Protein Isolado Black Skull 900g",
+      "price": 119.90, "original_price": 119.90, "discount_pct": 0, "position": 1,
+      "reviews": 900, "rating": 4.8, "url": "https://mercadolivre.com.br/simulado/black-skull-whey",
+      "total_listagens": 1
+    }
+  }
+}

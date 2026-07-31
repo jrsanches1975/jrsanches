@@ -556,38 +556,38 @@ def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, 
 
 
 # ---------------------------------------------------------------------------- html
-SEV_COLOR = {"alta": "#c0392b", "media": "#e67e22", "baixa": "#27ae60"}
+SEV_LABEL = {"alta": "ALTA", "media": "MÉDIA", "baixa": "BAIXA"}
 
 
 def render_card(a):
-    cor = SEV_COLOR.get(a["severidade"], "#888")
     estrategia_html = "".join(f"<li>{s}</li>" for s in a["estrategia"])
     kpis_html = "".join(f'<span class="kpi">{k}</span>' for k in a["kpis"])
-    link = f'<a href="{a["evidencia_url"]}" target="_blank" rel="noopener">evidência ↗</a>' if a.get("evidencia_url") else ""
+    link = (f'<a href="{a["evidencia_url"]}" target="_blank" rel="noopener">evidência ↗</a>'
+            if a.get("evidencia_url") else "")
     return f"""
-    <div class="card" style="border-left-color:{cor}">
+    <article class="card sev-{a['severidade']}">
       <div class="card-head">
-        <span class="badge" style="background:{cor}">{a['severidade'].upper()}</span>
+        <span class="badge">{SEV_LABEL.get(a['severidade'], a['severidade'].upper())}</span>
         <span class="tipo">{a['tipo'].replace('_', ' ')} · {a['nivel']}</span>
       </div>
       <h3>{a['produto']} <span class="vs">×</span> {a['concorrente']}</h3>
       <p class="resumo">{a['resumo']}</p>
-      <p><strong>Impacto na concorrência:</strong> {a['impacto_concorrencia']}</p>
-      <p><strong>Impacto estimado no volume:</strong> {a['impacto_volume']}</p>
-      <p><strong>Estratégia imediata:</strong></p>
+      <p><span class="label">Impacto na concorrência</span>{a['impacto_concorrencia']}</p>
+      <p><span class="label">Impacto estimado no volume</span>{a['impacto_volume']}</p>
+      <p class="label">Estratégia imediata</p>
       <ul>{estrategia_html}</ul>
       <div class="kpis">{kpis_html}</div>
-      <div class="foot">{a['data']} {link}</div>
-    </div>"""
+      <div class="foot"><span>{a['data']}</span>{link}</div>
+    </article>"""
 
 
 def render_own_kpi(produto, v):
     cpa = f"R$ {v['cpa']:.2f}" if v.get("cpa") else "—"
-    roas = f"{v['roas']:.2f}" if v.get("roas") is not None else "—"
+    roas = f"{v['roas']:.2f}×" if v.get("roas") is not None else "—"
     return f"""
     <div class="own-kpi">
       <div class="own-kpi-produto">{produto}</div>
-      <div class="own-kpi-row"><span>Invest.</span><strong>R$ {v.get('spend', 0):.2f}</strong></div>
+      <div class="own-kpi-row"><span>Invest.</span><strong>R$ {v.get('spend', 0):,.2f}</strong></div>
       <div class="own-kpi-row"><span>CTR</span><strong>{v.get('ctr_pct', 0):.2f}%</strong></div>
       <div class="own-kpi-row"><span>CPA</span><strong>{cpa}</strong></div>
       <div class="own-kpi-row"><span>ROAS</span><strong>{roas}</strong></div>
@@ -606,48 +606,119 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None):
         own_cards = "".join(render_own_kpi(p, v) for p, v in own_perf.items())
         own_kpi_section = f"""
 <section class="own-kpi-strip">
-  <h2>Desempenho próprio (Google/Meta Ads — últimos dados importados)</h2>
+  <h2>Desempenho próprio — Google/Meta Ads (últimos dados importados)</h2>
   <div class="own-kpi-grid">{own_cards}</div>
 </section>"""
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>War Room — {config.get('marca', '')}</title>
 <style>
-  :root {{ color-scheme: light dark; }}
-  body {{ font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0;
-         background: #0f1420; color: #e8ecf4; }}
-  @media (prefers-color-scheme: light) {{ body {{ background: #f4f6fa; color: #1a2130; }} }}
-  header {{ padding: 24px 32px; border-bottom: 1px solid rgba(128,128,128,.25); }}
-  header h1 {{ margin: 0 0 4px; font-size: 1.6rem; }}
-  header p {{ margin: 0; opacity: .7; font-size: .85rem; }}
-  .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-           gap: 18px; padding: 24px 32px; }}
-  .card {{ background: rgba(128,128,128,.08); border-left: 5px solid #888; border-radius: 8px;
-           padding: 16px 18px; }}
-  .card h3 {{ margin: 8px 0; font-size: 1.05rem; }}
-  .card .vs {{ opacity: .5; }}
-  .badge {{ color: #fff; font-size: .7rem; font-weight: 700; padding: 2px 8px;
-            border-radius: 999px; letter-spacing: .04em; }}
-  .tipo {{ font-size: .78rem; opacity: .7; margin-left: 8px; text-transform: capitalize; }}
-  .resumo {{ opacity: .9; }}
-  .card ul {{ margin: 4px 0 10px; padding-left: 20px; }}
-  .kpis {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }}
-  .kpi {{ font-size: .72rem; background: rgba(128,128,128,.18); padding: 2px 8px; border-radius: 6px; }}
-  .foot {{ margin-top: 10px; font-size: .72rem; opacity: .55; }}
-  .foot a {{ color: inherit; }}
-  .empty {{ padding: 40px; opacity: .6; grid-column: 1 / -1; text-align: center; }}
-  .caveat {{ padding: 0 32px 24px; font-size: .78rem; opacity: .6; max-width: 900px; }}
-  .own-kpi-strip {{ padding: 8px 32px 24px; border-bottom: 1px solid rgba(128,128,128,.25); }}
-  .own-kpi-strip h2 {{ font-size: .85rem; text-transform: uppercase; letter-spacing: .04em;
-                        opacity: .65; margin: 0 0 12px; font-weight: 600; }}
-  .own-kpi-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
-  .own-kpi {{ background: rgba(128,128,128,.08); border-radius: 8px; padding: 10px 14px; min-width: 150px; }}
+  :root {{
+    --bg: #f5f4f0; --surface: #ffffff; --surface-2: #ece9e2; --border: #dcd8ce;
+    --text: #181c22; --text-muted: #5b6270; --accent: #d9622b;
+    --sev-alta: #b3261e; --sev-media: #a15c00; --sev-baixa: #1e6b3f;
+    --sev-alta-bg: #fbe9e7; --sev-media-bg: #fbeed9; --sev-baixa-bg: #e3f1e9;
+    color-scheme: light dark;
+  }}
+  @media (prefers-color-scheme: dark) {{
+    :root {{
+      --bg: #0b0f14; --surface: #131a23; --surface-2: #1a222c; --border: #2a333f;
+      --text: #e7e5df; --text-muted: #97a1af; --accent: #ff8a3d;
+      --sev-alta: #ff6b5e; --sev-media: #ffb454; --sev-baixa: #5fd694;
+      --sev-alta-bg: #2a1614; --sev-media-bg: #2a2013; --sev-baixa-bg: #12241b;
+    }}
+  }}
+  :root[data-theme="dark"] {{
+    --bg: #0b0f14; --surface: #131a23; --surface-2: #1a222c; --border: #2a333f;
+    --text: #e7e5df; --text-muted: #97a1af; --accent: #ff8a3d;
+    --sev-alta: #ff6b5e; --sev-media: #ffb454; --sev-baixa: #5fd694;
+    --sev-alta-bg: #2a1614; --sev-media-bg: #2a2013; --sev-baixa-bg: #12241b;
+  }}
+  :root[data-theme="light"] {{
+    --bg: #f5f4f0; --surface: #ffffff; --surface-2: #ece9e2; --border: #dcd8ce;
+    --text: #181c22; --text-muted: #5b6270; --accent: #d9622b;
+    --sev-alta: #b3261e; --sev-media: #a15c00; --sev-baixa: #1e6b3f;
+    --sev-alta-bg: #fbe9e7; --sev-media-bg: #fbeed9; --sev-baixa-bg: #e3f1e9;
+  }}
+  * {{ box-sizing: border-box; }}
+  body {{
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }}
+  .mono {{ font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, monospace; }}
+  header {{
+    display: flex; flex-direction: column; gap: 4px; padding: 22px 32px;
+    border-bottom: 1px solid var(--border); background: var(--surface);
+  }}
+  .eyebrow {{
+    font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size: .72rem;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600;
+  }}
+  header h1 {{ margin: 2px 0 0; font-size: 1.5rem; font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace;
+               font-weight: 700; text-wrap: balance; }}
+  header p {{ margin: 4px 0 0; color: var(--text-muted); font-size: .82rem; font-variant-numeric: tabular-nums; }}
+  .own-kpi-strip {{ padding: 18px 32px; border-bottom: 1px solid var(--border); background: var(--surface); }}
+  .own-kpi-strip h2 {{
+    font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size: .74rem;
+    text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin: 0 0 12px; font-weight: 600;
+  }}
+  .own-kpi-grid {{ display: flex; flex-wrap: wrap; gap: 12px; }}
+  .own-kpi {{ background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
+              padding: 10px 14px; min-width: 160px; }}
   .own-kpi-produto {{ font-weight: 700; font-size: .82rem; margin-bottom: 6px; }}
-  .own-kpi-row {{ display: flex; justify-content: space-between; gap: 10px; font-size: .76rem; opacity: .85; }}
+  .own-kpi-row {{ display: flex; justify-content: space-between; gap: 12px; font-size: .78rem;
+                  color: var(--text-muted); font-variant-numeric: tabular-nums; }}
+  .own-kpi-row strong {{ color: var(--text); font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; }}
+  .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+           gap: 16px; padding: 24px 32px; }}
+  .card {{
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border);
+    border-radius: 6px; padding: 16px 18px;
+  }}
+  .card.sev-alta {{ border-left-color: var(--sev-alta); }}
+  .card.sev-media {{ border-left-color: var(--sev-media); }}
+  .card.sev-baixa {{ border-left-color: var(--sev-baixa); }}
+  .card-head {{ display: flex; align-items: center; gap: 8px; }}
+  .badge {{
+    font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size: .68rem; font-weight: 700;
+    padding: 2px 8px; border-radius: 4px; letter-spacing: .06em;
+  }}
+  .sev-alta .badge {{ background: var(--sev-alta-bg); color: var(--sev-alta); }}
+  .sev-media .badge {{ background: var(--sev-media-bg); color: var(--sev-media); }}
+  .sev-baixa .badge {{ background: var(--sev-baixa-bg); color: var(--sev-baixa); }}
+  .tipo {{ font-size: .76rem; color: var(--text-muted); text-transform: capitalize; }}
+  .card h3 {{ margin: 10px 0 6px; font-size: 1.02rem; text-wrap: balance; }}
+  .card .vs {{ color: var(--text-muted); font-weight: 400; }}
+  .resumo {{ color: var(--text); opacity: .92; }}
+  .card p {{ line-height: 1.45; font-size: .88rem; }}
+  .label {{
+    display: block; font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size: .68rem;
+    text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 2px;
+  }}
+  .card ul {{ margin: 4px 0 10px; padding-left: 18px; font-size: .86rem; }}
+  .card li {{ margin-bottom: 3px; }}
+  .kpis {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }}
+  .kpi {{
+    font-size: .7rem; background: var(--surface-2); border: 1px solid var(--border);
+    padding: 2px 8px; border-radius: 4px; color: var(--text-muted);
+  }}
+  .foot {{
+    margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);
+    display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }}
+  .foot a {{ color: var(--accent); text-decoration: none; }}
+  .foot a:hover {{ text-decoration: underline; }}
+  .empty {{ padding: 48px; color: var(--text-muted); grid-column: 1 / -1; text-align: center; }}
+  .caveat {{ padding: 0 32px 28px; font-size: .78rem; color: var(--text-muted); max-width: 860px; line-height: 1.5; }}
+  a:focus-visible, button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+  @media (prefers-reduced-motion: reduce) {{ * {{ animation: none !important; transition: none !important; }} }}
 </style></head>
 <body>
 <header>
-  <h1>War Room — {config.get('marca', '')}</h1>
+  <span class="eyebrow">War Room · Concorrência</span>
+  <h1>{config.get('marca', '')}</h1>
   <p>Gerado em {meta['data']} · cadência configurada: {config.get('cadencia_sugerida_horas')}h ·
      {len(alertas_rodada)} alerta(s) nesta rodada</p>
 </header>
@@ -678,6 +749,10 @@ def main():
     ap.add_argument("--per-produto", type=int, default=15)
     ap.add_argument("--history-dir", default=DEFAULT_HISTORY_DIR)
     ap.add_argument("--token", default=None)
+    ap.add_argument("--simulate-ml", default=None,
+                     help="JSON com um snapshot pronto (mesmo formato interno de collect_snapshot) "
+                          "para testar/demonstrar o pipeline sem gastar Apify nem precisar de token. "
+                          "Ver scripts/examples/.")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -686,10 +761,13 @@ def main():
     config.setdefault("concorrentes", [])
     config.setdefault("produtos_monitorados", [])
 
-    token = get_token(config, args.token)
-    if not token:
-        print("ERRO: sem token Apify. Exporte APIFY_TOKEN ou passe --token.", file=sys.stderr)
-        sys.exit(1)
+    token = None
+    if not args.simulate_ml:
+        token = get_token(config, args.token)
+        if not token:
+            print("ERRO: sem token Apify. Exporte APIFY_TOKEN, passe --token, ou use --simulate-ml "
+                  "para testar sem coleta real.", file=sys.stderr)
+            sys.exit(1)
 
     playbook = load_playbook(os.path.join(SCRIPT_DIR, "playbook.json"))
     marca = config.get("marca", "marca")
@@ -701,15 +779,25 @@ def main():
 
     produtos_filter = [p.strip() for p in args.produtos.split(",")] if args.produtos else None
 
-    print(f"Coletando snapshot atual ({marca})...", file=sys.stderr)
-    snapshot_novo = collect_snapshot(config, token, produtos_filter, args.per_produto)
+    if args.simulate_ml:
+        print(f"[SIMULAÇÃO] carregando snapshot de {args.simulate_ml} (sem coleta real)", file=sys.stderr)
+        snapshot_novo = load_json(args.simulate_ml, {})
+    else:
+        print(f"Coletando snapshot atual ({marca})...", file=sys.stderr)
+        snapshot_novo = collect_snapshot(config, token, produtos_filter, args.per_produto)
+    primeira_rodada = not os.path.exists(snap_path)
     snapshot_antigo = load_json(snap_path, {})
 
     own_perf = {}
     if args.own_performance:
         own_perf = load_json(args.own_performance, {}).get("por_produto", {})
 
-    alertas = diff_precos(snapshot_antigo, snapshot_novo, config, playbook, own_perf=own_perf)
+    if primeira_rodada:
+        print("Linha de base — snapshot salvo, sem diffs (é a 1a execução para este marca/history-dir).",
+              file=sys.stderr)
+        alertas = []
+    else:
+        alertas = diff_precos(snapshot_antigo, snapshot_novo, config, playbook, own_perf=own_perf)
 
     ads_entries = []
     if args.ads_manual:

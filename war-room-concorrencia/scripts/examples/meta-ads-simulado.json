@@ -1,0 +1,11 @@
+{
+  "connector": "facebook",
+  "registros": [
+    {"date": "2026-07-01", "campaign": "Faciderm - Conversão", "impressions": 210000, "clicks": 5200,
+     "spend": 4300.00, "conversions": 61, "conversions_value": 18300.00},
+    {"date": "2026-07-01", "campaign": "Amaze - Awareness+Conversão", "impressions": 150000, "clicks": 3100,
+     "spend": 2600.00, "conversions": 28, "conversions_value": 7900.00},
+    {"date": "2026-07-01", "campaign": "Joie Fit - Retargeting", "impressions": 95000, "clicks": 4100,
+     "spend": 3100.00, "conversions": 55, "conversions_value": 14200.00}
+  ]
+}
