@@ -30,6 +30,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
+from _fonts import FONT_ORBITRON_B64, FONT_SHARETECH_B64
+
 APIFY_BASE = "https://api.apify.com/v2/acts"
 ML_ACTOR = "viralanalyzer~mercadolivre-scraper"
 
@@ -556,25 +558,27 @@ def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, 
 
 
 # ---------------------------------------------------------------------------- html
-SEV_LABEL = {"alta": "ALTA", "media": "MÉDIA", "baixa": "BAIXA"}
+SEV_LABEL = {"alta": "CRÍTICO", "media": "ATENÇÃO", "baixa": "NOMINAL"}
+SEV_ICON = {"alta": "▲", "media": "◆", "baixa": "●"}
 
 
-def render_card(a):
+def render_card(a, idx):
     estrategia_html = "".join(f"<li>{s}</li>" for s in a["estrategia"])
     kpis_html = "".join(f'<span class="kpi">{k}</span>' for k in a["kpis"])
-    link = (f'<a href="{a["evidencia_url"]}" target="_blank" rel="noopener">evidência ↗</a>'
-            if a.get("evidencia_url") else "")
+    link = (f'<a href="{a["evidencia_url"]}" target="_blank" rel="noopener">◈ ver evidência</a>'
+            if a.get("evidencia_url") else "<span></span>")
+    delay = f"{min(idx, 10) * 0.05:.2f}s"
     return f"""
-    <article class="card sev-{a['severidade']}">
+    <article class="card sev-{a['severidade']}" style="--d:{delay}">
       <div class="card-head">
-        <span class="badge">{SEV_LABEL.get(a['severidade'], a['severidade'].upper())}</span>
-        <span class="tipo">{a['tipo'].replace('_', ' ')} · {a['nivel']}</span>
+        <span class="badge"><span class="badge-ico">{SEV_ICON.get(a['severidade'], '●')}</span>{SEV_LABEL.get(a['severidade'], a['severidade'].upper())}</span>
+        <span class="tipo">{a['tipo'].replace('_', ' ')} · nível {a['nivel']}</span>
       </div>
-      <h3>{a['produto']} <span class="vs">×</span> {a['concorrente']}</h3>
+      <h3><span class="crosshair" aria-hidden="true"></span>{a['produto']} <span class="vs">vs</span> {a['concorrente']}</h3>
       <p class="resumo">{a['resumo']}</p>
-      <p><span class="label">Impacto na concorrência</span>{a['impacto_concorrencia']}</p>
-      <p><span class="label">Impacto estimado no volume</span>{a['impacto_volume']}</p>
-      <p class="label">Estratégia imediata</p>
+      <p><span class="label">// impacto na concorrência</span>{a['impacto_concorrencia']}</p>
+      <p><span class="label">// impacto estimado no volume</span>{a['impacto_volume']}</p>
+      <p class="label">// estratégia imediata</p>
       <ul>{estrategia_html}</ul>
       <div class="kpis">{kpis_html}</div>
       <div class="foot"><span>{a['data']}</span>{link}</div>
@@ -584,144 +588,259 @@ def render_card(a):
 def render_own_kpi(produto, v):
     cpa = f"R$ {v['cpa']:.2f}" if v.get("cpa") else "—"
     roas = f"{v['roas']:.2f}×" if v.get("roas") is not None else "—"
+    ctr = v.get("ctr_pct", 0)
+    barra = max(2, min(100, ctr * 10))
     return f"""
-    <div class="own-kpi">
-      <div class="own-kpi-produto">{produto}</div>
-      <div class="own-kpi-row"><span>Invest.</span><strong>R$ {v.get('spend', 0):,.2f}</strong></div>
-      <div class="own-kpi-row"><span>CTR</span><strong>{v.get('ctr_pct', 0):.2f}%</strong></div>
-      <div class="own-kpi-row"><span>CPA</span><strong>{cpa}</strong></div>
-      <div class="own-kpi-row"><span>ROAS</span><strong>{roas}</strong></div>
+    <div class="gauge">
+      <div class="gauge-produto">{produto}</div>
+      <div class="gauge-main">
+        <span class="gauge-value">{roas}</span><span class="gauge-tag">ROAS</span>
+      </div>
+      <div class="gauge-row"><span>CPA</span><strong>{cpa}</strong></div>
+      <div class="gauge-row"><span>INVEST.</span><strong>R$ {v.get('spend', 0):,.0f}</strong></div>
+      <div class="gauge-row"><span>CTR</span><strong>{ctr:.2f}%</strong></div>
+      <div class="signal-bar"><span style="width:{barra}%"></span></div>
     </div>"""
 
 
 def write_html(alertas_rodada, config, meta, path, own_perf=None):
     ordem = {"alta": 0, "media": 1, "baixa": 2}
-    cards = "".join(render_card(a) for a in sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]]))
+    ordenados = sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]])
+    cards = "".join(render_card(a, i) for i, a in enumerate(ordenados))
     if not cards:
-        cards = ('<div class="empty">Nenhuma mudança detectada nesta rodada '
-                  '(ou é a linha de base da 1ª execução).</div>')
+        cards = ('<div class="empty">❖ NENHUM ALVO NO RADAR NESTA VARREDURA<br>'
+                  '<span>(sem mudanças em relação à última rodada, ou é a linha de base)</span></div>')
+
+    n_alta = sum(1 for a in alertas_rodada if a["severidade"] == "alta")
+    n_media = sum(1 for a in alertas_rodada if a["severidade"] == "media")
+    if n_alta:
+        mc_level, mc_text = "alta", f"MASTER WARNING — {n_alta} ALERTA(S) CRÍTICO(S) — AÇÃO IMEDIATA"
+    elif n_media:
+        mc_level, mc_text = "media", f"CAUTION — {n_media} ALERTA(S) EM ATENÇÃO — REVISAR"
+    else:
+        mc_level, mc_text = "ok", "TODOS OS SISTEMAS NOMINAIS — NENHUMA AMEAÇA DETECTADA"
 
     own_kpi_section = ""
     if own_perf:
         own_cards = "".join(render_own_kpi(p, v) for p, v in own_perf.items())
         own_kpi_section = f"""
-<section class="own-kpi-strip">
-  <h2>Desempenho próprio — Google/Meta Ads (últimos dados importados)</h2>
-  <div class="own-kpi-grid">{own_cards}</div>
+<section class="gauge-strip">
+  <h2>// desempenho próprio — google/meta ads (últimos dados importados)</h2>
+  <div class="gauge-grid">{own_cards}</div>
 </section>"""
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>War Room — {config.get('marca', '')}</title>
 <style>
+  @font-face {{
+    font-family: 'Orbitron'; font-weight: 400 900; font-style: normal; font-display: swap;
+    src: url(data:font/woff2;base64,{FONT_ORBITRON_B64}) format('woff2');
+  }}
+  @font-face {{
+    font-family: 'Share Tech Mono'; font-weight: 400; font-style: normal; font-display: swap;
+    src: url(data:font/woff2;base64,{FONT_SHARETECH_B64}) format('woff2');
+  }}
   :root {{
-    --bg: #f5f4f0; --surface: #ffffff; --surface-2: #ece9e2; --border: #dcd8ce;
-    --text: #181c22; --text-muted: #5b6270; --accent: #d9622b;
-    --sev-alta: #b3261e; --sev-media: #a15c00; --sev-baixa: #1e6b3f;
-    --sev-alta-bg: #fbe9e7; --sev-media-bg: #fbeed9; --sev-baixa-bg: #e3f1e9;
-    color-scheme: light dark;
-  }}
-  @media (prefers-color-scheme: dark) {{
-    :root {{
-      --bg: #0b0f14; --surface: #131a23; --surface-2: #1a222c; --border: #2a333f;
-      --text: #e7e5df; --text-muted: #97a1af; --accent: #ff8a3d;
-      --sev-alta: #ff6b5e; --sev-media: #ffb454; --sev-baixa: #5fd694;
-      --sev-alta-bg: #2a1614; --sev-media-bg: #2a2013; --sev-baixa-bg: #12241b;
-    }}
-  }}
-  :root[data-theme="dark"] {{
-    --bg: #0b0f14; --surface: #131a23; --surface-2: #1a222c; --border: #2a333f;
-    --text: #e7e5df; --text-muted: #97a1af; --accent: #ff8a3d;
-    --sev-alta: #ff6b5e; --sev-media: #ffb454; --sev-baixa: #5fd694;
-    --sev-alta-bg: #2a1614; --sev-media-bg: #2a2013; --sev-baixa-bg: #12241b;
-  }}
-  :root[data-theme="light"] {{
-    --bg: #f5f4f0; --surface: #ffffff; --surface-2: #ece9e2; --border: #dcd8ce;
-    --text: #181c22; --text-muted: #5b6270; --accent: #d9622b;
-    --sev-alta: #b3261e; --sev-media: #a15c00; --sev-baixa: #1e6b3f;
-    --sev-alta-bg: #fbe9e7; --sev-media-bg: #fbeed9; --sev-baixa-bg: #e3f1e9;
+    --void: #05070a; --panel: #0b121a; --panel-2: #0f1922; --line: rgba(70,255,224,.18);
+    --hud: #29ffe0; --hud-soft: rgba(41,255,224,.45); --hud-dim: rgba(41,255,224,.08);
+    --text: #d8f7f0; --text-dim: #6f8f97;
+    --alta: #ff3b52; --alta-bg: rgba(255,59,82,.1);
+    --media: #ffb02e; --media-bg: rgba(255,176,46,.1);
+    --baixa: #39ff9d; --baixa-bg: rgba(57,255,157,.08);
+    color-scheme: dark;
   }}
   * {{ box-sizing: border-box; }}
+  html, body {{ background: var(--void); }}
   body {{
-    margin: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0; color: var(--text); position: relative; min-height: 100vh; overflow-x: hidden;
+    font-family: 'Share Tech Mono', ui-monospace, "Roboto Mono", monospace;
+    background-image:
+      linear-gradient(var(--hud-dim) 1px, transparent 1px),
+      linear-gradient(90deg, var(--hud-dim) 1px, transparent 1px);
+    background-size: 36px 36px;
   }}
-  .mono {{ font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, monospace; }}
-  header {{
-    display: flex; flex-direction: column; gap: 4px; padding: 22px 32px;
-    border-bottom: 1px solid var(--border); background: var(--surface);
+  body::before {{
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+    background: radial-gradient(ellipse at 50% 0%, transparent 45%, rgba(0,0,0,.6) 100%);
   }}
+  body::after {{
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 6; opacity: .5;
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
+                 rgba(0,0,0,.18) 3px, rgba(0,0,0,0) 4px);
+  }}
+  .scan-band {{
+    position: fixed; left: 0; right: 0; top: -30vh; height: 30vh; z-index: 4; pointer-events: none;
+    background: linear-gradient(to bottom, transparent, rgba(41,255,224,.06), transparent);
+    animation: scan 9s linear infinite;
+  }}
+  @keyframes scan {{ 0% {{ transform: translateY(0); }} 100% {{ transform: translateY(430vh); }} }}
+  a {{ color: var(--hud); }}
+  h1, h2, .gauge-value {{ font-family: 'Orbitron', sans-serif; }}
+  .frame {{ position: relative; z-index: 1; }}
+  header.frame {{
+    display: flex; flex-direction: column; gap: 8px; padding: 20px 32px;
+    border-bottom: 1px solid var(--line); background: linear-gradient(180deg, var(--panel), transparent);
+  }}
+  .hud-top-row {{ display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }}
   .eyebrow {{
-    font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size: .72rem;
-    letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600;
+    font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: var(--hud);
+    font-weight: 600; opacity: .9;
   }}
-  header h1 {{ margin: 2px 0 0; font-size: 1.5rem; font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace;
-               font-weight: 700; text-wrap: balance; }}
-  header p {{ margin: 4px 0 0; color: var(--text-muted); font-size: .82rem; font-variant-numeric: tabular-nums; }}
-  .own-kpi-strip {{ padding: 18px 32px; border-bottom: 1px solid var(--border); background: var(--surface); }}
-  .own-kpi-strip h2 {{
-    font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size: .74rem;
-    text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin: 0 0 12px; font-weight: 600;
+  .radar-badge {{
+    display: inline-flex; align-items: center; gap: 8px; font-size: .7rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim);
   }}
-  .own-kpi-grid {{ display: flex; flex-wrap: wrap; gap: 12px; }}
-  .own-kpi {{ background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
-              padding: 10px 14px; min-width: 160px; }}
-  .own-kpi-produto {{ font-weight: 700; font-size: .82rem; margin-bottom: 6px; }}
-  .own-kpi-row {{ display: flex; justify-content: space-between; gap: 12px; font-size: .78rem;
-                  color: var(--text-muted); font-variant-numeric: tabular-nums; }}
-  .own-kpi-row strong {{ color: var(--text); font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; }}
-  .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-           gap: 16px; padding: 24px 32px; }}
+  .radar {{
+    width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--hud-soft); position: relative;
+    background: radial-gradient(circle, rgba(41,255,224,.18), transparent 70%);
+  }}
+  .radar::before {{
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--hud), transparent 35%);
+    animation: spin 2.2s linear infinite;
+  }}
+  @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+  h1 {{
+    margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: .02em;
+    text-transform: uppercase; color: var(--hud); text-shadow: 0 0 10px var(--hud-soft), 0 0 30px rgba(41,255,224,.2);
+    text-wrap: balance;
+  }}
+  .hud-meta {{ display: flex; flex-wrap: wrap; gap: 18px; font-size: .78rem; color: var(--text-dim);
+               font-variant-numeric: tabular-nums; }}
+  .hud-meta strong {{ color: var(--text); }}
+  .master-caution {{
+    margin: 10px 32px 0; padding: 9px 16px; border-radius: 4px; font-size: .78rem; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase; display: flex; align-items: center; gap: 10px;
+    border: 1px solid; z-index: 1; position: relative;
+  }}
+  .master-caution .mc-dot {{ width: 8px; height: 8px; border-radius: 50%; flex: none; }}
+  .master-caution.alta {{
+    color: var(--alta); border-color: var(--alta); background: var(--alta-bg);
+    animation: warn-pulse 1.4s ease-in-out infinite;
+  }}
+  .master-caution.alta .mc-dot {{ background: var(--alta); box-shadow: 0 0 8px var(--alta); }}
+  .master-caution.media {{ color: var(--media); border-color: var(--media); background: var(--media-bg); }}
+  .master-caution.media .mc-dot {{ background: var(--media); box-shadow: 0 0 8px var(--media); }}
+  .master-caution.ok {{ color: var(--baixa); border-color: rgba(57,255,157,.3); background: var(--baixa-bg); }}
+  .master-caution.ok .mc-dot {{ background: var(--baixa); box-shadow: 0 0 8px var(--baixa); }}
+  @keyframes warn-pulse {{
+    0%, 100% {{ box-shadow: 0 0 0 rgba(255,59,82,0); }} 50% {{ box-shadow: 0 0 22px -4px var(--alta); }}
+  }}
+  .gauge-strip {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
+  .gauge-strip h2 {{
+    font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400;
+  }}
+  .gauge-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
+  .gauge {{
+    position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    padding: 12px 16px; min-width: 168px;
+  }}
+  .gauge::before, .gauge::after {{ content: ""; position: absolute; width: 10px; height: 10px; }}
+  .gauge::before {{ top: -1px; left: -1px; border-top: 2px solid var(--hud-soft); border-left: 2px solid var(--hud-soft); }}
+  .gauge::after {{ bottom: -1px; right: -1px; border-bottom: 2px solid var(--hud-soft); border-right: 2px solid var(--hud-soft); }}
+  .gauge-produto {{ font-size: .74rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }}
+  .gauge-main {{ display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px; }}
+  .gauge-value {{ font-size: 1.7rem; font-weight: 700; color: var(--hud); text-shadow: 0 0 12px var(--hud-soft); }}
+  .gauge-tag {{ font-size: .66rem; color: var(--text-dim); letter-spacing: .08em; }}
+  .gauge-row {{ display: flex; justify-content: space-between; gap: 12px; font-size: .76rem;
+                color: var(--text-dim); font-variant-numeric: tabular-nums; margin-top: 2px; }}
+  .gauge-row strong {{ color: var(--text); }}
+  .signal-bar {{ margin-top: 10px; height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; }}
+  .signal-bar span {{ display: block; height: 100%; background: var(--hud); box-shadow: 0 0 6px var(--hud-soft); }}
+  .grid {{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px; padding: 24px 32px; position: relative; z-index: 1;
+  }}
   .card {{
-    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--border);
-    border-radius: 6px; padding: 16px 18px;
+    position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    padding: 16px 18px; animation: rise .5s ease both; animation-delay: var(--d, 0s);
   }}
-  .card.sev-alta {{ border-left-color: var(--sev-alta); }}
-  .card.sev-media {{ border-left-color: var(--sev-media); }}
-  .card.sev-baixa {{ border-left-color: var(--sev-baixa); }}
-  .card-head {{ display: flex; align-items: center; gap: 8px; }}
+  .card::before, .card::after {{ content: ""; position: absolute; width: 14px; height: 14px; }}
+  .card::before {{ top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }}
+  .card::after {{ bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }}
+  .card.sev-alta::before, .card.sev-alta::after {{ border-color: var(--alta); }}
+  .card.sev-media::before, .card.sev-media::after {{ border-color: var(--media); }}
+  .card.sev-baixa::before, .card.sev-baixa::after {{ border-color: var(--baixa); }}
+  .card.sev-alta {{ animation: rise .5s ease both, pulse-alta 2.4s ease-in-out .5s infinite; }}
+  @keyframes pulse-alta {{
+    0%, 100% {{ box-shadow: 0 0 0 rgba(255,59,82,0); }} 50% {{ box-shadow: 0 0 18px -3px var(--alta); }}
+  }}
+  @keyframes rise {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: none; }} }}
+  .card-head {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
   .badge {{
-    font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size: .68rem; font-weight: 700;
-    padding: 2px 8px; border-radius: 4px; letter-spacing: .06em;
+    display: inline-flex; align-items: center; gap: 5px; font-size: .68rem; font-weight: 700;
+    padding: 3px 9px; border-radius: 3px; letter-spacing: .08em; border: 1px solid;
   }}
-  .sev-alta .badge {{ background: var(--sev-alta-bg); color: var(--sev-alta); }}
-  .sev-media .badge {{ background: var(--sev-media-bg); color: var(--sev-media); }}
-  .sev-baixa .badge {{ background: var(--sev-baixa-bg); color: var(--sev-baixa); }}
-  .tipo {{ font-size: .76rem; color: var(--text-muted); text-transform: capitalize; }}
-  .card h3 {{ margin: 10px 0 6px; font-size: 1.02rem; text-wrap: balance; }}
-  .card .vs {{ color: var(--text-muted); font-weight: 400; }}
-  .resumo {{ color: var(--text); opacity: .92; }}
-  .card p {{ line-height: 1.45; font-size: .88rem; }}
+  .badge-ico {{ font-size: .6rem; }}
+  .sev-alta .badge {{ background: var(--alta-bg); color: var(--alta); border-color: var(--alta); }}
+  .sev-media .badge {{ background: var(--media-bg); color: var(--media); border-color: var(--media); }}
+  .sev-baixa .badge {{ background: var(--baixa-bg); color: var(--baixa); border-color: var(--baixa); }}
+  .tipo {{ font-size: .74rem; color: var(--text-dim); text-transform: capitalize; }}
+  .card h3 {{
+    margin: 12px 0 6px; font-size: 1.02rem; text-wrap: balance; font-weight: 400;
+    display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace;
+  }}
+  .crosshair {{
+    width: 12px; height: 12px; flex: none; position: relative; opacity: .7;
+    border: 1px solid var(--hud-soft); border-radius: 50%;
+  }}
+  .crosshair::before, .crosshair::after {{ content: ""; position: absolute; background: var(--hud-soft); }}
+  .crosshair::before {{ left: 50%; top: -3px; width: 1px; height: 4px; transform: translateX(-50%); }}
+  .crosshair::after {{ left: 50%; bottom: -3px; width: 1px; height: 4px; transform: translateX(-50%); }}
+  .card .vs {{ color: var(--text-dim); font-size: .8rem; }}
+  .resumo {{ opacity: .92; }}
+  .card p {{ line-height: 1.5; font-size: .87rem; }}
   .label {{
-    display: block; font-family: ui-monospace, "SF Mono", "Roboto Mono", monospace; font-size: .68rem;
-    text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 2px;
+    display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--hud); opacity: .75; margin-bottom: 3px;
   }}
-  .card ul {{ margin: 4px 0 10px; padding-left: 18px; font-size: .86rem; }}
-  .card li {{ margin-bottom: 3px; }}
-  .kpis {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }}
+  .card ul {{ list-style: none; margin: 6px 0 10px; padding: 0; font-size: .86rem; }}
+  .card li {{ margin-bottom: 5px; padding-left: 16px; position: relative; }}
+  .card li::before {{ content: "▸"; position: absolute; left: 0; color: var(--hud); }}
+  .kpis {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }}
   .kpi {{
-    font-size: .7rem; background: var(--surface-2); border: 1px solid var(--border);
-    padding: 2px 8px; border-radius: 4px; color: var(--text-muted);
+    font-size: .68rem; background: var(--panel-2); border: 1px solid var(--line);
+    padding: 2px 8px; border-radius: 3px; color: var(--text-dim);
   }}
   .foot {{
-    margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);
-    display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-muted);
+    margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line);
+    display: flex; justify-content: space-between; font-size: .7rem; color: var(--text-dim);
     font-variant-numeric: tabular-nums;
   }}
-  .foot a {{ color: var(--accent); text-decoration: none; }}
+  .foot a {{ text-decoration: none; }}
   .foot a:hover {{ text-decoration: underline; }}
-  .empty {{ padding: 48px; color: var(--text-muted); grid-column: 1 / -1; text-align: center; }}
-  .caveat {{ padding: 0 32px 28px; font-size: .78rem; color: var(--text-muted); max-width: 860px; line-height: 1.5; }}
-  a:focus-visible, button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
-  @media (prefers-reduced-motion: reduce) {{ * {{ animation: none !important; transition: none !important; }} }}
+  .empty {{
+    padding: 60px 20px; color: var(--text-dim); grid-column: 1 / -1; text-align: center;
+    font-size: 1rem; letter-spacing: .04em;
+  }}
+  .empty span {{ display: block; margin-top: 8px; font-size: .78rem; opacity: .7; }}
+  .caveat {{
+    padding: 0 32px 30px; font-size: .76rem; color: var(--text-dim); max-width: 860px;
+    line-height: 1.6; position: relative; z-index: 1;
+  }}
+  a:focus-visible, button:focus-visible {{ outline: 2px solid var(--hud); outline-offset: 2px; }}
+  @media (prefers-reduced-motion: reduce) {{
+    .scan-band {{ display: none; }}
+    * {{ animation: none !important; transition: none !important; }}
+  }}
 </style></head>
 <body>
-<header>
-  <span class="eyebrow">War Room · Concorrência</span>
+<div class="scan-band"></div>
+<header class="frame">
+  <div class="hud-top-row">
+    <span class="eyebrow">◈ sistema de guerra competitiva</span>
+    <span class="radar-badge"><span class="radar"></span> monitorando</span>
+  </div>
   <h1>{config.get('marca', '')}</h1>
-  <p>Gerado em {meta['data']} · cadência configurada: {config.get('cadencia_sugerida_horas')}h ·
-     {len(alertas_rodada)} alerta(s) nesta rodada</p>
+  <div class="hud-meta">
+    <span>ÚLTIMA VARREDURA <strong>{meta['data']}</strong></span>
+    <span>CADÊNCIA <strong>{config.get('cadencia_sugerida_horas')}h</strong></span>
+    <span>ALERTAS NESTA RODADA <strong>{len(alertas_rodada)}</strong></span>
+  </div>
 </header>
+<div class="master-caution {mc_level}"><span class="mc-dot"></span>{mc_text}</div>
 {own_kpi_section}
 <div class="grid">{cards}</div>
 <p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os
