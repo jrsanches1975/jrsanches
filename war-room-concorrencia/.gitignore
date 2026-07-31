@@ -4,6 +4,9 @@ scripts/ads-manual.json
 scripts/*-30d.json
 scripts/own-performance*.json
 scripts/*-ads-raw.json
+scripts/meta-ads-novos.json
+scripts/google-ads-transparency-novos.json
+scripts/trends-alertas.json
 outputs/
 __pycache__/
 *.pyc

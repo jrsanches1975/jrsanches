@@ -195,6 +195,73 @@ alimentada automaticamente, o Google Drive (já conectado) permite ler o arquivo
 qualquer sessão futura e alimentar o `own_performance.py` sem precisar rechamar
 `get_data` toda vez.
 
+### 6. Automatizar Meta Ad Library, Google Ads Transparency Center e Google Trends (beta) + análise de criativo
+
+Isto substitui a captura manual do `--ads-manual` (passo 4) por coleta automática via
+Apify — com uma ressalva séria que precisa ser dita **antes** de rodar:
+
+**Esta sessão de trabalho pode estar com o acesso à rede bloqueado para esses hosts**
+(política de egress da organização — já aconteceu: `api.apify.com`,
+`facebook.com`, `adstransparency.google.com` e `trends.google.com` retornaram 403 de
+política ao testar). Antes de prometer que vai rodar, teste com uma chamada pequena;
+se vier 403 de CONNECT, **não tente contornar** — avise o usuário que esta sessão não
+alcança esses hosts e que a execução real precisa acontecer num ambiente com acesso
+(a máquina do usuário, outro ambiente do Claude Code, um cron fora deste sandbox).
+
+Os três scripts abaixo (`meta_ads.py`, `google_ads_transparency.py`,
+`google_trends.py`) usam actors do Apify **escolhidos por pesquisa** (nome real,
+existem no Apify Store), mas o **schema de input/output NÃO foi confirmado por uma
+chamada real** — ao contrário do actor de Mercado Livre (testado e documentado no
+`radar-keywords-concorrentes`). Isso é diferente de inventar dados: os actors existem
+de verdade, só falta calibrar o parser no primeiro uso real. Fluxo:
+
+1. Rode com `--debug-raw` na primeira execução real (fora deste sandbox, onde há
+   rede): o script imprime o primeiro item bruto retornado por concorrente/termo.
+2. Compare com `CAMPOS_ESPERADOS` no topo do script. Se os nomes não baterem, ajuste
+   `extrair_campos()` (ou troque o actor em `config["apify_actors"]` por uma das
+   alternativas abaixo — a chamada em si, via `apify_common.apify_run`, é genérica e
+   não muda).
+3. Depois de calibrado, roda normal:
+   ```bash
+   python meta_ads.py --config config.json --history-dir ../outputs/demo-history \
+     --out ../outputs/meta-ads-novos.json
+   python google_ads_transparency.py --config config.json --history-dir ../outputs/demo-history \
+     --out ../outputs/google-ads-transparency-novos.json
+   python google_trends.py --config config.json --history-dir ../outputs/demo-history \
+     --out ../outputs/trends-alertas.json
+   python war_room.py --config config.json --meta-ads-json ../outputs/meta-ads-novos.json \
+     --google-ads-transparency-json ../outputs/google-ads-transparency-novos.json \
+     --trends-json ../outputs/trends-alertas.json --own-performance ../outputs/own-performance-por-produto.json \
+     --out ../outputs/war-room.xlsx --html ../outputs/war-room.html
+   ```
+   Cada um detecta **anúncio novo** (não visto na rodada anterior) por diff de ID —
+   isso é o pedido de "monitorar anúncios novos dos concorrentes", automatizado tanto
+   para Meta quanto para Google. `google_trends.py` detecta picos de interesse de
+   busca (marca, produtos e concorrentes) acima de `--limiar-pct` (default 40%).
+
+Actor default de cada um (trocável em `config["apify_actors"]` sem mexer no código):
+
+| Sinal | Actor default | Alternativas encontradas (se o default não servir) |
+|---|---|---|
+| Meta Ad Library | `apify/facebook-ads-scraper` (oficial) | `viralanalyzer/facebook-ads-library`, `curious_coder/facebook-ads-library-scraper`, `automation-lab/facebook-ads-library` |
+| Google Ads Transparency Center | `unseenuser/google-ads` | `lentic_clockss/google-ads-transparency-center-vn`, `automation-lab/google-ads-scraper` |
+| Google Trends | `apify/google-trends-scraper` (oficial) | `automation-lab/google-trends-scraper`, `scrapemint/google-trends-scraper` |
+
+Por que Apify para Trends em vez de `pytrends`: a lib está com o repositório
+arquivado desde abril/2025 (sem manutenção) e sofre rate-limit imprevisível; a API
+oficial do Google Trends segue em alfa fechado (allowlist). Preferimos manter tudo
+no mesmo provedor/token já usado no resto da skill.
+
+**Análise de criativo do concorrente que está impactando:** os três scripts trazem
+`imagem_url`/`video_url`/texto do anúncio quando o actor retorna isso. Quando um
+alerta `novo_criativo_concorrente` (ou um preço/desconto de severidade alta) tiver
+essa evidência, é você (o agente) quem faz a leitura — busque a imagem/página (Read
+ou WebFetch, se o host não estiver bloqueado) e resuma: gancho usado, oferta,
+formato, CTA, e se cita a marca/produto próprio no texto (o que viraria caso de
+`brand-bidding-monitor`). Não invente a leitura do criativo sem ter a evidência na
+mão — se a captura falhar, diga isso e peça print/link ao usuário, do mesmo jeito que
+`brand-bidding-monitor` já faz para achados manuais.
+
 ## O playbook de resposta (o que muda por tipo de mudança)
 
 O mapeamento completo tipo-de-mudança → impacto na concorrência → impacto estimado no
@@ -206,9 +273,11 @@ agressivo de 25%".
 
 Resumo dos tipos cobertos: queda de preço (leve/moderada/agressiva), novo desconto/cupom,
 aumento de preço do concorrente (oportunidade), salto de posição/visibilidade no Mercado
-Livre, aumento de anúncios ativos (Meta/Google/ML Ads — via captura manual), concorrente
-saiu da busca (possível ruptura de estoque) e novo entrante (concorrente novo pescando o
-mesmo termo).
+Livre, aumento de anúncios ativos (Meta/Google/ML Ads — via captura manual ou via os
+scripts beta do passo 6), concorrente saiu da busca (possível ruptura de estoque), novo
+entrante (concorrente novo pescando o mesmo termo), novo criativo de concorrente detectado
+no Meta Ad Library/Google Ads Transparency Center, e pico de interesse de busca (Google
+Trends) na marca, num produto ou num concorrente.
 
 ## Princípios
 

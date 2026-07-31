@@ -25,14 +25,12 @@ import argparse
 import json
 import os
 import sys
-import urllib.error
 import urllib.parse
-import urllib.request
 from datetime import datetime, timezone
 
 from _fonts import FONT_ORBITRON_B64, FONT_SHARETECH_B64
+from apify_common import apify_run, get_token, load_json, norm, save_json
 
-APIFY_BASE = "https://api.apify.com/v2/acts"
 ML_ACTOR = "viralanalyzer~mercadolivre-scraper"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -46,45 +44,6 @@ SEVERIDADE_POR_NIVEL = {
 
 
 # ----------------------------------------------------------------------------- infra
-def get_token(config, cli_token):
-    return os.environ.get("APIFY_TOKEN") or cli_token or config.get("apify_token") or ""
-
-
-def apify_run(actor, payload, token, timeout=240):
-    url = f"{APIFY_BASE}/{actor}/run-sync-get-dataset-items?token={token}"
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode()), None
-    except urllib.error.HTTPError as e:
-        body = ""
-        try:
-            body = e.read().decode()[:200]
-        except Exception:
-            pass
-        return [], f"HTTP {e.code}: {body}"
-    except Exception as e:
-        return [], repr(e)
-
-
-def norm(s):
-    return " ".join((s or "").lower().split())
-
-
-def load_json(path, default):
-    if not os.path.exists(path):
-        return default
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
-
-
-def save_json(path, data):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -356,6 +315,33 @@ def build_manual_links(config):
             "google_ads_transparency": f"https://adstransparency.google.com/?region=BR&domain={google_dom}" if google_dom else None,
         })
     return links
+
+
+def ingest_novos_criativos(path, canal_label, playbook):
+    """Lê a saída de meta_ads.py ou google_ads_transparency.py (novos_anuncios) e
+    converte cada anúncio novo num alerta com o pacote completo do playbook."""
+    data = load_json(path, {})
+    alertas = []
+    for n in data.get("novos_anuncios", []):
+        texto = (n.get("titulo") or n.get("corpo") or n.get("descricao") or "(sem texto capturado)")
+        resumo = f"{n['concorrente']} lançou novo anúncio ativo em {canal_label}: \"{texto[:90]}\""
+        detalhes = {k: v for k, v in n.items() if k != "concorrente"}
+        evidencia = n.get("url_anuncio") or n.get("imagem_url") or n.get("video_url")
+        alertas.append(make_alert("novo_criativo_concorrente", "default", "(todos os produtos)",
+                                   n["concorrente"], resumo, detalhes, evidencia, playbook))
+    return alertas
+
+
+def ingest_picos_trends(path, playbook):
+    """Lê a saída de google_trends.py (picos) e converte cada pico num alerta."""
+    data = load_json(path, {})
+    alertas = []
+    for p in data.get("picos", []):
+        resumo = (f"Interesse de busca por '{p['termo']}' subiu de {p['media_antiga']:.0f} "
+                  f"para {p['media_nova']:.0f} ({p['pct']:+.0f}%).")
+        alertas.append(make_alert("pico_interesse_busca", "default", p["termo"], "(Google Trends)",
+                                   resumo, p, None, playbook))
+    return alertas
 
 
 # ------------------------------------------------------------------------- console
@@ -872,6 +858,12 @@ def main():
                      help="JSON com um snapshot pronto (mesmo formato interno de collect_snapshot) "
                           "para testar/demonstrar o pipeline sem gastar Apify nem precisar de token. "
                           "Ver scripts/examples/.")
+    ap.add_argument("--meta-ads-json", default=None,
+                     help="saída de meta_ads.py (novos_anuncios) — vira alertas 'novo_criativo_concorrente'")
+    ap.add_argument("--google-ads-transparency-json", default=None,
+                     help="saída de google_ads_transparency.py (novos_anuncios) — idem, canal Google")
+    ap.add_argument("--trends-json", default=None,
+                     help="saída de google_trends.py (picos) — vira alertas 'pico_interesse_busca'")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -925,6 +917,13 @@ def main():
         alertas_ads, ads_history = diff_ads(ads_entries, ads_history, config, playbook)
         alertas += alertas_ads
         save_json(ads_hist_path, ads_history)
+
+    if args.meta_ads_json:
+        alertas += ingest_novos_criativos(args.meta_ads_json, "Meta Ad Library", playbook)
+    if args.google_ads_transparency_json:
+        alertas += ingest_novos_criativos(args.google_ads_transparency_json, "Google Ads Transparency Center", playbook)
+    if args.trends_json:
+        alertas += ingest_picos_trends(args.trends_json, playbook)
 
     alertas_log = load_json(log_path, [])
     alertas_log += alertas

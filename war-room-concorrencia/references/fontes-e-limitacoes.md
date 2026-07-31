@@ -3,6 +3,23 @@
 Detalhe do que cada fonte realmente entrega, para calibrar promessa vs. entrega antes de
 rodar a war room. Leia antes de configurar cadência ou prometer cobertura ao usuário.
 
+## Bloqueio de rede desta sessão de trabalho (achado real, não hipotético)
+
+Ao tentar automatizar Meta Ad Library, Google Ads Transparency Center e Google Trends,
+uma chamada de teste direta (`curl`) para `api.apify.com`, `www.facebook.com`,
+`adstransparency.google.com` e `trends.google.com` voltou **403 de política de
+egress** da organização para esta sessão — não é erro de configuração, é bloqueio
+deliberado (`gateway answered 403 to CONNECT (policy denial)`). Ferramentas de MCP
+(Windsor.ai) e as ferramentas de busca (`WebSearch`) continuam funcionando porque usam
+outro canal, não a rede direta desta sessão.
+
+Isso significa que os scripts `meta_ads.py`, `google_ads_transparency.py` e
+`google_trends.py` **não puderam ser testados ao vivo** nesta sessão — foram escritos
+com actors reais (nomes conferidos no Apify Store via busca), mas o schema exato de
+input/output não foi confirmado por uma chamada real. Rode a primeira execução real
+num ambiente com acesso (máquina do usuário, outro ambiente do Claude Code) e calibre
+a partir de `--debug-raw` — ver SKILL.md, passo 6.
+
 ## Mercado Livre — preço, desconto e visibilidade (automatizado, sinal forte)
 
 Reusa o mesmo actor do `radar-keywords-concorrentes`
@@ -35,9 +52,16 @@ Reusa o mesmo actor do `radar-keywords-concorrentes`
 - **Google Ads Transparency Center** (`adstransparency.google.com`): público, gratuito,
   indexa por **anunciante** (não por keyword). Mostra os anúncios **ativos** de um
   anunciante conhecido — não o gasto. Serve para contar quantos anúncios um concorrente
-  tem no ar e ver esse número crescer/cair ao longo do tempo. Hoje é **captura manual**:
-  a war room gera o link pronto (`https://adstransparency.google.com/?region=BR&domain=<dominio>`)
-  e recebe a contagem via `--ads-manual`.
+  tem no ar e ver esse número crescer/cair ao longo do tempo, e para capturar o
+  **criativo** (headline/descrição/imagem/vídeo) de cada anúncio. Duas formas de captar:
+  - **Manual** (sempre funciona): a war room gera o link pronto
+    (`https://adstransparency.google.com/?region=BR&domain=<dominio>`) e recebe a
+    contagem via `--ads-manual`.
+  - **Automatizada, BETA** (`scripts/google_ads_transparency.py`, actor default
+    `unseenuser/google-ads`, alternativas `lentic_clockss/google-ads-transparency-center-vn`
+    e `automation-lab/google-ads-scraper`): detecta anúncio NOVO por diff de ID e traz o
+    criativo. **Não testado ao vivo nesta sessão** (ver seção de bloqueio de rede acima)
+    — calibre com `--debug-raw` no primeiro uso real.
 - **Auction Insights:** a fonte definitiva de quem disputa o leilão da sua própria marca
   — mas exige acesso à conta Google Ads da marca e só enxerga os termos em que ELA
   mesma anuncia. Fora do escopo de scraping; se o usuário tiver acesso, oriente a puxar
@@ -50,13 +74,17 @@ Reusa o mesmo actor do `radar-keywords-concorrentes`
   políticos/de questão social — que não é o caso de concorrência comercial de produto.
   Não afirme valor investido.
 - **Meta Ad Library** (`facebook.com/ads/library/?active_status=active&country=BR&q=<nome>`):
-  público, gratuito, mostra os criativos **ativos** de uma página. Contar quantos
-  anúncios ativos aparecem para a página de um concorrente, e ver esse número crescer
-  entre rodadas, é o proxy usado aqui. Hoje é **captura manual** via `--ads-manual`
-  (mesmo mecanismo do Google Ads Transparency Center).
-- Sem actor de scraping validado neste ambiente para o Ad Library — se o usuário tiver
-  acesso a um Apify actor confiável para isso, pode-se automatizar no futuro (ver seção
-  "Evolução"); até lá, não simule esse dado.
+  público, gratuito, mostra os criativos **ativos** de uma página. Duas formas de captar:
+  - **Manual** (sempre funciona): contar quantos anúncios ativos aparecem para a página
+    de um concorrente, e ver esse número crescer entre rodadas, via `--ads-manual`.
+  - **Automatizada, BETA** (`scripts/meta_ads.py`, actor default
+    `apify/facebook-ads-scraper` — oficial da Apify, alternativas
+    `viralanalyzer/facebook-ads-library`, `curious_coder/facebook-ads-library-scraper`,
+    `automation-lab/facebook-ads-library`): detecta anúncio NOVO por diff de ID (ou hash
+    do conteúdo, se o actor não trouxer ID estável) e traz texto/imagem/vídeo do
+    criativo. **Não testado ao vivo nesta sessão** (bloqueio de rede — ver acima);
+    calibre com `--debug-raw` no primeiro uso real, e troque o actor em
+    `config["apify_actors"]["meta_ads"]` se o default não servir.
 
 ## Mercado Livre Ads (Mercado Ads / patrocinado)
 
@@ -65,6 +93,36 @@ Reusa o mesmo actor do `radar-keywords-concorrentes`
   (ver seção Mercado Livre acima). Se o usuário tiver acesso ao painel de Mercado Ads da
   própria conta, ele pode comparar o próprio CPC/impression share como leitura indireta
   da pressão competitiva, mas isso não vem de scraping de terceiro.
+
+## Google Trends — interesse de busca (BETA, automatizado, não testado ao vivo)
+
+`scripts/google_trends.py` acompanha o interesse de busca (0-100, escala relativa do
+próprio Google Trends) da marca, dos produtos e dos concorrentes, e alerta quando a
+média de uma rodada sobe além de `--limiar-pct` (default 40%) em relação à rodada
+anterior. Actor default `apify/google-trends-scraper` (oficial), alternativas
+`automation-lab/google-trends-scraper` e `scrapemint/google-trends-scraper`.
+
+Por que via Apify e não a lib `pytrends`: o repositório está arquivado desde
+abril/2025 (sem manutenção) e sofre rate-limit imprevisível (erros 429 mesmo em
+volume baixo); a API oficial do Google Trends segue em alfa fechado (allowlist), não
+disponível de forma geral em 2026. Manter tudo no mesmo provedor/token (Apify) evita
+somar mais uma dependência não confiável.
+
+**O que o alerta NÃO diz:** a causa do pico. Um salto de interesse pode ser
+lançamento, viralização orgânica, mídia fora de ads (influenciador, PR), sazonalidade,
+ou até um evento não relacionado ao negócio (mesmo nome usado por outra coisa). Isso é
+investigação do agente/usuário, não algo que a ferramenta infere sozinha.
+
+## Análise de criativo do concorrente que está impactando
+
+Quando `meta_ads.py` ou `google_ads_transparency.py` (ou um achado de severidade alta
+de preço/desconto) trouxer `imagem_url`/`video_url`/texto do anúncio, a leitura do
+criativo (gancho, oferta, formato, CTA, se cita a marca própria) é feita pelo agente
+no momento do alerta — usando a evidência capturada, nunca inventada. Se a captura
+automatizada não trouxer a mídia (schema não confirmado, ou rede bloqueada), peça
+print/link ao usuário, do mesmo jeito que `brand-bidding-monitor` já faz para achados
+manuais. Um anúncio que cita a marca/produto próprio no texto vira caso de brand
+bidding — encaminhe para aquela skill, não trate só como "criativo interessante".
 
 ## Desempenho PRÓPRIO (Google Ads / Meta Ads / GA4) — isto sim é dado real
 
@@ -86,9 +144,12 @@ anterior). Não existe webhook de concorrente. A cadência é o que determina a
 
 ## Ideias de evolução (não implementado)
 
-- Actor dedicado de Meta Ad Library / Google Ads Transparency Center via Apify, para
-  automatizar a contagem de anúncios ativos hoje feita em `--ads-manual`.
+- **Validar ao vivo** `meta_ads.py`, `google_ads_transparency.py` e `google_trends.py`
+  num ambiente com rede liberada, e atualizar `CAMPOS_ESPERADOS`/`montar_input()` com o
+  schema real confirmado (hoje é best-effort a partir de descrição pública do actor).
 - Flag explícita de "patrocinado" por item do Mercado Livre, se algum actor futuro
   expuser esse campo — eliminaria a ambiguidade do proxy de posição.
 - Integração de preço do concorrente em outros canais (site próprio, Shopee, Amazon) —
   hoje o monitor cobre só Mercado Livre por ser a fonte mais confiável e barata.
+- Automatizar a leitura/classificação do criativo (hoje depende do agente olhar a
+  evidência manualmente a cada alerta).

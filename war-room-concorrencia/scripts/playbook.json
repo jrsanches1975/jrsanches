@@ -133,5 +133,31 @@
       ],
       "kpis": ["Share of search", "Posição média", "Taxa de conversão"]
     }
+  },
+
+  "novo_criativo_concorrente": {
+    "default": {
+      "impacto_concorrencia": "Concorrente testando ou lançando um criativo novo (Meta Ad Library / Google Ads Transparency Center) — pode indicar novo ângulo de mensagem, oferta ou fase de campanha.",
+      "impacto_volume": "Não mensurável diretamente (isto é atividade, não gasto). Monitore CTR/conversão própria nas mesmas audiências/termos nas próximas rodadas para ver se o efeito aparece.",
+      "estrategia": [
+        "Analisar o criativo (imagem/vídeo/copy) para identificar gancho, oferta e CTA usados — peça ao agente para descrever a peça a partir da evidência",
+        "Comparar com os criativos ativos da própria marca — reforçar a mensagem se o concorrente estiver validando um ângulo que também serve para a marca",
+        "Se o criativo citar a marca/produto próprio no texto, tratar como possível violação de marca — ver a skill brand-bidding-monitor"
+      ],
+      "kpis": ["CTR", "Frequência de criativo próprio", "Taxa de conversão", "CPM"]
+    }
+  },
+
+  "pico_interesse_busca": {
+    "default": {
+      "impacto_concorrencia": "Aumento no interesse de busca pelo termo (Google Trends) — pode ser lançamento, viralização, mídia fora de ads (influenciador, PR), sazonalidade, ou o próprio concorrente ganhando tração.",
+      "impacto_volume": "Correlaciona com potencial de demanda. Se o termo é de um concorrente, risco de desviar buscas de comparação para ele; se é da própria marca/produto, oportunidade de capturar essa demanda com mídia paga antes que esfrie.",
+      "estrategia": [
+        "Investigar a causa do pico antes de agir — a ferramenta não afirma o motivo, só o sinal",
+        "Se o pico é de um concorrente: reforçar SEO/ads no termo de comparação",
+        "Se o pico é da própria marca/produto: aumentar budget para capturar a demanda enquanto durar"
+      ],
+      "kpis": ["Share of search", "Impressões", "CTR", "Volume de busca da marca própria"]
+    }
   }
 }

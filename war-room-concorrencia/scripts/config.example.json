@@ -64,5 +64,17 @@
   "elasticidade_estimada": -1.5,
 
   "_comentario_cadencia": "Sugestão de intervalo (em horas) para agendar via /loop ou CronCreate. Comece conservador para não estourar saldo Apify.",
-  "cadencia_sugerida_horas": 6
+  "cadencia_sugerida_horas": 6,
+
+  "_comentario_apify_actors": "IDs de actor usados por war_room.py (Mercado Livre — testado/confirmado), meta_ads.py, google_ads_transparency.py e google_trends.py (estes 3 são BETA, não testados ao vivo — ver SKILL.md e references/fontes-e-limitacoes.md). Troque aqui se o actor default não funcionar no seu teste real, sem precisar editar código.",
+  "apify_actors": {
+    "mercado_livre": "viralanalyzer~mercadolivre-scraper",
+    "meta_ads": "apify~facebook-ads-scraper",
+    "google_ads_transparency": "unseenuser~google-ads",
+    "google_trends": "apify~google-trends-scraper"
+  },
+
+  "_comentario_trends": "Parâmetros do google_trends.py. trends_termos (opcional) sobrescreve a lista default (marca + apelidos + produtos + concorrentes).",
+  "trends_geo": "BR",
+  "trends_timeframe": "today 1-m"
 }
