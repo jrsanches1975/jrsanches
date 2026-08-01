@@ -1,0 +1,46 @@
+{
+  "Faciderm": [
+    {"title": "Sérum Facial Vitamina C Black Skull 30ml", "price": 89.90,
+     "seller": {"nickname": "BLACK SKULL"}, "reviews_count": 340, "average_rating": 4.6,
+     "url": "https://mercadolivre.com.br/simulado/black-skull-faciderm"},
+    {"title": "Sérum Vitamina C Vult 30ml", "price": 45.90,
+     "seller": {"nickname": "VULT COSMETICOS"}, "reviews_count": 1200, "average_rating": 4.4,
+     "url": "https://mercadolivre.com.br/simulado/vult-serum"},
+    {"title": "Sérum Facial Skin Doctor Vitamina C", "price": 129.90,
+     "seller": {"nickname": "SKIN DOCTOR OFICIAL"}, "reviews_count": 58, "average_rating": 4.8,
+     "url": "https://mercadolivre.com.br/simulado/skindoctor-serum"},
+    {"title": "Faciderm Sérum Facial Vitamina C 30ml - Joie", "price": 149.90,
+     "seller": {"nickname": "JOIE SUPLEMENTOS"}, "reviews_count": 210, "average_rating": 4.7,
+     "url": "https://mercadolivre.com.br/simulado/joie-faciderm"}
+  ],
+  "Amaze": [
+    {"title": "Polivitamínico Feminino Growth 60 cápsulas", "price": 79.90,
+     "seller": {"nickname": "GROWTH SUPPLEMENTS"}, "reviews_count": 520, "average_rating": 4.7,
+     "url": "https://mercadolivre.com.br/simulado/growth-amaze"},
+    {"title": "Multivitamínico Feminino Centrum", "price": 68.90,
+     "seller": {"nickname": "CENTRUM OFICIAL"}, "reviews_count": 3400, "average_rating": 4.5,
+     "url": "https://mercadolivre.com.br/simulado/centrum-multi"}
+  ],
+  "Linha Joie Fit": [
+    {"title": "Whey Protein Isolado Black Skull 900g", "price": 119.90,
+     "seller": {"nickname": "BLACK SKULL"}, "reviews_count": 900, "average_rating": 4.8,
+     "url": "https://mercadolivre.com.br/simulado/black-skull-whey"},
+    {"title": "Whey Protein Concentrado Max Titanium 900g", "price": 99.90,
+     "seller": {"nickname": "MAX TITANIUM OFICIAL"}, "reviews_count": 1500, "average_rating": 4.6,
+     "url": "https://mercadolivre.com.br/simulado/maxtitanium-whey"},
+    {"title": "Whey Protein Isolado Growth 900g", "price": 109.90,
+     "seller": {"nickname": "GROWTH SUPPLEMENTS"}, "reviews_count": 40, "average_rating": 4.2,
+     "url": "https://mercadolivre.com.br/simulado/growth-whey"}
+  ],
+  "Creatina Joie": [
+    {"title": "Creatina Monohidratada Max Titanium 300g", "price": 59.90,
+     "seller": {"nickname": "MAX TITANIUM OFICIAL"}, "reviews_count": 2200, "average_rating": 4.7,
+     "url": "https://mercadolivre.com.br/simulado/maxtitanium-creatina"},
+    {"title": "Creatina Monohidratada Growth 300g", "price": 54.90,
+     "seller": {"nickname": "GROWTH SUPPLEMENTS"}, "reviews_count": 680, "average_rating": 4.5,
+     "url": "https://mercadolivre.com.br/simulado/growth-creatina"},
+    {"title": "Creatina Black Skull Creatine 300g", "price": 62.90,
+     "seller": {"nickname": "BLACK SKULL"}, "reviews_count": 410, "average_rating": 4.6,
+     "url": "https://mercadolivre.com.br/simulado/blackskull-creatina"}
+  ]
+}

@@ -412,6 +412,49 @@ concorrente fez" e "onde isso nos deixa".
 Para testar sem coleta real: `--simulate-ml-proprio scripts/examples/ml-simulado-proprio.json`
 (mesmo mecanismo do `--simulate-ml`).
 
+### 11. Motor de descoberta e composição de concorrentes (`descoberta_concorrentes.py`)
+
+Responde à pergunta "quem deveria estar em `concorrentes[]` e ainda não está".
+**Método de seleção, por completo:**
+
+1. **Introdução manual** — `config["candidatos_concorrentes_manual"]` (nome,
+   domínio, sellers_ml conhecidos) e `config["produtos_candidatos_manual"]`
+   (produtos/variantes que você quer passar a observar antes de configurar por
+   completo em `produtos_monitorados`).
+2. **Descoberta por produto** — para cada produto (monitorado ou candidato), busca
+   o `termo_busca_ml` no Mercado Livre e captura **todos os sellers distintos** do
+   resultado (não só os já cadastrados) — isso é "procurar variantes similares e
+   trazer os concorrentes daquele produto". O `título` de cada achado mostra qual
+   variante específica compete (ex.: "Whey Protein Concentrado" vs. o seu
+   "Isolado").
+3. **Auction Insight** (Google Ads, real) — os domínios que disputam o leilão da
+   própria conta, via o mesmo mecanismo do `keyword_auction.py`.
+
+As três fontes são fundidas por candidato (substring contra nome/domínio/sellers_ml
+— assim "Max Titanium" digitado à mão e "MAX TITANIUM OFICIAL" achado na busca viram
+UM candidato só, com as origens registradas em `origem: []`).
+
+**Ranking de relevância** — cada candidato recebe um score combinando (pesos em
+`config["pesos_relevancia"]`, documentados em `references/fontes-e-limitacoes.md`):
+preço (proximidade ao `preco_proprio`), autoridade de marca (proxy: rating médio no
+ML), presença em ads (nº de anúncios ativos, se você alimentar `--ativos-ads-json`
+com o resultado de `meta_ads.py`/`google_ads_transparency.py`), vendas em
+marketplace (proxy: reviews + nº de listagens) e KPIs de redes sociais — **este
+último não tem fonte de dado real integrada; é sempre "N/D", nunca inventado**. Um
+componente sem dado sai do somatório (os pesos dos outros são renormalizados), não
+vira zero por "falta de dado".
+
+```bash
+python descoberta_concorrentes.py --config config.json \
+  --auction-json auction-domains.json --ativos-ads-json ativos-ads.json \
+  --out ../outputs/descoberta.xlsx
+```
+
+Saída: `outputs/descoberta.xlsx` com **Candidatos por Produto** (ranqueados),
+**Candidatos Globais (Leilão)** e uma aba **Metodologia** explicando cada
+componente do score. Depois de revisar, é você quem decide promover um candidato
+para `concorrentes[]` — o motor nunca promove sozinho.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —
@@ -443,6 +486,10 @@ dessas vire código:
   WebSearch pontual no protocolo de diagnóstico — dá para transformar num monitor
   recorrente de nota/volume de reclamação, com o mesmo mecanismo de diff das
   outras fontes).
+- **KPIs de redes sociais no score de relevância** (passo 11): hoje sempre "N/D" —
+  precisaria de uma integração nova (API do Instagram/TikTok/YouTube, ou um actor
+  Apify de seguidores/engajamento, no mesmo padrão beta dos passos 6-7) antes de
+  entrar de verdade no cálculo.
 
 ## O playbook de resposta (o que muda por tipo de mudança)
 

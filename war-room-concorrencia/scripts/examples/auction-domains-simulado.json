@@ -1,0 +1,12 @@
+{
+  "connector": "google_ads",
+  "registros": [
+    {"date": "2026-07-25", "campaign": "Search.", "auction_insight_domain": "mercadolivre.com.br"},
+    {"date": "2026-07-25", "campaign": "Search.", "auction_insight_domain": "maxtitanium.com.br"},
+    {"date": "2026-07-26", "campaign": "Search.", "auction_insight_domain": "maxtitanium.com.br"},
+    {"date": "2026-07-26", "campaign": "Search - Linha Joie Fit", "auction_insight_domain": "gsuplementos.com.br"},
+    {"date": "2026-07-27", "campaign": "Search.", "auction_insight_domain": "maxtitanium.com.br"},
+    {"date": "2026-07-27", "campaign": "Brand.", "auction_insight_domain": "joie-suplementos.com"},
+    {"date": "2026-07-28", "campaign": "Search - Linha Joie Fit", "auction_insight_domain": "vitafor.com.br"}
+  ]
+}

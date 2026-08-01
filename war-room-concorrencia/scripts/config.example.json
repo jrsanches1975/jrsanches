@@ -3,7 +3,7 @@
 
   "marca": "Joie",
 
-  "_comentario_produtos": "Cada produto próprio que você quer vigiar. termo_busca_ml é o que será pesquisado no Mercado Livre (use um termo genérico o bastante para trazer os concorrentes, ex. 'whey protein isolado' e não o nome exclusivo do seu produto). preco_proprio/ticket_medio servem de referência para os alertas. campanhas_google_ads/campanhas_meta_ads (opcionais) são substrings do nome da campanha usadas por scripts/own_performance.py para casar o desempenho real de mídia (via Windsor.ai) com este produto — sem elas, o produto fica sem 'Desempenho Próprio' no relatório, mas o resto funciona normal.",
+  "_comentario_produtos": "Cada produto próprio que você quer vigiar. termo_busca_ml é o que será pesquisado no Mercado Livre (use um termo genérico o bastante para trazer os concorrentes, ex. 'whey protein isolado' e não o nome exclusivo do seu produto). preco_proprio/ticket_medio servem de referência para os alertas. campanhas_google_ads/campanhas_meta_ads (opcionais) são substrings do nome da campanha usadas por scripts/own_performance.py para casar o desempenho real de mídia (via Windsor.ai) com este produto — sem elas, o produto fica sem 'Desempenho Próprio' no relatório, mas o resto funciona normal. atributos (opcional) são as características do produto (categoria/forma/tamanho/ingrediente) usadas por descoberta_concorrentes.py para pontuar o quão parecida é cada variante concorrente encontrada — quanto mais atributos baterem com o título do concorrente, mais direto é o substituto.",
   "produtos_monitorados": [
     {
       "nome": "Faciderm",
@@ -11,7 +11,8 @@
       "preco_proprio": 149.90,
       "ticket_medio": 149.90,
       "campanhas_google_ads": ["Faciderm"],
-      "campanhas_meta_ads": ["Faciderm"]
+      "campanhas_meta_ads": ["Faciderm"],
+      "atributos": {"categoria": "sérum facial", "ingrediente_principal": "vitamina c", "formato": "líquido", "tamanho": "30ml"}
     },
     {
       "nome": "Amaze",
@@ -19,7 +20,8 @@
       "preco_proprio": 99.90,
       "ticket_medio": 99.90,
       "campanhas_google_ads": ["Amaze"],
-      "campanhas_meta_ads": ["Amaze"]
+      "campanhas_meta_ads": ["Amaze"],
+      "atributos": {"categoria": "polivitamínico", "publico": "feminino", "formato": "cápsulas", "tamanho": "60 cápsulas"}
     },
     {
       "nome": "Linha Joie Fit",
@@ -27,7 +29,17 @@
       "preco_proprio": 129.90,
       "ticket_medio": 129.90,
       "campanhas_google_ads": ["Joie Fit"],
-      "campanhas_meta_ads": ["Joie Fit"]
+      "campanhas_meta_ads": ["Joie Fit"],
+      "atributos": {"categoria": "whey protein", "tipo": "isolado", "formato": "pó", "tamanho": "900g"}
+    }
+  ],
+
+  "_comentario_produtos_candidatos_manual": "Produtos/variantes que você quer PASSAR A observar mas ainda não configurou por completo em produtos_monitorados (ex.: um lançamento em avaliação, ou uma categoria nova). descoberta_concorrentes.py roda a mesma busca de variantes/concorrentes para estes também; depois de revisar o achado, promova o item pra produtos_monitorados.",
+  "produtos_candidatos_manual": [
+    {
+      "nome": "Creatina Joie",
+      "termo_busca_ml": "creatina monohidratada 300g",
+      "atributos": {"categoria": "creatina", "formato": "pó", "tamanho": "300g"}
     }
   ],
 
@@ -47,6 +59,11 @@
       "meta_page": "Growth Supplements",
       "google_advertiser": "Growth Supplements"
     }
+  ],
+
+  "_comentario_candidatos_concorrentes_manual": "Introdução manual de candidatos a concorrente — nomes/domínios que você já suspeita mas ainda não confirmou o suficiente pra promover a 'concorrentes[]'. descoberta_concorrentes.py junta isso com o que vem do Auction Insight e da busca por produto, pontua tudo junto, e é você quem decide promover.",
+  "candidatos_concorrentes_manual": [
+    {"nome": "Max Titanium", "dominio_site": "maxtitanium.com.br", "sellers_ml": ["MAX TITANIUM OFICIAL"]}
   ],
 
   "_comentario_official_domains": "Domínio(s) da PRÓPRIA marca — usado por keyword_auction.py para tirar a própria marca da lista de 'pontos de interferência' no leilão (senão apareceria competindo consigo mesma). joie-suplementos.com é o domínio confirmado ao vivo no Auction Insight da campanha 'Brand' via Windsor.ai — confira o seu antes de usar.",
@@ -82,5 +99,14 @@
 
   "_comentario_trends": "Parâmetros do google_trends.py. trends_termos (opcional) sobrescreve a lista default (marca + apelidos + produtos + concorrentes).",
   "trends_geo": "BR",
-  "trends_timeframe": "today 1-m"
+  "trends_timeframe": "today 1-m",
+
+  "_comentario_pesos_relevancia": "Pesos do score de relevância em descoberta_concorrentes.py (somam 1.0 entre os componentes DISPONÍVEIS — se um componente não tiver dado nessa rodada, ele é removido do somatório e os outros são renormalizados, nunca vira 0 por falta de dado). 'kpis_redes_sociais' não tem fonte de dado real integrada ainda — o peso fica documentado aqui, mas o componente sempre marca N/D até existir uma fonte.",
+  "pesos_relevancia": {
+    "preco": 0.30,
+    "autoridade_marca": 0.25,
+    "presenca_ads": 0.20,
+    "vendas_marketplace": 0.25,
+    "kpis_redes_sociais": 0.0
+  }
 }

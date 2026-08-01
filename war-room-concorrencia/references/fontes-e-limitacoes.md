@@ -100,6 +100,39 @@ Reusa o mesmo actor do `radar-keywords-concorrentes`
   própria conta, ele pode comparar o próprio CPC/impression share como leitura indireta
   da pressão competitiva, mas isso não vem de scraping de terceiro.
 
+## Descoberta e composição de concorrentes — metodologia do score de relevância
+
+`scripts/descoberta_concorrentes.py` combina 3 fontes (manual, descoberta por
+produto no Mercado Livre, Auction Insight) e pontua cada candidato. Detalhe de cada
+componente e o que é dado real vs. proxy:
+
+- **Preço** (peso default 0.30): `1 / (1 + delta_%/50)`, onde `delta_%` é a
+  diferença absoluta entre o preço do candidato e o `preco_proprio` configurado
+  para o produto. É dado observado (preço real do anúncio), a fórmula de
+  proximidade é que é uma escolha de design — quanto mais perto do seu preço, mais
+  substituto direto ele é tratado.
+- **Autoridade de marca** (peso default 0.25): `rating / 5`. **PROXY**, não é
+  medida real de brand equity/reconhecimento — é só a nota média do seller no
+  Mercado Livre. Uma marca pode ter autoridade forte fora do ML e nota mediana lá,
+  ou vice-versa.
+- **Presença em ads** (peso default 0.20): nº de anúncios ativos encontrados por
+  `meta_ads.py`/`google_ads_transparency.py`, normalizado (`min(n/10, 1.0)`). Só
+  entra se você alimentar `--ativos-ads-json`; sem isso, fica "N/D" e sai do
+  somatório (pesos dos outros componentes são renormalizados).
+- **Vendas em marketplace** (peso default 0.25): média de duas normalizações
+  log-escala — nº de reviews (teto de referência 2000) e nº de listagens do seller
+  (teto 50). **PROXY** de volume de vendas (reviews são atrasadas em relação à
+  venda real, nem todo comprador avalia), não é dado de faturamento.
+- **KPIs de redes sociais** (peso default 0.0): **sem fonte de dado real integrada
+  nesta versão.** Sempre "N/D" — nunca inventado. O peso fica documentado no
+  config para quando uma fonte real existir (ver roadmap no SKILL.md).
+
+**Renormalização:** se um componente não tem dado para um candidato específico, ele
+sai do somatório e os pesos dos componentes restantes são redistribuídos
+proporcionalmente — o candidato nunca é penalizado com "zero" por falta de dado, e
+a aba "Componentes sem dado" no xlsx sempre lista o que faltou, pra não confundir
+"baixa relevância" com "sem informação".
+
 ## Google Trends — interesse de busca (BETA, automatizado, não testado ao vivo)
 
 `scripts/google_trends.py` acompanha o interesse de busca (0-100, escala relativa do
