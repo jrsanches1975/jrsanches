@@ -194,6 +194,42 @@ Livre: `JOIE`.
     selo legível, pipeline refletindo estado real em rodada-base E rodada com
     alertas, seleção manual, sem scroll horizontal no body, zero erros de JS).
 
+24. Pedido de "layout surpreendente" com efeitos especiais: neon, movimento,
+    lentes/transparências, popups e botões interativos. Criado
+    **`scripts/_fx_neon.py`** (`FX_CSS`/`FX_BODY`/`FX_JS`) — separado do
+    `_effects.py`, que segue sendo o tema cockpit do demo/simulador. Entregue:
+    - **Ambiente:** campo de partículas em canvas com linhas de constelação e
+      parallax de mouse; aurora/glow que deriva em 34s; scanline; spotlight
+      radial que segue o cursor (`mix-blend-mode: soft-light`).
+    - **Vidro/lente:** `backdrop-filter: blur+saturate` nos painéis; tilt 3D nos
+      battlecards com reflexo radial que acompanha o cursor (`--gx/--gy`).
+    - **Neon:** text-shadow no título/valores; breathe pulsante no pill de alerta
+      crítico e no card crítico; **border-beam** girando na etapa ativa do
+      pipeline; anel de ticks do selo girando + sweep de radar; pulso viajando
+      pelas setas do pipeline.
+    - **Movimento:** revelação em cascata via IntersectionObserver; contadores
+      animados (só onde há número real — nunca anima um "—"); linha do gráfico
+      se desenhando via `stroke-dashoffset`; pontos com pop escalonado.
+    - **Popups:** modal de detalhe do battlecard alimentado por um payload JSON
+      (`#fx-alertas-data`) com os MESMOS alertas já calculados, na mesma ordem
+      dos cards; modal genérico de linha de tabela que lê os próprios `<th>`/
+      `<td>` (serve para qualquer tabela sem payload extra); tooltip nos pontos
+      do gráfico. Fecha com ESC, clique no backdrop e botão, com devolução de
+      foco.
+    - **Interativos:** ripple no clique de botões/abas/chips; **chips de filtro
+      de severidade que filtram os battlecards de verdade** (com contagem real
+      e estado vazio); navegação das abas por setas do teclado.
+    Armadilhas encontradas e resolvidas: (a) o border-beam com `inset` +
+    `rotate` vazava fora do card — resolvido com quadrado 200% girando dentro de
+    `overflow:hidden` + `::after` mascarando o interior e `> * { z-index: 2 }`;
+    (b) o texto curvo do selo estoura o arco se for longo.
+    Tudo respeita `prefers-reduced-motion` (ambiente estático, animações
+    desligadas, **interações preservadas**). Testado com Playwright: modal do
+    card (10 campos reais), modal de tabela (9 colunas), filtro (6→1→5→6),
+    tooltip, reduced-motion, regressão da seleção manual + export, build sem
+    alertas (degrada sem chips/cards/erros), zero erro de JS, sem scroll
+    horizontal.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

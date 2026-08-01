@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 
 from _fonts import FONT_ORBITRON_B64, FONT_SHARETECH_B64, FONT_SORA_B64
 from _effects import EFFECTS_CSS, EFFECTS_BODY_HTML, EFFECTS_JS
+from _fx_neon import FX_CSS, FX_BODY, FX_JS
 from apify_common import apify_run, get_token, load_json, norm, save_json
 
 ML_ACTOR = "viralanalyzer~mercadolivre-scraper"
@@ -902,7 +903,8 @@ def render_card(a, idx):
     analise_html = render_analise_criativo(a.get("detalhes") or {})
     interferencia_html = render_pontos_interferencia(a.get("detalhes") or {})
     return f"""
-    <article class="card sev-{a['severidade']}" style="--d:{delay}">
+    <article class="card sev-{a['severidade']}" style="--d:{delay}" data-alerta-idx="{idx}"
+             aria-label="Battlecard {a['produto']} contra {a['concorrente']} — abrir detalhe">
       <div class="card-head">
         <span class="badge"><span class="badge-ico">{SEV_ICON.get(a['severidade'], '●')}</span>{SEV_LABEL.get(a['severidade'], a['severidade'].upper())}</span>
         <span class="tipo">{a['tipo'].replace('_', ' ')} · nível {a['nivel']}</span>
@@ -924,6 +926,9 @@ def render_card(a, idx):
 def render_own_kpi(produto, v):
     cpa = f"R$ {v['cpa']:.2f}" if v.get("cpa") else "—"
     roas = f"{v['roas']:.2f}×" if v.get("roas") is not None else "—"
+    # o contador animado só entra quando existe número real (nunca anima um "—")
+    roas_count = (f' data-count="{v["roas"]:.2f}" data-count-dec="2" data-count-suf="×"'
+                  if v.get("roas") is not None else "")
     ctr = v.get("ctr_pct", 0)
     barra = max(2, min(100, ctr * 10))
     ga4_html = ""
@@ -940,7 +945,7 @@ def render_own_kpi(produto, v):
     <div class="gauge">
       <div class="gauge-produto">{produto}</div>
       <div class="gauge-main">
-        <span class="gauge-value">{roas}</span><span class="gauge-tag">ROAS</span>
+        <span class="gauge-value"{roas_count}>{roas}</span><span class="gauge-tag">ROAS</span>
       </div>
       <div class="gauge-row"><span>CPA</span><strong>{cpa}</strong></div>
       <div class="gauge-row"><span>INVEST.</span><strong>R$ {v.get('spend', 0):,.0f}</strong></div>
@@ -1415,10 +1420,17 @@ def render_seal(config):
     return f"""
       <svg class="seal" viewBox="0 0 128 128" role="img"
            aria-label="Monitoramento por polling, cadência de {cadencia} horas">
-        <defs><path id="seal-arc" d="M 22 64 A 42 42 0 0 1 106 64" /></defs>
+        <defs>
+          <path id="seal-arc" d="M 22 64 A 42 42 0 0 1 106 64" />
+          <radialGradient id="seal-sweep-grad">
+            <stop offset="0%" stop-color="#55aeff" stop-opacity=".38" />
+            <stop offset="100%" stop-color="#55aeff" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <path class="seal-sweep" d="M 64 64 L 64 19 A 45 45 0 0 1 96 32 Z" />
         <circle cx="64" cy="64" r="62" class="seal-ring" />
         <circle cx="64" cy="64" r="47" class="seal-ring" />
-        {''.join(ticks)}
+        <g class="seal-spin">{''.join(ticks)}</g>
         <text class="seal-text"><textPath href="#seal-arc" startOffset="50%" text-anchor="middle">
           Polling · Diff</textPath></text>
         <text x="64" y="70" class="seal-value">{cadencia}h</text>
@@ -1448,7 +1460,7 @@ def render_pipeline(alertas_rodada, primeira_rodada=False):
     partes = []
     for i, (ico, nome, sub, _) in enumerate(etapas):
         if i:
-            partes.append('<span class="pipe-arrow" aria-hidden="true">»</span>')
+            partes.append(f'<span class="pipe-arrow" aria-hidden="true" style="--pd:{i * 0.34:.2f}s">»</span>')
         on = " on" if i == idx_on else ""
         partes.append(f"""
     <div class="pipe-step{on}">
@@ -1518,6 +1530,15 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   <h2>Desempenho próprio — Google/Meta Ads + GA4</h2>
   <div class="gauge-grid">{own_cards}</div>
 </section>"""
+
+    # payload p/ o popup de detalhe do battlecard — a MESMA lista de alertas já
+    # calculada, na MESMA ordem dos cards (por severidade), sem recomputar nada.
+    alertas_json = json.dumps([
+        {k: a.get(k) for k in ("severidade", "nivel", "tipo", "produto", "concorrente", "resumo",
+                                "impacto_concorrencia", "impacto_volume", "estrategia", "kpis",
+                                "evidencia_url", "data", "agente_nome", "agente_emblema", "status_acao")}
+        for a in ordenados
+    ], ensure_ascii=False)
 
     esquadrao_section = render_esquadrao(alertas_rodada)
     seal_svg = render_seal(config)
@@ -1905,9 +1926,14 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   }}
 
   a:focus-visible, button:focus-visible, input:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
-  @media (prefers-reduced-motion: reduce) {{ * {{ animation: none !important; transition: none !important; }} }}
+  .card:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 3px; }}
+  @media (prefers-reduced-motion: reduce) {{
+    .card, .tab-panel.active, .status-pill {{ animation: none !important; }}
+  }}
+{FX_CSS}
 </style></head>
 <body>
+{FX_BODY}
 <header class="top">
   <div class="head-grid">
     <div>
@@ -1921,7 +1947,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
       {seal_svg}
       <div class="top-stats">
         <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">{meta['data']}</span></div>
-        <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value">{len(alertas_rodada)}</span></div>
+        <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value" data-count="{len(alertas_rodada)}">{len(alertas_rodada)}</span></div>
       </div>
     </div>
   </div>
@@ -2123,6 +2149,8 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   render();
 }})();
 </script>
+<script id="fx-alertas-data" type="application/json">{alertas_json}</script>
+{FX_JS}
 </body></html>"""
 
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
