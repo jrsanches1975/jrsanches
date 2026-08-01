@@ -388,6 +388,14 @@ crítica — com pontos de interferência, CPC e estratégia de combate, passo 7
 e queda de KPI próprio (ROAS/CTR/conversão GA4/CPA — moderada/crítica, passo 8), que não
 traz estratégia pronta e sim o gatilho para o protocolo de diagnóstico completo.
 
+## Demo ao vivo (pitch/apresentação)
+
+`python gerar_demo_live.py --config config.example.json --out ../outputs/war-room-live-demo.html`
+gera um dashboard com os 10 tipos de alerta chegando em sequência (JS, dados
+simulados e autocontidos — não depende de nenhum export real), relógio da simulação,
+feed de eventos e "master caution" reagindo ao vivo. É só para demonstração — a
+operação real usa `war_room.py` normalmente, um relatório por rodada.
+
 ## Princípios
 
 - **Honestidade sobre o que é medido vs. estimado:** preço e desconto no Mercado Livre
