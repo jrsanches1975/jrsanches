@@ -136,6 +136,27 @@ Livre: `JOIE`.
       remover/exportar da Seleção Manual, fallback gracioso quando
       Descoberta/Keywords/Google Shopping não são fornecidos, acumulação REAL
       do histórico em 2 rodadas seguidas sem flag de simulação).
+22. Usuário apontou que "o design não tem nada a ver com a imagem anexada" —
+    correção de paleta. Tentei acessar o link de referência real
+    (`desktopcommander.app/welcome`) via WebFetch e Playwright: **bloqueado
+    (403)** pela política de rede deste ambiente (mesmo padrão de bloqueio já
+    documentado para outros domínios — `fonts.googleapis.com`/`gstatic.com`
+    seguem liberados, sites gerais não). Usuário reenviou um print (dark tech
+    landing page com objeto 3D translúcido brilhante, halos/anéis neon,
+    gradiente azul→violeta→magenta em botões/destaques). Corrigido:
+    `:root` do `war_room.py` ganhou `--violet #8b6bf2`, `--magenta #e34fa8`,
+    `--blue #4a7cf6` e `--gradient` (linear-gradient azul→violeta→magenta),
+    aplicado no brand mark (glass/glow), tab ativa, botões primários, toggles
+    e no acento geral (`--accent` agora é o violeta, não mais o azul sozinho).
+    Fundo ficou quase-preto (`#07070f`) com glows radiais roxo/magenta/azul
+    fixos no topo (imitando o halo do objeto 3D) + textura de pontos sutil.
+    **Importante:** as cores CATEGÓRICAS dos gráficos (`--s1`..`--s8`,
+    validadas pela skill `dataviz` para segurança de daltonismo) NÃO foram
+    reordenadas nem trocadas — só a identidade visual/chrome (marca, botões,
+    linha única do gráfico de histórico) passou a usar o gradiente novo. Web
+    fetch de sites arbitrários continua bloqueado nesta sessão — se pedirem
+    outra referência por URL, checar de novo antes de assumir que vai
+    funcionar, e pedir print como alternativa direta.
 
 ## Princípios que NUNCA devem ser quebrados
 

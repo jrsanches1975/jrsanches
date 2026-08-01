@@ -1443,36 +1443,58 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     src: url(data:font/woff2;base64,{FONT_SORA_B64}) format('woff2');
   }}
   :root {{
-    --bg: #0c0d11; --surface: #16171d; --surface-2: #1d1f27; --surface-3: #24262f;
-    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.16);
-    --text: #f2f2f2; --text-dim: #a6a6ad; --text-mute: #6f6f78;
-    --accent: #3987e5; --accent-soft: rgba(57,135,229,.16); --accent-strong: #63a4ec;
+    --bg: #07070f; --surface: rgba(255,255,255,.05); --surface-2: rgba(255,255,255,.075);
+    --surface-3: rgba(255,255,255,.1);
+    --border: rgba(255,255,255,.09); --border-strong: rgba(255,255,255,.18);
+    --text: #f4f2fb; --text-dim: #a9a4c2; --text-mute: #716c8c;
+    --violet: #8b6bf2; --magenta: #e34fa8; --blue: #4a7cf6;
+    --accent: #8b6bf2; --accent-soft: rgba(139,107,242,.18); --accent-strong: #b09bff;
+    --gradient: linear-gradient(120deg, var(--blue), var(--violet) 55%, var(--magenta));
     --good: #0ca30c; --good-bg: rgba(12,163,12,.14);
     --warning: #fab219; --warning-bg: rgba(250,178,25,.14);
-    --critical: #d03b3b; --critical-bg: rgba(208,59,59,.14);
+    --critical: #e0426b; --critical-bg: rgba(224,66,107,.16);
+    /* paleta categórica p/ gráficos (dataviz skill) — NÃO reordenar, ordem é o que garante */
+    /* separação segura p/ daltonismo; identidade de marca usa --gradient, não estas cores. */
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
     --s5: #d55181; --s6: #29a329; --s7: #9085e9; --s8: #e66767;
     color-scheme: dark;
   }}
   * {{ box-sizing: border-box; }}
   html, body {{ background: var(--bg); }}
+  .tabs, .gauge, .squadron-card, .hist-chart-card, .card, .selecao-coluna, .data-table td,
+  .ml-radar-table td, .add-form-mini input {{
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  }}
   body {{
-    margin: 0; color: var(--text); min-height: 100vh;
+    margin: 0; color: var(--text); min-height: 100vh; position: relative;
     font-family: 'Sora', ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-feature-settings: "ss01" 1;
+    background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }}
+  body::before {{
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(760px 520px at 82% -8%, rgba(139,107,242,.28), transparent 60%),
+      radial-gradient(620px 460px at 100% 18%, rgba(227,79,168,.20), transparent 60%),
+      radial-gradient(680px 520px at -6% 46%, rgba(74,124,246,.16), transparent 62%);
   }}
   a {{ color: var(--accent-strong); }}
   h1, h2, h3, .gauge-value, .stat-value, .brand-mark {{ font-family: 'Sora', ui-sans-serif, sans-serif; }}
-  .shell {{ max-width: 1240px; margin: 0 auto; padding: 0 28px 56px; }}
+  .shell {{ max-width: 1240px; margin: 0 auto; padding: 0 28px 56px; position: relative; z-index: 1; }}
   header.top {{
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;
-    padding: 26px 28px 20px; max-width: 1240px; margin: 0 auto;
+    padding: 26px 28px 20px; max-width: 1240px; margin: 0 auto; position: relative; z-index: 1;
   }}
   .brand {{ display: flex; align-items: center; gap: 12px; }}
   .brand-mark {{
-    width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, var(--accent), var(--s7)); font-weight: 800; font-size: 1.05rem; color: #fff;
-    flex: none;
+    width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center;
+    background: var(--gradient); font-weight: 800; font-size: 1.05rem; color: #fff; flex: none; position: relative;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 8px 22px -6px rgba(139,107,242,.7);
+  }}
+  .brand-mark::after {{
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    background: linear-gradient(160deg, rgba(255,255,255,.5), transparent 55%); opacity: .5;
   }}
   .brand-text .eyebrow {{
     display: block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-mute);
@@ -1491,8 +1513,8 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     font-size: .82rem; font-weight: 600; border: 1px solid;
   }}
   .status-pill .dot {{ width: 8px; height: 8px; border-radius: 50%; flex: none; }}
-  .status-pill.alta {{ color: #ff9c96; border-color: rgba(208,59,59,.5); background: var(--critical-bg); }}
-  .status-pill.alta .dot {{ background: var(--critical); box-shadow: 0 0 0 4px rgba(208,59,59,.18); }}
+  .status-pill.alta {{ color: #ff9c96; border-color: rgba(224,66,107,.5); background: var(--critical-bg); }}
+  .status-pill.alta .dot {{ background: var(--critical); box-shadow: 0 0 0 4px rgba(224,66,107,.18); }}
   .status-pill.media {{ color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }}
   .status-pill.media .dot {{ background: var(--warning); box-shadow: 0 0 0 4px rgba(250,178,25,.18); }}
   .status-pill.ok {{ color: #8fe38f; border-color: rgba(12,163,12,.5); background: var(--good-bg); }}
@@ -1507,7 +1529,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; transition: background .15s, color .15s;
   }}
   .tab-btn:hover {{ color: var(--text); background: var(--surface-2); }}
-  .tab-btn.active {{ color: #fff; background: var(--accent); }}
+  .tab-btn.active {{ color: #fff; background: var(--gradient); box-shadow: 0 6px 18px -8px rgba(139,107,242,.7); }}
   .tab-panel {{ display: none; }}
   .tab-panel.active {{ display: block; animation: fade-in .25s ease; }}
   @keyframes fade-in {{ from {{ opacity: 0; transform: translateY(4px); }} to {{ opacity: 1; transform: none; }} }}
@@ -1545,7 +1567,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim);
     border: 1px solid var(--border); margin-bottom: 8px; font-weight: 600;
   }}
-  .sev-alta .squadron-status {{ color: #ff9c96; border-color: rgba(208,59,59,.5); background: var(--critical-bg); }}
+  .sev-alta .squadron-status {{ color: #ff9c96; border-color: rgba(224,66,107,.5); background: var(--critical-bg); }}
   .sev-media .squadron-status {{ color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }}
   .squadron-count {{ font-size: .74rem; color: var(--text-mute); margin-bottom: 8px; }}
   .squadron-list {{ list-style: none; margin: 0; padding: 0; font-size: .78rem; color: var(--text-dim); }}
@@ -1611,7 +1633,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     box-shadow: 0 10px 28px -16px rgba(0,0,0,.65); transition: transform .2s ease, box-shadow .2s ease;
   }}
   .card:hover {{ transform: translateY(-3px); box-shadow: 0 16px 34px -16px rgba(0,0,0,.75); }}
-  .card.sev-alta {{ border-color: rgba(208,59,59,.4); }}
+  .card.sev-alta {{ border-color: rgba(224,66,107,.4); }}
   .card.sev-media {{ border-color: rgba(250,178,25,.35); }}
   @keyframes rise {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: none; }} }}
   .card-head {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
@@ -1620,7 +1642,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     padding: 4px 10px; border-radius: 999px; letter-spacing: .04em; border: 1px solid;
   }}
   .badge-ico {{ font-size: .62rem; }}
-  .sev-alta .badge {{ background: var(--critical-bg); color: #ff9c96; border-color: rgba(208,59,59,.5); }}
+  .sev-alta .badge {{ background: var(--critical-bg); color: #ff9c96; border-color: rgba(224,66,107,.5); }}
   .sev-media .badge {{ background: var(--warning-bg); color: #ffd68a; border-color: rgba(250,178,25,.5); }}
   .sev-baixa .badge {{ background: var(--good-bg); color: #8fe38f; border-color: rgba(12,163,12,.5); }}
   .tipo {{ font-size: .74rem; color: var(--text-mute); text-transform: capitalize; }}
@@ -1676,7 +1698,10 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .btn {{ font-size: .84rem; padding: 10px 16px; }}
   .btn-mini {{ font-size: .76rem; padding: 6px 12px; }}
   .btn:hover, .btn-mini:hover {{ border-color: var(--border-strong); }}
-  .btn.primary, .btn-mini.primary {{ background: var(--accent); border-color: var(--accent); color: #fff; }}
+  .btn.primary, .btn-mini.primary {{
+    background: var(--gradient); border-color: transparent; color: #fff;
+    box-shadow: 0 6px 18px -8px rgba(139,107,242,.65);
+  }}
   .selecao-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }}
   .selecao-coluna {{
     background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
