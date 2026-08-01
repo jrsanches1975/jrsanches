@@ -367,6 +367,83 @@ conhecida ainda. Ele manda rodar o **protocolo de diagnóstico completo**
 Leia `references/protocolo-diagnostico.md` inteiro antes de conduzir esse
 diagnóstico — ele detalha as fontes e o formato de cada passo.
 
+### 9. Esquadrão de agentes de combate + monitor de ações em andamento
+
+`scripts/agentes.json` define os **mandatos** que respondem a cada tipo de alerta —
+na prática, o mesmo agente Claude conduz tudo, adotando a lente certa conforme o
+gatilho (para paralelizar de verdade em incidentes com muitos alertas simultâneos,
+dá para instanciar um subagente por alerta via `Agent` tool, cada um assumindo um
+destes papéis):
+
+| Agente | Mandato | Gatilhos | Executa ação real? |
+|---|---|---|---|
+| ◈ Precificação e Margem | Price-match, cupom-espelho, cálculo de margem | queda/alta de preço, novo desconto | Não integrado (depende do ERP/e-commerce da marca) |
+| ▲ Mídia Paga e Leilão | Lance, orçamento, Quality Score, negativação | aumento de ads, queda de keyword, queda de KPI | **Sim** — Windsor.ai (`execute_action`, Google Ads/Meta), com autorização |
+| ◆ Criativo | Analisa e propõe/gera o contra-criativo | novo criativo de concorrente | Geração via Canva MCP; publicação via Windsor.ai, com autorização |
+| ● Marketplace (ML Ops) | Ficha, frete, prova social, monitora posição | novo entrante, sumiço, salto de visibilidade | Não — ação manual da equipe de conteúdo |
+| ◈ Marca e Enforcement | Aciona radar de marca, denúncia ou defesa | pico de interesse de busca | Skills irmãs + campanha de defesa via Windsor.ai |
+| ◎ Inteligência e Diagnóstico | Roda o protocolo completo (passo 8) | queda de KPI próprio | Só investiga — nunca executa |
+| ★ Comandante (orquestrador) | Prioriza, consolida, pede autorização | — | Nunca executa diretamente |
+
+`war_room.py` atribui automaticamente o agente e um **status de ação** a cada
+alerta (`aguardando_autorizacao` para severidade alta de agente que executa ação
+real; `investigando` para severidade alta sem ação de escrita; `monitorando` para
+o resto) — isso alimenta o painel **"Esquadrão de Combate"** no dashboard HTML e a
+aba de mesmo nome no xlsx, mostrando quantas ações cada agente tem em andamento e
+qual o status mais urgente. Nenhum status muda sozinho: "aguardando_autorizacao"
+só vira "autorizado"/execução quando você (o agente, na conversa) recebe a
+confirmação explícita do usuário — ver o princípio de autorização no passo 8.
+
+### 10. Radar de posição no Mercado Livre (nós vs. concorrência)
+
+Antes, `collect_snapshot()` só via os concorrentes. Agora, configurando
+`official_sellers` (nickname do seu seller oficial no ML — mesmo padrão do
+`radar-keywords-concorrentes`), ele também casa o **nosso próprio anúncio** na
+mesma busca e monta o painel **"Radar de Posição"** (xlsx: aba "Radar ML"; HTML:
+tabela dedicada) com nós e cada concorrente lado a lado, por produto: posição,
+preço, desconto, reviews, rating, frete grátis, e uma tentativa de flag de
+"anúncio patrocinado" (`extrair_patrocinado()` — best-effort, o actor usado não
+confirma isso de forma confiável; vem "n/d" quando a informação não está na
+captura, nunca inventado). Isso é o que permite ver de relance, por exemplo, "nosso
+Faciderm está na posição 3, custando R$149,90, enquanto o concorrente que acabou de
+baixar preço está na posição 1 a R$71,90" — o cruzamento que faltava entre "o que o
+concorrente fez" e "onde isso nos deixa".
+
+Para testar sem coleta real: `--simulate-ml-proprio scripts/examples/ml-simulado-proprio.json`
+(mesmo mecanismo do `--simulate-ml`).
+
+## Mais insights, ferramentas e pontos a observar (roadmap honesto)
+
+O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —
+nada abaixo está implementado ainda; peça explicitamente quando quiser que uma
+dessas vire código:
+
+- **Share of Search / Share of Shelf**: % dos top-N resultados do ML que são
+  nossos vs. de cada concorrente, por termo — generalização do Radar de Posição
+  (passo 10) para um índice único, rastreável ao longo do tempo.
+- **Preço por unidade/grama**: comparação justa entre embalagens de tamanhos
+  diferentes (hoje o preço bruto pode enganar se um concorrente vende embalagem
+  menor por menos).
+- **Velocidade de reviews e sentimento**: não só o total de reviews (já captado),
+  mas o ritmo de crescimento e uma leitura de sentimento das mais recentes —
+  aprofunda o proxy de volume/momentum do concorrente.
+- **Multi-marketplace**: hoje só Mercado Livre. Shopee, Amazon e Magalu exigiriam
+  novos actors Apify (mesmo esforço/honestidade dos passos 6-7 — pesquisar,
+  marcar como beta, calibrar no 1º uso real).
+- **Auction Insights para os outros produtos/campanhas**: o achado do passo 7 foi
+  numa amostra; rodar em todas as campanhas ativas dá o mapa completo de onde a
+  conta está ganhando ou perdendo o leilão.
+- **GA4 por landing page/dispositivo**: hoje agregado por campanha; abrir por
+  página de destino e mobile-vs-desktop pode revelar fricção que o agregado
+  esconde.
+- **Preço-teto observado do mercado**: menor preço visto entre todos os
+  concorrentes rastreados, para calibrar até onde um price-match faz sentido sem
+  virar corrida ao fundo do poço.
+- **Integração com o Reclame Aqui como fonte contínua** (hoje só entra via
+  WebSearch pontual no protocolo de diagnóstico — dá para transformar num monitor
+  recorrente de nota/volume de reclamação, com o mesmo mecanismo de diff das
+  outras fontes).
+
 ## O playbook de resposta (o que muda por tipo de mudança)
 
 O mapeamento completo tipo-de-mudança → impacto na concorrência → impacto estimado no

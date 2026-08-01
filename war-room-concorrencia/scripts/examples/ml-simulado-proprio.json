@@ -1,0 +1,29 @@
+{
+  "Faciderm": {
+    "seller": "JOIE SUPLEMENTOS",
+    "title": "Faciderm Sérum Facial Vitamina C 30ml - Joie",
+    "price": 149.90, "original_price": 149.90, "discount_pct": 0,
+    "position": 3, "reviews": 210, "rating": 4.7, "frete_gratis": true,
+    "patrocinado": "desconhecido",
+    "url": "https://mercadolivre.com.br/simulado/joie-faciderm",
+    "total_listagens": 1
+  },
+  "Amaze": {
+    "seller": "JOIE SUPLEMENTOS",
+    "title": "Amaze Polivitamínico Feminino 60 cápsulas - Joie",
+    "price": 99.90, "original_price": 99.90, "discount_pct": 0,
+    "position": 2, "reviews": 340, "rating": 4.8, "frete_gratis": true,
+    "patrocinado": "desconhecido",
+    "url": "https://mercadolivre.com.br/simulado/joie-amaze",
+    "total_listagens": 1
+  },
+  "Linha Joie Fit": {
+    "seller": "JOIE SUPLEMENTOS",
+    "title": "Whey Protein Isolado Joie Fit 900g",
+    "price": 129.90, "original_price": 129.90, "discount_pct": 0,
+    "position": 5, "reviews": 480, "rating": 4.6, "frete_gratis": false,
+    "patrocinado": "desconhecido",
+    "url": "https://mercadolivre.com.br/simulado/joie-fit-whey",
+    "total_listagens": 1
+  }
+}

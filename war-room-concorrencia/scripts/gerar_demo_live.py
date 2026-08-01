@@ -102,16 +102,22 @@ def montar_sequencia(config, playbook):
     for p in (meta_path, trends_path, kw_path, kpi_path):
         os.remove(p)
 
-    return eventos, own_perf
+    # --- radar de posição no Mercado Livre (nós vs. concorrência) ---
+    proprio = wr.load_json(os.path.join(ex_dir, "ml-simulado-proprio.json"), {})
+    radar_ml = wr.montar_radar_ml(snap2, proprio)
+
+    return eventos, own_perf, radar_ml
 
 
-def render_demo(eventos, own_perf, config, meta, path):
+def render_demo(eventos, own_perf, radar_ml, config, meta, path):
     cards_json = json.dumps([wr.render_card(a, i) for i, a in enumerate(eventos)])
     resumos_json = json.dumps([
         f"{a['tipo'].replace('_', ' ')} · {a['produto']} × {a['concorrente']}" for a in eventos
     ])
     severidades_json = json.dumps([a["severidade"] for a in eventos])
     own_cards = "".join(wr.render_own_kpi(p, v) for p, v in own_perf.items())
+    esquadrao_section = wr.render_esquadrao(eventos)
+    ml_radar_section = wr.render_ml_radar(radar_ml)
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -251,6 +257,52 @@ def render_demo(eventos, own_perf, config, meta, path):
                 color: var(--text-dim); font-variant-numeric: tabular-nums; margin-top: 2px; }}
   .gauge-row strong {{ color: var(--text); }}
   .gauge-ga4 {{ margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }}
+  .squadron-strip {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
+  .squadron-strip h2 {{
+    font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400;
+  }}
+  .squadron-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
+  .squadron-card {{
+    position: relative; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--line);
+    border-radius: 4px; padding: 12px 16px; min-width: 220px; max-width: 300px;
+  }}
+  .squadron-card.sev-alta {{ border-left-color: var(--alta); }}
+  .squadron-card.sev-media {{ border-left-color: var(--media); }}
+  .squadron-card.sev-baixa {{ border-left-color: var(--baixa); }}
+  .squadron-head {{ display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }}
+  .squadron-emblema {{ font-size: 1rem; color: var(--hud); }}
+  .squadron-nome {{ font-size: .82rem; font-weight: 700; }}
+  .squadron-status {{
+    display: inline-block; font-size: .64rem; letter-spacing: .05em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 3px; background: var(--panel-2); color: var(--text-dim);
+    border: 1px solid var(--line); margin-bottom: 6px;
+  }}
+  .sev-alta .squadron-status {{ color: var(--alta); border-color: var(--alta); }}
+  .sev-media .squadron-status {{ color: var(--media); border-color: var(--media); }}
+  .squadron-count {{ font-size: .72rem; color: var(--text-dim); margin-bottom: 6px; }}
+  .squadron-list {{ list-style: none; margin: 0; padding: 0; font-size: .74rem; color: var(--text-dim); }}
+  .squadron-list li {{ padding: 2px 0; border-top: 1px dashed var(--line); }}
+  .squadron-list li:first-child {{ border-top: none; }}
+  .ml-radar {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
+  .ml-radar h2 {{
+    font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400;
+  }}
+  .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }}
+  .ml-radar-table {{ width: 100%; border-collapse: collapse; font-size: .78rem; white-space: nowrap; }}
+  .ml-radar-table th {{
+    text-align: left; padding: 8px 12px; background: var(--panel-2); color: var(--hud);
+    font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;
+    border-bottom: 1px solid var(--line);
+  }}
+  .ml-radar-table td {{ padding: 7px 12px; border-bottom: 1px dashed var(--line); color: var(--text-dim);
+                         font-variant-numeric: tabular-nums; }}
+  .ml-radar-table tr.radar-proprio {{ background: var(--hud-dim); }}
+  .ml-radar-table tr.radar-proprio td.quem {{ color: var(--hud); font-weight: 700; }}
+  .ml-radar-table td.quem {{ color: var(--text); }}
+  .ml-radar-table td.ads-flag {{ text-transform: uppercase; font-size: .7rem; }}
+  .ml-radar-note {{ margin: 10px 0 0; font-size: .72rem; color: var(--text-dim); line-height: 1.5; }}
   .signal-bar {{ margin-top: 10px; height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; }}
   .signal-bar span {{ display: block; height: 100%; background: var(--hud); box-shadow: 0 0 6px var(--hud-soft); }}
   .grid {{
@@ -346,10 +398,12 @@ def render_demo(eventos, own_perf, config, meta, path):
 </header>
 <div class="master-caution ok" id="master-caution"><span class="mc-dot"></span>AGUARDANDO PRIMEIRO EVENTO...</div>
 <div class="feed" id="feed"><div class="feed-line feed-empty">— nenhum evento ainda —</div></div>
+{esquadrao_section}
 <section class="gauge-strip">
   <h2>// desempenho próprio — google/meta ads + ga4 (simulado para a demonstração)</h2>
   <div class="gauge-grid">{own_cards}</div>
 </section>
+{ml_radar_section}
 <div class="grid" id="grid"><div class="empty" id="grid-empty">Aguardando eventos da simulação...</div></div>
 <p class="caveat">Demonstração: os eventos abaixo são os mesmos tipos de alerta reais do sistema (dados
 simulados para esta reprodução), exibidos em sequência para simular uma janela de monitoramento com
@@ -468,8 +522,9 @@ def main():
     config.setdefault("elasticidade_estimada", -1.5)
 
     playbook = wr.load_playbook(os.path.join(SCRIPT_DIR, "playbook.json"))
-    eventos, own_perf = montar_sequencia(config, playbook)
-    render_demo(eventos, own_perf, config, {"data": wr.now_iso()}, args.out)
+    wr.AGENTES = wr.load_agentes(os.path.join(SCRIPT_DIR, "agentes.json"))
+    eventos, own_perf, radar_ml = montar_sequencia(config, playbook)
+    render_demo(eventos, own_perf, radar_ml, config, {"data": wr.now_iso()}, args.out)
     print(f"OK -> {args.out} ({len(eventos)} eventos na sequência)")
 
 

@@ -1,0 +1,60 @@
+{
+  "_comentario": "Taxonomia dos agentes de combate da war room. Cada 'agente' é um MANDATO/papel — na prática, quem executa é o mesmo agente Claude conduzindo o skill, adotando a lente certa conforme o tipo de alerta. Para paralelizar de verdade (muitos alertas simultâneos), dá para instanciar um subagente por alerta via Agent tool, cada um assumindo um destes papéis — ver SKILL.md.",
+
+  "precificacao": {
+    "nome": "Agente de Precificação e Margem",
+    "emblema": "◈",
+    "mandato": "Decide price-match parcial/total, calcula impacto na margem, sugere cupom-espelho e prazo de validade da resposta.",
+    "gatilhos": ["queda_preco", "novo_desconto", "aumento_preco_concorrente"],
+    "ferramentas_reais": "Cálculo de elasticidade/margem (interno). Execução de mudança de preço fica fora do Windsor.ai — depende do ERP/plataforma de e-commerce da marca (não integrado ainda).",
+    "acao_requer_autorizacao": true
+  },
+  "midia_paga": {
+    "nome": "Agente de Mídia Paga e Leilão",
+    "emblema": "▲",
+    "mandato": "Ajusta lance/orçamento, revisa Quality Score, realoca budget entre campanhas, decide sobre campanha de defesa de marca.",
+    "gatilhos": ["aumento_atividade_ads", "queda_performance_keyword", "queda_kpi_proprio"],
+    "ferramentas_reais": "Windsor.ai execute_action (Google Ads: pausar/ativar campanha/ad group, orçamento, target CPA, CPC máximo, negativação de keyword; Meta Ads: pausar/ativar, orçamento) — REAL, mas só com autorização explícita para a ação específica.",
+    "acao_requer_autorizacao": true
+  },
+  "criativo": {
+    "nome": "Agente de Criativo",
+    "emblema": "◆",
+    "mandato": "Analisa o criativo do concorrente (gancho/oferta/formato/CTA) e propõe (ou gera) o contra-criativo.",
+    "gatilhos": ["novo_criativo_concorrente"],
+    "ferramentas_reais": "Leitura multimodal da evidência (agente). Geração real de peça via Canva MCP (generate-design/generate-design-structured), quando conectado. Publicação do anúncio via Windsor.ai (Meta: create ad; Instagram: image post).",
+    "acao_requer_autorizacao": true
+  },
+  "marketplace": {
+    "nome": "Agente de Marketplace (Mercado Livre Ops)",
+    "emblema": "●",
+    "mandato": "Monitora posição/preço/reviews próprios vs. concorrência no ML, recomenda otimização de ficha (título, imagens, perguntas respondidas), frete e prova social.",
+    "gatilhos": ["novo_entrante", "concorrente_sumiu", "salto_visibilidade_ml"],
+    "ferramentas_reais": "Sem write-action de Mercado Livre disponível — a ação (editar ficha, responder pergunta, ajustar frete) é manual da equipe de conteúdo/marketplace.",
+    "acao_requer_autorizacao": false
+  },
+  "marca": {
+    "nome": "Agente de Marca e Enforcement",
+    "emblema": "◈",
+    "mandato": "Aciona o radar de brand bidding/carona de marca, decide entre denúncia formal e campanha de defesa.",
+    "gatilhos": ["pico_interesse_busca"],
+    "ferramentas_reais": "Skills irmãs radar-keywords-concorrentes e brand-bidding-monitor. Campanha de defesa via Windsor.ai (Google Ads).",
+    "acao_requer_autorizacao": true
+  },
+  "inteligencia": {
+    "nome": "Agente de Inteligência e Diagnóstico",
+    "emblema": "◎",
+    "mandato": "Conduz o protocolo de diagnóstico completo (concorrência, sazonalidade, buzz, notícias, macro/microeconomia) antes de qualquer ação tática.",
+    "gatilhos": ["queda_kpi_proprio"],
+    "ferramentas_reais": "WebSearch/WebFetch (real). Nunca executa ação — só diagnostica e propõe.",
+    "acao_requer_autorizacao": false
+  },
+  "comandante": {
+    "nome": "Comandante da War Room (orquestrador)",
+    "emblema": "★",
+    "mandato": "Prioriza entre os agentes quando há alertas simultâneos, consolida o diagnóstico, é quem pede autorização ao usuário e nunca executa uma ação sem ela.",
+    "gatilhos": [],
+    "ferramentas_reais": "Nenhuma ação direta — coordena os demais.",
+    "acao_requer_autorizacao": false
+  }
+}

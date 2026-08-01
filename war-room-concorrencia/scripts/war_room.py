@@ -42,6 +42,11 @@ SEVERIDADE_POR_NIVEL = {
     "leve": "baixa", "default": "media",
 }
 
+# Carregado uma vez em main() via load_agentes(); make_alert() lê daqui quando não
+# recebe `agentes` explicitamente, para não precisar passar o parâmetro por todas as
+# funções de diff/ingest que chamam make_alert().
+AGENTES = {}
+
 
 # ----------------------------------------------------------------------------- infra
 def now_iso():
@@ -58,15 +63,59 @@ def match_competitor(nickname, concorrentes):
     return None
 
 
+def match_oficial(nickname, official_sellers):
+    n = norm(nickname)
+    return any(norm(o) in n for o in official_sellers)
+
+
+def extrair_patrocinado(item):
+    """Best-effort: tenta achar um campo de 'é anúncio patrocinado' no item bruto do
+    scraper. O actor documentado (viralanalyzer/mercadolivre-scraper) NÃO confirma
+    isso de forma confiável — ver references/fontes-e-limitacoes.md. Retorna
+    'sim'/'nao'/'desconhecido', nunca inventa quando o campo não existe."""
+    for chave in ("is_ad", "sponsored", "is_sponsored", "patrocinado"):
+        v = item.get(chave)
+        if isinstance(v, bool):
+            return "sim" if v else "nao"
+    tags = item.get("tags") or item.get("listing_type")
+    if isinstance(tags, (list, str)) and "ad" in norm(str(tags)):
+        return "sim"
+    return "desconhecido"
+
+
+def _campos_listagem(item, position):
+    ship = item.get("shipping") or {}
+    return {
+        "title": item.get("title"),
+        "price": item.get("price"),
+        "original_price": item.get("original_price"),
+        "discount_pct": item.get("discount_pct"),
+        "position": position,
+        "reviews": item.get("reviews_count"),
+        "rating": item.get("average_rating"),
+        "frete_gratis": ship.get("free_shipping") if isinstance(ship, dict) else None,
+        "patrocinado": extrair_patrocinado(item),
+        "url": item.get("url"),
+    }
+
+
 def collect_snapshot(config, token, produtos_filter, per_produto):
-    """Retorna {produto_nome: {concorrente_nome: {seller, title, price, original_price,
-    discount_pct, position, reviews, rating, url, total_listagens}}}."""
+    """Retorna (snapshot_concorrentes, snapshot_proprio).
+
+    snapshot_concorrentes: {produto: {concorrente: {seller, title, price,
+    original_price, discount_pct, position, reviews, rating, frete_gratis,
+    patrocinado, url, total_listagens}}} — usado no diff/alertas, como sempre.
+
+    snapshot_proprio: {produto: {seller, ...mesmos campos...}} — o NOSSO anúncio
+    (casado por config['official_sellers']), para o Radar de Posição no Mercado
+    Livre. Não participa do diff de alertas, é só para exibição lado a lado."""
     concorrentes = config.get("concorrentes", [])
+    official_sellers = config.get("official_sellers", [])
     produtos = config.get("produtos_monitorados", [])
     if produtos_filter:
         produtos = [p for p in produtos if p["nome"] in produtos_filter]
 
-    snapshot = {}
+    snapshot, snapshot_proprio = {}, {}
     for prod in produtos:
         termo = prod["termo_busca_ml"]
         print(f"  buscando '{termo}' no Mercado Livre...", file=sys.stderr)
@@ -77,35 +126,55 @@ def collect_snapshot(config, token, produtos_filter, per_produto):
         for idx, item in enumerate(items or []):
             seller = item.get("seller") or {}
             nick = seller.get("nickname") if isinstance(seller, dict) else (seller or "")
+            position = idx + 1
+
+            if official_sellers and match_oficial(nick, official_sellers) and prod["nome"] not in snapshot_proprio:
+                snapshot_proprio[prod["nome"]] = {"seller": nick, "total_listagens": 1,
+                                                   **_campos_listagem(item, position)}
+                continue
+
             nome_conc = match_competitor(nick, concorrentes)
             if not nome_conc:
                 continue
-            position = idx + 1
             if nome_conc in por_concorrente:
                 por_concorrente[nome_conc]["total_listagens"] += 1
                 if position < por_concorrente[nome_conc]["position"]:
                     por_concorrente[nome_conc]["position"] = position
                 continue
-            por_concorrente[nome_conc] = {
-                "seller": nick,
-                "title": item.get("title"),
-                "price": item.get("price"),
-                "original_price": item.get("original_price"),
-                "discount_pct": item.get("discount_pct"),
-                "position": position,
-                "reviews": item.get("reviews_count"),
-                "rating": item.get("average_rating"),
-                "url": item.get("url"),
-                "total_listagens": 1,
-            }
+            por_concorrente[nome_conc] = {"seller": nick, "total_listagens": 1,
+                                           **_campos_listagem(item, position)}
         snapshot[prod["nome"]] = por_concorrente
-    return snapshot
+    return snapshot, snapshot_proprio
 
 
 # ------------------------------------------------------------------------ playbook
 def load_playbook(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_agentes(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def agente_do_tipo(tipo, agentes):
+    """Acha qual agente de combate é o dono deste tipo de alerta (fallback: comandante)."""
+    for chave, dados in agentes.items():
+        if chave in ("comandante", "_comentario") or not isinstance(dados, dict):
+            continue
+        if tipo in dados.get("gatilhos", []):
+            return chave, dados
+    comandante = agentes.get("comandante", {})
+    return "comandante", comandante if isinstance(comandante, dict) else {}
+
+
+def status_inicial(severidade, agente_dados):
+    if severidade == "alta" and agente_dados.get("acao_requer_autorizacao"):
+        return "aguardando_autorizacao"
+    if severidade == "alta":
+        return "investigando"
+    return "monitorando"
 
 
 def playbook_entry(playbook, tipo, nivel):
@@ -130,16 +199,23 @@ def impacto_volume_estimado(pct_variacao_preco, elasticidade, own_kpis=None):
 
 
 def make_alert(tipo, nivel, produto, concorrente, resumo, detalhes, evidencia_url, playbook,
-               impacto_volume_real=None):
+               impacto_volume_real=None, agentes=None):
     entry = playbook_entry(playbook, tipo, nivel)
     impacto_volume = entry.get("impacto_volume", "")
     if impacto_volume_real:
         impacto_volume = f"{impacto_volume} {impacto_volume_real}"
+    severidade = SEVERIDADE_POR_NIVEL.get(nivel, "media")
+
+    ag = agentes if agentes is not None else AGENTES
+    agente_chave, agente_dados = (None, {})
+    if ag:
+        agente_chave, agente_dados = agente_do_tipo(tipo, ag)
+
     return {
         "data": now_iso(),
         "tipo": tipo,
         "nivel": nivel,
-        "severidade": SEVERIDADE_POR_NIVEL.get(nivel, "media"),
+        "severidade": severidade,
         "produto": produto,
         "concorrente": concorrente,
         "resumo": resumo,
@@ -149,6 +225,10 @@ def make_alert(tipo, nivel, produto, concorrente, resumo, detalhes, evidencia_ur
         "estrategia": entry.get("estrategia", []),
         "kpis": entry.get("kpis", []),
         "evidencia_url": evidencia_url,
+        "agente_chave": agente_chave,
+        "agente_nome": agente_dados.get("nome"),
+        "agente_emblema": agente_dados.get("emblema"),
+        "status_acao": status_inicial(severidade, agente_dados) if agente_chave else None,
     }
 
 
@@ -317,6 +397,24 @@ def build_manual_links(config):
     return links
 
 
+def montar_radar_ml(snapshot_concorrentes, snapshot_proprio):
+    """Junta o nosso anúncio (snapshot_proprio) com os concorrentes
+    (snapshot_concorrentes) por produto, ordenado por posição na busca — é a fonte
+    do painel 'Radar de Posição — Mercado Livre'."""
+    radar = {}
+    produtos = set(snapshot_concorrentes) | set(snapshot_proprio)
+    for produto in produtos:
+        entradas = []
+        proprio = snapshot_proprio.get(produto)
+        if proprio:
+            entradas.append({"proprio": True, "concorrente": None, **proprio})
+        for concorrente, dados in snapshot_concorrentes.get(produto, {}).items():
+            entradas.append({"proprio": False, "concorrente": concorrente, **dados})
+        entradas.sort(key=lambda e: e.get("position") if e.get("position") is not None else 999)
+        radar[produto] = entradas
+    return radar
+
+
 def ingest_novos_criativos(path, canal_label, playbook, analises=None):
     """Lê a saída de meta_ads.py ou google_ads_transparency.py (novos_anuncios) e
     converte cada anúncio novo num alerta com o pacote completo do playbook.
@@ -430,7 +528,7 @@ def print_console(alertas):
 
 # --------------------------------------------------------------------------- xlsx
 def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, config, meta, path,
-               own_perf=None):
+               own_perf=None, radar_ml=None):
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
@@ -519,6 +617,28 @@ def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, 
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = "A2"
 
+    # -- Esquadrão de Combate
+    ws = wb.create_sheet("Esquadrão de Combate")
+    cols_esq = ["agente", "status", "tipo_alerta", "produto", "concorrente", "resumo"]
+    ws.append([c.upper() for c in cols_esq])
+    style_header(ws, len(cols_esq))
+    ordem_status = {"aguardando_autorizacao": 0, "investigando": 1, "monitorando": 2}
+    for a in sorted([x for x in alertas_rodada if x.get("agente_nome")],
+                     key=lambda x: ordem_status.get(x.get("status_acao"), 9)):
+        ws.append([a.get("agente_nome"), STATUS_LABEL.get(a.get("status_acao"), (a.get("status_acao"),))[0],
+                   a["tipo"], a["produto"], a["concorrente"], a["resumo"]])
+        sf = sev_fill.get(STATUS_LABEL.get(a.get("status_acao"), (None, "baixa"))[1])
+        if sf:
+            cell = ws.cell(row=ws.max_row, column=2)
+            cell.fill = PatternFill("solid", fgColor=sf)
+            cell.font = Font(color="FFFFFF", bold=True)
+    for i, w in enumerate([32, 24, 22, 22, 20, 55], 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+    ws.freeze_panes = "A2"
+
     # -- Precos Atuais
     ws = wb.create_sheet("Preços Atuais")
     cols2 = ["produto", "concorrente", "seller", "price", "original_price", "discount_pct",
@@ -533,6 +653,25 @@ def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, 
     for i, w in enumerate([24, 20, 26, 9, 13, 12, 9, 12, 9, 8, 45], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = "A2"
+
+    # -- Radar ML (nós vs. concorrência)
+    if radar_ml:
+        ws = wb.create_sheet("Radar ML")
+        cols_radar = ["produto", "quem", "position", "price", "discount_pct", "reviews",
+                      "rating", "frete_gratis", "patrocinado"]
+        ws.append([c.upper() for c in cols_radar])
+        style_header(ws, len(cols_radar))
+        for produto, entradas in radar_ml.items():
+            for e in entradas:
+                quem = "NÓS" if e["proprio"] else e["concorrente"]
+                ws.append([produto, quem, e.get("position"), e.get("price"), e.get("discount_pct"),
+                           e.get("reviews"), e.get("rating"), e.get("frete_gratis"), e.get("patrocinado")])
+                if e["proprio"]:
+                    for c in range(1, len(cols_radar) + 1):
+                        ws.cell(row=ws.max_row, column=c).font = Font(bold=True)
+        for i, w in enumerate([24, 22, 10, 10, 13, 10, 8, 12, 16], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
 
     # -- Ads (manual)
     if ads_entries:
@@ -698,7 +837,94 @@ def render_own_kpi(produto, v):
     </div>"""
 
 
-def write_html(alertas_rodada, config, meta, path, own_perf=None):
+STATUS_LABEL = {
+    "aguardando_autorizacao": ("AGUARDANDO AUTORIZAÇÃO", "alta"),
+    "investigando": ("INVESTIGANDO", "media"),
+    "monitorando": ("MONITORANDO", "baixa"),
+}
+STATUS_PRIORIDADE = {"aguardando_autorizacao": 0, "investigando": 1, "monitorando": 2}
+
+
+def render_esquadrao(alertas_rodada):
+    """Painel 'Esquadrão de Combate' — agrupa os alertas da rodada por agente
+    responsável, mostrando quantas ações cada um tem e o status mais urgente."""
+    por_agente = {}
+    for a in alertas_rodada:
+        chave = a.get("agente_chave")
+        if not chave:
+            continue
+        grupo = por_agente.setdefault(chave, {
+            "nome": a.get("agente_nome"), "emblema": a.get("agente_emblema"),
+            "alertas": [], "status": a.get("status_acao"),
+        })
+        grupo["alertas"].append(a)
+        if STATUS_PRIORIDADE.get(a["status_acao"], 9) < STATUS_PRIORIDADE.get(grupo["status"], 9):
+            grupo["status"] = a["status_acao"]
+
+    if not por_agente:
+        return ""
+
+    cards = []
+    for dados in sorted(por_agente.values(), key=lambda g: STATUS_PRIORIDADE.get(g["status"], 9)):
+        label, sev = STATUS_LABEL.get(dados["status"], (dados["status"], "baixa"))
+        itens = "".join(f"<li>{a['resumo'][:80]}</li>" for a in dados["alertas"][:4])
+        cards.append(f"""
+    <div class="squadron-card sev-{sev}">
+      <div class="squadron-head">
+        <span class="squadron-emblema">{dados['emblema'] or '●'}</span>
+        <span class="squadron-nome">{dados['nome']}</span>
+      </div>
+      <span class="squadron-status">{label}</span>
+      <div class="squadron-count">{len(dados['alertas'])} ação(ões) atribuída(s)</div>
+      <ul class="squadron-list">{itens}</ul>
+    </div>""")
+
+    return f"""
+<section class="squadron-strip">
+  <h2>// esquadrão de combate — ações em andamento por agente</h2>
+  <div class="squadron-grid">{''.join(cards)}</div>
+</section>"""
+
+
+def render_ml_radar(radar_ml):
+    """Painel 'Radar de Posição — Mercado Livre': nosso anúncio vs. cada concorrente,
+    lado a lado, por produto. radar_ml vem de montar_radar_ml()."""
+    if not radar_ml:
+        return ""
+    linhas = []
+    for produto, entradas in radar_ml.items():
+        for e in entradas:
+            quem = "NÓS" if e["proprio"] else e["concorrente"]
+            classe = "radar-proprio" if e["proprio"] else "radar-concorrente"
+            preco = f"R$ {e['price']:.2f}" if e.get("price") is not None else "—"
+            desconto = f"{e['discount_pct']:.0f}%" if e.get("discount_pct") else "—"
+            ads = {"sim": "SIM", "nao": "não", "desconhecido": "n/d"}.get(e.get("patrocinado", "desconhecido"))
+            linhas.append(f"""
+        <tr class="{classe}">
+          <td>{produto}</td><td class="quem">{quem}</td><td>#{e.get('position', '—')}</td>
+          <td>{preco}</td><td>{desconto}</td><td>{e.get('reviews', '—')}</td>
+          <td>{e.get('rating', '—')}</td><td>{'sim' if e.get('frete_gratis') else 'não'}</td>
+          <td class="ads-flag">{ads}</td>
+        </tr>""")
+    return f"""
+<section class="ml-radar">
+  <h2>// radar de posição — mercado livre (nós vs. concorrência)</h2>
+  <div class="ml-radar-table-wrap">
+    <table class="ml-radar-table">
+      <thead><tr>
+        <th>Produto</th><th>Quem</th><th>Posição</th><th>Preço</th><th>Desconto</th>
+        <th>Reviews</th><th>Rating</th><th>Frete grátis</th><th>Anúncio patrocinado?</th>
+      </tr></thead>
+      <tbody>{''.join(linhas)}</tbody>
+    </table>
+  </div>
+  <p class="ml-radar-note">"Anúncio patrocinado?" é best-effort — o scraper usado não confirma
+  de forma confiável se um item é Mercado Ads ou orgânico (ver references/fontes-e-limitacoes.md);
+  "n/d" significa que essa informação não veio na captura.</p>
+</section>"""
+
+
+def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None):
     ordem = {"alta": 0, "media": 1, "baixa": 2}
     ordenados = sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]])
     cards = "".join(render_card(a, i) for i, a in enumerate(ordenados))
@@ -723,6 +949,9 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None):
   <h2>// desempenho próprio — google/meta ads (últimos dados importados)</h2>
   <div class="gauge-grid">{own_cards}</div>
 </section>"""
+
+    esquadrao_section = render_esquadrao(alertas_rodada)
+    ml_radar_section = render_ml_radar(radar_ml)
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -845,6 +1074,52 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None):
   .signal-bar {{ margin-top: 10px; height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; }}
   .signal-bar span {{ display: block; height: 100%; background: var(--hud); box-shadow: 0 0 6px var(--hud-soft); }}
   .gauge-ga4 {{ margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }}
+  .squadron-strip {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
+  .squadron-strip h2 {{
+    font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400;
+  }}
+  .squadron-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
+  .squadron-card {{
+    position: relative; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--line);
+    border-radius: 4px; padding: 12px 16px; min-width: 220px; max-width: 300px;
+  }}
+  .squadron-card.sev-alta {{ border-left-color: var(--alta); }}
+  .squadron-card.sev-media {{ border-left-color: var(--media); }}
+  .squadron-card.sev-baixa {{ border-left-color: var(--baixa); }}
+  .squadron-head {{ display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }}
+  .squadron-emblema {{ font-size: 1rem; color: var(--hud); }}
+  .squadron-nome {{ font-size: .82rem; font-weight: 700; }}
+  .squadron-status {{
+    display: inline-block; font-size: .64rem; letter-spacing: .05em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 3px; background: var(--panel-2); color: var(--text-dim);
+    border: 1px solid var(--line); margin-bottom: 6px;
+  }}
+  .sev-alta .squadron-status {{ color: var(--alta); border-color: var(--alta); }}
+  .sev-media .squadron-status {{ color: var(--media); border-color: var(--media); }}
+  .squadron-count {{ font-size: .72rem; color: var(--text-dim); margin-bottom: 6px; }}
+  .squadron-list {{ list-style: none; margin: 0; padding: 0; font-size: .74rem; color: var(--text-dim); }}
+  .squadron-list li {{ padding: 2px 0; border-top: 1px dashed var(--line); }}
+  .squadron-list li:first-child {{ border-top: none; }}
+  .ml-radar {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
+  .ml-radar h2 {{
+    font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400;
+  }}
+  .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }}
+  .ml-radar-table {{ width: 100%; border-collapse: collapse; font-size: .78rem; white-space: nowrap; }}
+  .ml-radar-table th {{
+    text-align: left; padding: 8px 12px; background: var(--panel-2); color: var(--hud);
+    font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;
+    border-bottom: 1px solid var(--line);
+  }}
+  .ml-radar-table td {{ padding: 7px 12px; border-bottom: 1px dashed var(--line); color: var(--text-dim);
+                         font-variant-numeric: tabular-nums; }}
+  .ml-radar-table tr.radar-proprio {{ background: var(--hud-dim); }}
+  .ml-radar-table tr.radar-proprio td.quem {{ color: var(--hud); font-weight: 700; }}
+  .ml-radar-table td.quem {{ color: var(--text); }}
+  .ml-radar-table td.ads-flag {{ text-transform: uppercase; font-size: .7rem; }}
+  .ml-radar-note {{ margin: 10px 0 0; font-size: .72rem; color: var(--text-dim); line-height: 1.5; }}
   .grid {{
     display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 16px; padding: 24px 32px; position: relative; z-index: 1;
@@ -957,7 +1232,9 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None):
   </div>
 </header>
 <div class="master-caution {mc_level}"><span class="mc-dot"></span>{mc_text}</div>
+{esquadrao_section}
 {own_kpi_section}
+{ml_radar_section}
 <div class="grid">{cards}</div>
 <p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os
 sinais de atividade em ads (Meta Ad Library / Google Ads Transparency Center) refletem
@@ -1003,6 +1280,10 @@ def main():
     ap.add_argument("--queda-kpi-json", default=None,
                      help="saída de own_performance.py --history-dir (queda-kpi-proprio.json) — vira "
                           "alertas 'queda_kpi_proprio' que acionam o protocolo de diagnóstico completo")
+    ap.add_argument("--simulate-ml-proprio", default=None,
+                     help="JSON {produto: {...}} com o NOSSO anúncio simulado (mesmo formato que "
+                          "collect_snapshot produz em snapshot_proprio), para testar o Radar de "
+                          "Posição sem coleta real. Só usado junto com --simulate-ml.")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -1020,6 +1301,8 @@ def main():
             sys.exit(1)
 
     playbook = load_playbook(os.path.join(SCRIPT_DIR, "playbook.json"))
+    global AGENTES
+    AGENTES = load_agentes(os.path.join(SCRIPT_DIR, "agentes.json"))
     marca = config.get("marca", "marca")
     hist_dir = args.history_dir
     snap_path = os.path.join(hist_dir, f"{marca}-snapshot.json")
@@ -1032,11 +1315,13 @@ def main():
     if args.simulate_ml:
         print(f"[SIMULAÇÃO] carregando snapshot de {args.simulate_ml} (sem coleta real)", file=sys.stderr)
         snapshot_novo = load_json(args.simulate_ml, {})
+        snapshot_proprio = load_json(args.simulate_ml_proprio, {}) if args.simulate_ml_proprio else {}
     else:
         print(f"Coletando snapshot atual ({marca})...", file=sys.stderr)
-        snapshot_novo = collect_snapshot(config, token, produtos_filter, args.per_produto)
+        snapshot_novo, snapshot_proprio = collect_snapshot(config, token, produtos_filter, args.per_produto)
     primeira_rodada = not os.path.exists(snap_path)
     snapshot_antigo = load_json(snap_path, {})
+    radar_ml = montar_radar_ml(snapshot_novo, snapshot_proprio)
 
     own_perf = {}
     if args.own_performance:
@@ -1079,8 +1364,8 @@ def main():
 
     meta = {"data": now_iso()}
     write_xlsx(alertas, alertas_log, snapshot_novo, ads_entries, load_json(ads_hist_path, {}), config, meta, args.out,
-               own_perf=own_perf)
-    write_html(alertas, config, meta, args.html, own_perf=own_perf)
+               own_perf=own_perf, radar_ml=radar_ml)
+    write_html(alertas, config, meta, args.html, own_perf=own_perf, radar_ml=radar_ml)
     print_console(alertas)
 
     if not args.ads_manual:

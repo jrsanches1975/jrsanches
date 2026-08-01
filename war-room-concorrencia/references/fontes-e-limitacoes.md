@@ -34,7 +34,13 @@ Reusa o mesmo actor do `radar-keywords-concorrentes`
   resultado específico é patrocinado ou orgânico. Por isso: **subida sustentada de
   posição ao longo de várias rodadas** é tratada como sinal de "aumento de
   visibilidade/investimento", não como prova de Mercado Ads. Seja honesto sobre essa
-  ambiguidade ao comentar o alerta.
+  ambiguidade ao comentar o alerta. `extrair_patrocinado()` tenta achar um campo
+  explícito de patrocínio no item bruto (`is_ad`/`sponsored`/`tags`); se o actor não
+  trouxer nada disso — o caso hoje — o Radar de Posição mostra "n/d", nunca inventa.
+- **Radar de Posição (nós vs. concorrência):** com `official_sellers` configurado,
+  `collect_snapshot()` também captura o NOSSO próprio anúncio na mesma busca (mesmos
+  campos: posição, preço, desconto, reviews, rating, frete grátis) — não é mais só
+  monitoramento de terceiro, é comparação direta lado a lado, por produto.
 - **Reviews/rating:** crescimento anormal do número de reviews entre rodadas é usado
   como proxy (fraco) de aumento de volume de vendas do concorrente — reviews são um
   atraso em relação à venda real e nem todo comprador avalia, então trate como sinal
