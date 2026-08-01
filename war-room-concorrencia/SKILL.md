@@ -465,13 +465,26 @@ crítica — com pontos de interferência, CPC e estratégia de combate, passo 7
 e queda de KPI próprio (ROAS/CTR/conversão GA4/CPA — moderada/crítica, passo 8), que não
 traz estratégia pronta e sim o gatilho para o protocolo de diagnóstico completo.
 
-## Demo ao vivo (pitch/apresentação)
+## Demo ao vivo e simulador (pitch/apresentação/treinamento)
 
-`python gerar_demo_live.py --config config.example.json --out ../outputs/war-room-live-demo.html`
-gera um dashboard com os 10 tipos de alerta chegando em sequência (JS, dados
-simulados e autocontidos — não depende de nenhum export real), relógio da simulação,
-feed de eventos e "master caution" reagindo ao vivo. É só para demonstração — a
-operação real usa `war_room.py` normalmente, um relatório por rodada.
+Duas ferramentas de demonstração, ambas 100% simuladas/autocontidas (não dependem de
+nenhum export real) e reaproveitando o motor real (`make_alert`, playbook, agentes,
+`render_card`/`render_own_kpi`/`render_esquadrao`/`render_ml_radar`) via import de
+`war_room.py` — a operação real continua sendo `war_room.py` normalmente, um
+relatório por rodada:
+
+- **Replay fixo** (`python gerar_demo_live.py --config config.example.json --out ../outputs/war-room-live-demo.html`):
+  10 tipos de alerta chegando em sequência automática, com relógio, feed e "master
+  caution" reagindo. Bom para um pitch de "deixa rodando".
+- **Simulador interativo** (`python gerar_simulador.py --config config.example.json --out ../outputs/war-room-simulador.html`):
+  painel de controle com ~19 eventos em 6 categorias (Preço, Mercado Livre, Criativo,
+  Trends, Leilão, KPI Próprio) — você dispara **qualquer um, na ordem que quiser**,
+  e o dashboard inteiro reage: card novo, feed, Esquadrão de Combate recalculado por
+  agente, e o **Radar ML atualizando ao vivo** (a linha do concorrente afetado muda
+  e pisca quando o evento é de preço/desconto/visibilidade/entrada/saída). Também
+  tem "disparar tudo em sequência" e "reiniciar". É a ferramenta certa para treinar
+  a equipe em como o sistema reage a cada tipo de evento, sem esperar um evento real
+  acontecer.
 
 ## Princípios
 
