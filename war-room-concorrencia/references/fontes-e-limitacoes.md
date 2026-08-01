@@ -221,6 +221,17 @@ conectores de anúncio simultâneos (ou a autorização trocou de conta no meio 
 processo) — sempre rode `get_connectors` depois de qualquer nova autorização para
 confirmar que nada caiu, antes de prometer que "os três estão conectados".
 
+**Reconfirmado em 2026-08-01:** o usuário relatou ter conectado Facebook e Google
+Ads no Windsor.ai. `get_connectors` (com `include_not_yet_connected=true`) mostrou
+`facebook` e `google_ads` na lista, mas **sem `accounts`** — ou seja, sem conta
+associada, desconectados. Só `googleanalytics4` aparece com conta (`GA4 - Joie
+Suplementos`). `get_current_user` confirma plano `FREE`/`is_paid: false`. Mesmo
+padrão do achado anterior: no Free, o Windsor parece sustentar só 1 conector de
+anúncio/analytics por vez — a conexão mais recente (ou a autorização) derruba a
+anterior. Decisão registrada: seguir operando com GA4 real (via
+`own_performance.py`) até o plano ser resolvido; não fabricar dados de Meta/Google
+Ads enquanto `get_connectors` não mostrar `accounts` para eles.
+
 ## "Instantâneo"
 
 Toda automação aqui é **por polling** (rodar o monitor e comparar com a rodada
