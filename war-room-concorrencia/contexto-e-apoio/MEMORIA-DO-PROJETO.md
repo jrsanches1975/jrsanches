@@ -61,6 +61,17 @@ Livre: `JOIE`.
     geradores de HTML.
 14. Verificação ao vivo do Windsor.ai depois que o usuário disse ter conectado
     Facebook e Google — **descoberta em andamento, ver seção própria abaixo**.
+15. Painel de seleção de produtos monitorados (`gerar_painel_produtos.py`):
+    tela self-contained com interruptor por produto (monitorando/candidato),
+    edição inline, adicionar/remover produto, e exportação do `config.json`
+    atualizado (via download ou copiar/colar) — o projeto não tem backend, então
+    nada se grava sozinho.
+16. Pedido do link de download do dashboard principal → arquivo enviado direto
+    (`SendUserFile`) além do link do artifact já publicado.
+17. Pedido para gerar/gravar contexto e memória junto dos arquivos finais numa
+    pasta — este arquivo foi atualizado e `contexto-e-apoio/arquivos-finais/`
+    passou a guardar cópias versionadas (commitadas, não gitignored) dos 5
+    entregáveis HTML/XLSX mais recentes.
 
 ## Princípios que NUNCA devem ser quebrados
 
@@ -86,8 +97,15 @@ Livre: `JOIE`.
 
 ```
 war-room-concorrencia/
-├── SKILL.md                     # manual operacional completo (11 fluxos)
-├── contexto-e-apoio/            # ESTE arquivo — memória/histórico do projeto
+├── SKILL.md                     # manual operacional completo (11 fluxos + 1b)
+├── contexto-e-apoio/
+│   ├── MEMORIA-DO-PROJETO.md    # ESTE arquivo — memória/histórico do projeto
+│   └── arquivos-finais/         # cópias VERSIONADAS (não gitignored) dos entregáveis
+│       ├── war-room.html            # dashboard de produção
+│       ├── war-room.xlsx            # mesmo conteúdo em planilha
+│       ├── war-room-live-demo.html  # demo de replay fixo
+│       ├── war-room-simulador.html  # simulador interativo
+│       └── painel-produtos.html     # painel de seleção de produtos
 ├── references/
 │   ├── fontes-e-limitacoes.md   # honestidade por fonte de dado
 │   ├── protocolo-diagnostico.md # protocolo de 8 passos p/ queda de KPI
@@ -103,16 +121,18 @@ war-room-concorrencia/
 │   ├── google_trends.py         # BETA — idem, Google Trends
 │   ├── keyword_auction.py       # VERIFICADO — leilão de keyword via Windsor.ai
 │   ├── descoberta_concorrentes.py # motor de descoberta/composição + score de relevância
+│   ├── gerar_painel_produtos.py  # painel de seleção de produtos monitorados
 │   ├── agentes.json             # taxonomia de agentes de combate
 │   ├── playbook.json            # definição de todos os tipos de alerta
 │   ├── config.example.json      # config de exemplo (produtos, concorrentes, pesos etc.)
 │   ├── gerar_demo_live.py        # demo de replay fixo (10 eventos)
 │   ├── gerar_simulador.py        # simulador interativo (dispara evento a evento)
 │   └── examples/                 # fixtures para rodar tudo em modo --simulate-*
-└── outputs/                      # gerado localmente (gitignored), não versionado
+└── outputs/                      # gerado localmente (gitignored) — a cada rodada nova;
+                                   # a versão de referência fica em contexto-e-apoio/arquivos-finais/
 ```
 
-Os 3 artifacts publicados (URLs — republicar com o mesmo `file_path`/`url` para
+Os 4 artifacts publicados (URLs — republicar com o mesmo `file_path`/`url` para
 atualizar, nunca criar um novo):
 
 - **War Room — Joie** (dashboard "de produção", `outputs/war-room.html`):
@@ -121,8 +141,16 @@ atualizar, nunca criar um novo):
   `https://claude.ai/code/artifact/b45e96ac-b503-4463-a390-aa1e8a8eb778`
 - **War Room — Joie · SIMULADOR** (`outputs/war-room-simulador.html`):
   `https://claude.ai/code/artifact/ce0e31b4-0f11-4bb8-9f79-59c5a71074e2`
+- **War Room — Joie · Painel de Produtos** (`outputs/painel-produtos.html`):
+  `https://claude.ai/code/artifact/cbab392a-cf2e-42bf-8f2f-bef7bcdeb495`
 
 Branch de trabalho: `claude/competitor-monitoring-war-room-pkhhlo`.
+
+Importante: `contexto-e-apoio/arquivos-finais/` é uma **fotografia versionada**
+(commitada no git) do último estado gerado — útil pra consulta/download sem
+precisar rodar nada. Não é regenerada automaticamente; ao fechar uma rodada de
+mudanças relevante, regere os 5 arquivos (comandos na seção "Fluxo de trabalho"
+do `SKILL.md`) e copie por cima deste diretório antes de commitar.
 
 ## Descobertas técnicas importantes (não repetir o mesmo teste sem necessidade)
 
