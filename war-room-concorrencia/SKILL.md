@@ -531,7 +531,10 @@ relatório por rodada:
   e pisca quando o evento é de preço/desconto/visibilidade/entrada/saída). Também
   tem "disparar tudo em sequência" e "reiniciar". É a ferramenta certa para treinar
   a equipe em como o sistema reage a cada tipo de evento, sem esperar um evento real
-  acontecer.
+  acontecer. Inclui um grupo extra de botões **"Descoberta de Concorrentes"** que
+  roda `descoberta_concorrentes.py` sobre as fixtures de exemplo e revela, numa
+  tabela dedicada, os candidatos ranqueados por produto (e um para o leilão global) —
+  mesma composição de fontes e score de relevância do passo 11.
 
 ## Princípios
 

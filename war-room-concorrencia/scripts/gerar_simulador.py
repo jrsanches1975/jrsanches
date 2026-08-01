@@ -18,6 +18,7 @@ import json
 import os
 
 import war_room as wr
+import descoberta_concorrentes as desc
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 EX_DIR = os.path.join(SCRIPT_DIR, "examples")
@@ -199,6 +200,51 @@ def montar_biblioteca(config, playbook):
     return eventos
 
 
+def montar_descoberta(config):
+    """Roda o motor de descoberta_concorrentes.py sobre as fixtures de exemplo e
+    devolve um evento de 'revelação' por produto + um para o leilão (Auction
+    Insight) — cada um vira um botão que popula a tabela de candidatos no painel."""
+    raw_simulado = wr.load_json(os.path.join(EX_DIR, "descoberta-simulada.json"), {})
+    dominios_auction = desc.carregar_dominios_auction(
+        os.path.join(EX_DIR, "auction-domains-simulado.json"), config.get("official_domains", []))
+    ativos_ads = {desc.norm(k): v for k, v in
+                  wr.load_json(os.path.join(EX_DIR, "ativos-ads-simulado.json"), {}).items()}
+    pesos = config.get("pesos_relevancia", {})
+    candidatos_manual = config.get("candidatos_concorrentes_manual", [])
+    official_sellers = config.get("official_sellers", [])
+
+    revelacoes = []
+    produtos = config.get("produtos_monitorados", []) + config.get("produtos_candidatos_manual", [])
+    for prod in produtos:
+        raw = raw_simulado.get(prod["nome"], [])
+        if not raw:
+            continue
+        descoberta = desc.descobrir_por_produto(raw, official_sellers)
+        candidatos = desc.compor_candidatos_produto(prod["nome"], descoberta, candidatos_manual)
+        pontuados = [(c, desc.pontuar(c, prod.get("preco_proprio"), ativos_ads, pesos)) for c in candidatos]
+        pontuados.sort(key=lambda t: -(t[1]["score_final"] or -1))
+        linhas = [{
+            "nome": c.get("nome") or c.get("seller"),
+            "score": round(pont["score_final"], 2) if pont["score_final"] is not None else None,
+            "origem": ", ".join(c.get("origem", [])),
+            "variante": c.get("title") or c.get("dominio_site") or "",
+        } for c, pont in pontuados]
+        revelacoes.append({"titulo": f"Descoberta: {prod['nome']}", "produto": prod["nome"], "linhas": linhas})
+
+    candidatos_globais = desc.compor_candidatos_globais(dominios_auction, candidatos_manual)
+    pontuados_globais = [(c, desc.pontuar(c, None, ativos_ads, pesos)) for c in candidatos_globais]
+    pontuados_globais.sort(key=lambda t: -(t[1]["score_final"] or -1))
+    linhas_globais = [{
+        "nome": c.get("nome"),
+        "score": round(pont["score_final"], 2) if pont["score_final"] is not None else None,
+        "origem": ", ".join(c.get("origem", [])),
+        "variante": f"{c.get('aparicoes_leilao', 0)}x no Auction Insight" if c.get("aparicoes_leilao") else "",
+    } for c, pont in pontuados_globais]
+    revelacoes.append({"titulo": "Descoberta: Leilão (Auction Insight, global)", "produto": None, "linhas": linhas_globais})
+
+    return revelacoes
+
+
 CATEGORIA_DO_TIPO = {
     "queda_preco": "Preço", "aumento_preco_concorrente": "Preço", "novo_desconto": "Preço",
     "novo_entrante": "Mercado Livre", "concorrente_sumiu": "Mercado Livre", "salto_visibilidade_ml": "Mercado Livre",
@@ -207,7 +253,7 @@ CATEGORIA_DO_TIPO = {
 }
 
 
-def render_simulador(eventos, radar_ml_inicial, own_perf, config, meta, path):
+def render_simulador(eventos, radar_ml_inicial, own_perf, revelacoes, config, meta, path):
     botoes_por_categoria = {}
     eventos_js = []
     for i, (a, radar_upd) in enumerate(eventos):
@@ -233,9 +279,18 @@ def render_simulador(eventos, radar_ml_inicial, own_perf, config, meta, path):
         )
         botoes_html.append(f'<div class="ev-group"><h3>{cat}</h3><div class="ev-buttons">{btns}</div></div>')
 
+    botoes_descoberta_html = "".join(
+        f'<button class="ev-btn disc-btn" data-disc-idx="{i}" onclick="revelarDescoberta({i}, this)">'
+        f'<span class="ev-btn-sev">◎</span>{r["titulo"]}<br><small>{len(r["linhas"])} candidato(s)</small></button>'
+        for i, r in enumerate(revelacoes)
+    )
+    botoes_html.append(f'<div class="ev-group"><h3>Descoberta de Concorrentes</h3>'
+                        f'<div class="ev-buttons">{botoes_descoberta_html}</div></div>')
+
     own_cards = "".join(wr.render_own_kpi(p, v) for p, v in own_perf.items())
     eventos_json = json.dumps(eventos_js)
     radar_inicial_json = json.dumps(radar_ml_inicial)
+    revelacoes_json = json.dumps(revelacoes)
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -400,6 +455,21 @@ def render_simulador(eventos, radar_ml_inicial, own_perf, config, meta, path):
   .ml-radar-table td.updated {{ animation: flash-update 1.2s ease; }}
   @keyframes flash-update {{ 0% {{ background: rgba(41,255,224,.35); }} 100% {{ background: transparent; }} }}
   .ml-radar-note {{ margin: 10px 0 0; font-size: .72rem; color: var(--text-dim); line-height: 1.5; }}
+  .discovery {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
+  .discovery h2 {{ font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
+                   letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400; }}
+  .discovery-table-wrap {{ overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }}
+  .discovery-table {{ width: 100%; border-collapse: collapse; font-size: .78rem; }}
+  .discovery-table th {{ text-align: left; padding: 8px 12px; background: var(--panel-2); color: var(--hud);
+                          font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;
+                          border-bottom: 1px solid var(--line); }}
+  .discovery-table td {{ padding: 7px 12px; border-bottom: 1px dashed var(--line); color: var(--text-dim);
+                          font-variant-numeric: tabular-nums; }}
+  .discovery-table td.produto-col {{ color: var(--hud); font-weight: 700; white-space: nowrap; }}
+  .discovery-table td.nome-col {{ color: var(--text); }}
+  .discovery-table tr.rise {{ animation: rise .5s ease both; }}
+  .discovery-empty {{ padding: 24px; text-align: center; color: var(--text-dim); opacity: .6; font-size: .85rem; }}
+  .disc-btn {{ border-color: var(--hud-soft); }}
 
   .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; padding: 24px 32px;
            position: relative; z-index: 1; min-height: 140px; }}
@@ -497,6 +567,15 @@ def render_simulador(eventos, radar_ml_inicial, own_perf, config, meta, path):
   <p class="ml-radar-note">Ao disparar um evento de preço/desconto/visibilidade/entrada/saída, a linha do
   concorrente afetado atualiza e pisca. "Anúncio patrocinado?" é best-effort (ver references/fontes-e-limitacoes.md).</p>
 </section>
+<section class="discovery">
+  <h2>// motor de descoberta e composição de concorrentes (score de relevância)</h2>
+  <div class="discovery-table-wrap">
+    <table class="discovery-table" id="discovery-table">
+      <thead><tr><th>Produto</th><th>Candidato</th><th>Score</th><th>Origem</th><th>Variante/observação</th></tr></thead>
+      <tbody id="discovery-body"><tr><td colspan="5" class="discovery-empty">Use os botões "Descoberta de Concorrentes" no painel de controle.</td></tr></tbody>
+    </table>
+  </div>
+</section>
 <div class="grid" id="grid"><div class="empty" id="grid-empty">Nenhum evento disparado ainda — use o painel de controle acima.</div></div>
 <p class="caveat">Simulador: todos os eventos e dados são simulados (autocontidos, sem dependência de
 Windsor.ai/Apify). Cada botão do painel dispara um evento pré-configurado que passa pelo motor REAL do
@@ -506,11 +585,13 @@ Ver SKILL.md.</p>
 <script>
 const EVENTOS = {eventos_json};
 const RADAR_INICIAL = {radar_inicial_json};
+const REVELACOES = {revelacoes_json};
 const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const grid = document.getElementById('grid');
 const feed = document.getElementById('feed');
 const caution = document.getElementById('master-caution');
+const discoveryBody = document.getElementById('discovery-body');
 const contador = document.getElementById('contador');
 const relogio = document.getElementById('relogio');
 const squadronGrid = document.getElementById('squadron-grid');
@@ -518,7 +599,7 @@ const radarBody = document.getElementById('ml-radar-body');
 const btnAutoplay = document.getElementById('btn-autoplay');
 const btnReset = document.getElementById('btn-reset');
 
-let relogioBase, piorSeveridade, disparados, agentesState, radarState;
+let relogioBase, piorSeveridade, disparados, descobertosDisparados, agentesState, radarState;
 const rankSev = {{ baixa: 0, media: 1, alta: 2 }};
 const STATUS_LABEL = {{
   aguardando_autorizacao: ['AGUARDANDO AUTORIZAÇÃO', 'alta'],
@@ -533,6 +614,7 @@ function estadoInicial() {{
   relogioBase = new Date(2026, 6, 31, 22, 10, 0);
   piorSeveridade = null;
   disparados = new Set();
+  descobertosDisparados = new Set();
   agentesState = {{}};
   radarState = JSON.parse(JSON.stringify(RADAR_INICIAL));
 }}
@@ -654,9 +736,43 @@ function dispararEvento(i, btnEl) {{
   if (!reduzido) card.scrollIntoView({{behavior: 'smooth', block: 'nearest'}});
 }}
 
+function revelarDescoberta(i, btnEl) {{
+  if (descobertosDisparados.has(i)) return;
+  descobertosDisparados.add(i);
+  if (btnEl) btnEl.disabled = true;
+
+  const rev = REVELACOES[i];
+  if (discoveryBody.querySelector('.discovery-empty')) discoveryBody.innerHTML = '';
+  if (!rev.linhas.length) {{
+    const tr = document.createElement('tr');
+    tr.className = 'rise';
+    tr.innerHTML = `<td colspan="5" class="discovery-empty">${{rev.titulo}}: nenhum candidato encontrado nesta rodada.</td>`;
+    discoveryBody.appendChild(tr);
+  }}
+  for (const linha of rev.linhas) {{
+    const tr = document.createElement('tr');
+    tr.className = 'rise';
+    const score = (linha.score !== null && linha.score !== undefined) ? linha.score.toFixed(2) : 'N/D';
+    tr.innerHTML = `<td class="produto-col">${{rev.produto || '(global)'}}</td>` +
+      `<td class="nome-col">${{linha.nome}}</td><td>${{score}}</td><td>${{linha.origem}}</td><td>${{linha.variante || '—'}}</td>`;
+    discoveryBody.appendChild(tr);
+  }}
+
+  relogioBase = new Date(relogioBase.getTime() + (5 + Math.random()*35) * 60000);
+  relogio.textContent = fmtRelogio(relogioBase);
+  const linhaFeed = document.createElement('div');
+  linhaFeed.className = 'feed-line';
+  linhaFeed.innerHTML = `<span class="ts">[${{fmtRelogio(relogioBase)}}]</span><span class="sev-media">◎</span> ${{rev.titulo}} — ${{rev.linhas.length}} candidato(s) revelado(s)`;
+  if (feed.querySelector('.feed-empty')) feed.innerHTML = '';
+  feed.prepend(linhaFeed);
+
+  if (!reduzido) discoveryBody.lastElementChild && discoveryBody.lastElementChild.scrollIntoView({{behavior: 'smooth', block: 'nearest'}});
+}}
+
 function reiniciar() {{
   grid.innerHTML = '<div class="empty" id="grid-empty">Nenhum evento disparado ainda — use o painel de controle acima.</div>';
   feed.innerHTML = '<div class="feed-line feed-empty">— nenhum evento ainda —</div>';
+  discoveryBody.innerHTML = '<tr><td colspan="5" class="discovery-empty">Use os botões "Descoberta de Concorrentes" no painel de controle.</td></tr>';
   contador.textContent = '0';
   relogio.textContent = '--:--:--';
   estadoInicial();
@@ -672,6 +788,12 @@ async function autoplay() {{
     if (disparados.has(i)) continue;
     const btn = document.querySelector(`.ev-btn[data-idx="${{i}}"]`);
     dispararEvento(i, btn);
+    await new Promise(r => setTimeout(r, reduzido ? 0 : 900));
+  }}
+  for (let i = 0; i < REVELACOES.length; i++) {{
+    if (descobertosDisparados.has(i)) continue;
+    const btn = document.querySelector(`.disc-btn[data-disc-idx="${{i}}"]`);
+    revelarDescoberta(i, btn);
     await new Promise(r => setTimeout(r, reduzido ? 0 : 900));
   }}
   btnAutoplay.disabled = false;
@@ -713,9 +835,10 @@ def main():
     proprio = wr.load_json(os.path.join(EX_DIR, "ml-simulado-proprio.json"), {})
     snap_inicial = wr.load_json(os.path.join(EX_DIR, "ml-simulado-rodada1.json"), {})
     radar_inicial = wr.montar_radar_ml(snap_inicial, proprio)
+    revelacoes = montar_descoberta(config)
 
-    render_simulador(eventos, radar_inicial, OWN_PERF, config, {"data": wr.now_iso()}, args.out)
-    print(f"OK -> {args.out} ({len(eventos)} eventos disponíveis no painel de controle)")
+    render_simulador(eventos, radar_inicial, OWN_PERF, revelacoes, config, {"data": wr.now_iso()}, args.out)
+    print(f"OK -> {args.out} ({len(eventos)} eventos + {len(revelacoes)} revelações de descoberta disponíveis no painel de controle)")
 
 
 if __name__ == "__main__":
