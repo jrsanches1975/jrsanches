@@ -70,8 +70,13 @@ Livre: `JOIE`.
     (`SendUserFile`) além do link do artifact já publicado.
 17. Pedido para gerar/gravar contexto e memória junto dos arquivos finais numa
     pasta — este arquivo foi atualizado e `contexto-e-apoio/arquivos-finais/`
-    passou a guardar cópias versionadas (commitadas, não gitignored) dos 5
+    passou a guardar cópias versionadas (commitadas, não gitignored) dos
     entregáveis HTML/XLSX mais recentes.
+18. Pergunta sobre "a relação de players e a seleção e inclusão manual para
+    pesquisa" — esclarecido que era sobre o relatório/planilha de descoberta já
+    existente (`descoberta_concorrentes.py` → `descoberta.xlsx`), não um painel
+    novo. Regerado com dado atual e entregue; adicionado também a
+    `arquivos-finais/`.
 
 ## Princípios que NUNCA devem ser quebrados
 
@@ -105,7 +110,8 @@ war-room-concorrencia/
 │       ├── war-room.xlsx            # mesmo conteúdo em planilha
 │       ├── war-room-live-demo.html  # demo de replay fixo
 │       ├── war-room-simulador.html  # simulador interativo
-│       └── painel-produtos.html     # painel de seleção de produtos
+│       ├── painel-produtos.html     # painel de seleção de produtos
+│       └── descoberta.xlsx          # relatório de descoberta/composição de concorrentes
 ├── references/
 │   ├── fontes-e-limitacoes.md   # honestidade por fonte de dado
 │   ├── protocolo-diagnostico.md # protocolo de 8 passos p/ queda de KPI
