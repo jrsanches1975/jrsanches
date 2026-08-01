@@ -32,9 +32,19 @@ nome do conector):
 """
 import argparse
 import json
+import os
 from collections import defaultdict
 
 GA4_CONNECTOR = "googleanalytics4"
+
+# (métrica, "queda"|"alta" indica a direção RUIM, rótulo pra humano)
+METRICAS_MONITORADAS = [
+    ("roas", "queda", "ROAS"),
+    ("cpa", "alta", "CPA"),
+    ("ctr_pct", "queda", "CTR"),
+    ("ga4_conversao_pct", "queda", "Taxa de conversão (GA4)"),
+    ("ga4_engajamento_pct", "queda", "Taxa de engajamento (GA4)"),
+]
 
 
 def norm(s):
@@ -149,16 +159,49 @@ def aggregate_by_produto(campanhas_agg, config):
     return resultado, nao_mapeadas
 
 
+def detectar_quedas_kpi(atual, anterior, limiar_pct):
+    """Compara o desempenho atual com o snapshot da rodada anterior e sinaliza
+    queda relevante em qualquer uma das METRICAS_MONITORADAS. Isto é o gatilho do
+    'diagnóstico completo quando o KPI cai' — ver references/protocolo-diagnostico.md."""
+    alertas = []
+    for produto, v in atual.items():
+        b = anterior.get(produto)
+        if not b:
+            continue
+        for metrica, direcao_ruim, rotulo in METRICAS_MONITORADAS:
+            va, vb = v.get(metrica), b.get(metrica)
+            if va is None or vb in (None, 0):
+                continue
+            delta_pct = (va - vb) / abs(vb) * 100
+            piorou = (direcao_ruim == "queda" and delta_pct <= -limiar_pct) or \
+                     (direcao_ruim == "alta" and delta_pct >= limiar_pct)
+            if piorou:
+                alertas.append({
+                    "produto": produto, "metrica": metrica, "rotulo": rotulo,
+                    "valor_antes": vb, "valor_agora": va, "delta_pct": delta_pct,
+                })
+    return alertas
+
+
 def main():
     ap = argparse.ArgumentParser(description="Agrega desempenho próprio (Windsor.ai) por produto.")
     ap.add_argument("--input", action="append", required=True,
                      help="JSON {'connector':..., 'registros':[...]}. Repita por conector.")
     ap.add_argument("--config", required=True)
     ap.add_argument("--out", default="own-performance-por-produto.json")
+    ap.add_argument("--history-dir", default=None,
+                     help="se fornecido, compara com a rodada anterior e grava "
+                          "queda-kpi-proprio.json com as quedas detectadas (gatilho do "
+                          "diagnóstico completo — ver SKILL.md passo 8)")
+    ap.add_argument("--queda-kpi-json", default=None,
+                     help="caminho de saída das quedas (default: <history-dir>/queda-kpi-proprio.json)")
+    ap.add_argument("--limiar-pct", type=float, default=20.0,
+                     help="variação mínima (%%) pra considerar queda relevante (default 20%%)")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
         config = json.load(f)
+    marca = config.get("marca", "marca")
 
     records = load_records(args.input)
     campanhas_agg = aggregate_by_campaign(records)
@@ -174,6 +217,26 @@ def main():
               f"(adicione o nome em 'campanhas_google_ads'/'campanhas_meta_ads' no config):")
         for c in nao_mapeadas[:10]:
             print(f"  - [{c['conector']}] {c['campanha']}")
+
+    if args.history_dir:
+        snap_path = os.path.join(args.history_dir, f"{marca}-own-performance-snapshot.json")
+        anterior = {}
+        if os.path.exists(snap_path):
+            with open(snap_path, encoding="utf-8") as f:
+                anterior = json.load(f)
+        quedas = detectar_quedas_kpi(por_produto, anterior, args.limiar_pct) if anterior else []
+        os.makedirs(args.history_dir, exist_ok=True)
+        with open(snap_path, "w", encoding="utf-8") as f:
+            json.dump(por_produto, f, ensure_ascii=False, indent=2)
+        out_quedas = args.queda_kpi_json or os.path.join(args.history_dir, "queda-kpi-proprio.json")
+        with open(out_quedas, "w", encoding="utf-8") as f:
+            json.dump({"quedas": quedas}, f, ensure_ascii=False, indent=2)
+        if not anterior:
+            print("[queda kpi] linha de base (1a execução) — sem diffs ainda.")
+        print(f"[queda kpi] {len(quedas)} queda(s) de KPI próprio detectada(s) -> {out_quedas}")
+        for q in quedas:
+            print(f"  • {q['produto']} — {q['rotulo']}: {q['valor_antes']:.2f} → {q['valor_agora']:.2f} "
+                  f"({q['delta_pct']:+.1f}%) — RODAR PROTOCOLO DE DIAGNÓSTICO COMPLETO")
 
 
 if __name__ == "__main__":

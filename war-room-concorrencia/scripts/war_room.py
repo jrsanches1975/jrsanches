@@ -346,6 +346,24 @@ def fmt_pct(v):
     return f"{v * 100:.1f}%" if v is not None else "n/d"
 
 
+def ingest_quedas_kpi_proprio(path, playbook):
+    """Lê a saída de own_performance.py --history-dir (queda-kpi-proprio.json) e
+    converte cada queda de KPI próprio num alerta que aciona o protocolo de
+    diagnóstico completo (references/protocolo-diagnostico.md) em vez de uma
+    estratégia tática — a causa não é conhecida até o agente investigar."""
+    data = load_json(path, {})
+    alertas = []
+    for q in data.get("quedas", []):
+        nivel = "critica" if abs(q["delta_pct"]) >= 40 else "moderada"
+        resumo = (f"{q['rotulo']} de '{q['produto']}' variou de {q['valor_antes']:.2f} "
+                  f"para {q['valor_agora']:.2f} ({q['delta_pct']:+.1f}%) — piora relevante. "
+                  f"REQUER DIAGNÓSTICO COMPLETO antes de qualquer ação (ver "
+                  f"references/protocolo-diagnostico.md).")
+        alertas.append(make_alert("queda_kpi_proprio", nivel, q["produto"], "(a investigar)",
+                                   resumo, q, None, playbook))
+    return alertas
+
+
 def ingest_quedas_keyword(path, playbook):
     """Lê a saída de keyword_auction.py (quedas) e converte cada queda de keyword
     num alerta com os pontos de interferência (leilão), CPC e estratégia de combate."""
@@ -982,6 +1000,9 @@ def main():
     ap.add_argument("--creative-analysis-json", default=None,
                      help="JSON {ad_id: {gancho, oferta, formato, cta, observacao}} escrito pelo agente "
                           "depois de olhar a evidência de um criativo novo que está impactando o rendimento")
+    ap.add_argument("--queda-kpi-json", default=None,
+                     help="saída de own_performance.py --history-dir (queda-kpi-proprio.json) — vira "
+                          "alertas 'queda_kpi_proprio' que acionam o protocolo de diagnóstico completo")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -1046,6 +1067,8 @@ def main():
         alertas += ingest_picos_trends(args.trends_json, playbook)
     if args.keyword_auction_json:
         alertas += ingest_quedas_keyword(args.keyword_auction_json, playbook)
+    if args.queda_kpi_json:
+        alertas += ingest_quedas_kpi_proprio(args.queda_kpi_json, playbook)
 
     alertas_log = load_json(log_path, [])
     alertas_log += alertas

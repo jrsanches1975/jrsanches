@@ -1,6 +1,28 @@
 {
   "_comentario": "Versão legível e detalhada em references/playbook-resposta.md. Mantenha os dois em sincronia ao editar.",
 
+  "queda_kpi_proprio": {
+    "moderada": {
+      "impacto_concorrencia": "Ainda não se sabe se é concorrência — pode ser sazonalidade, mudança de mercado (câmbio/juros/renda), ruído de imprensa/redes sobre a marca ou o segmento, ou uma causa interna (criativo cansado, ruptura, mudança na página). Não afirme causa sem investigar.",
+      "impacto_volume": "Queda MEDIDA (não estimada) no KPI do produto. Magnitude no detalhe do alerta.",
+      "estrategia": [
+        "NÃO reagir ainda com uma ação tática isolada — rodar primeiro o protocolo de diagnóstico completo (references/protocolo-diagnostico.md): concorrência, sazonalidade, buzz da marca/produto/segmento, notícias, e contexto micro/macroeconômico",
+        "Depois do diagnóstico, apresentar o cenário junto com as ações corretivas propostas e PEDIR AUTORIZAÇÃO antes de executar qualquer combate"
+      ],
+      "kpis": ["O KPI que caiu (ver detalhe)", "Métricas correlatas do mesmo produto"]
+    },
+    "critica": {
+      "impacto_concorrencia": "Queda forte o bastante para justificar investigação prioritária — mesma ressalva: causa ainda não é conhecida até o diagnóstico ser feito.",
+      "impacto_volume": "Queda MEDIDA (não estimada), de magnitude alta.",
+      "estrategia": [
+        "Rodar o protocolo de diagnóstico completo com prioridade máxima nesta rodada (references/protocolo-diagnostico.md)",
+        "Apresentar o diagnóstico multi-disciplinar (concorrência, sazonalidade, buzz, notícias, macro/microeconomia) com o cenário mais provável destacado",
+        "Propor as ações corretivas e PEDIR AUTORIZAÇÃO explícita antes de executar qualquer uma — nunca executar sozinho"
+      ],
+      "kpis": ["O KPI que caiu (ver detalhe)", "Métricas correlatas do mesmo produto"]
+    }
+  },
+
   "queda_performance_keyword": {
     "moderada": {
       "impacto_concorrencia": "Concorrentes listados no Auction Insight desta campanha estão ganhando mais impression share nessa palavra-chave — sinal de lance mais agressivo, melhor Quality Score, ou orçamento maior do lado deles.",

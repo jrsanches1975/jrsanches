@@ -328,6 +328,45 @@ que foi pedido.
    Isso não é genérico — é o padrão real desta conta: termos de marca são fortes,
    termos genéricos perdem o leilão para marketplaces e concorrentes diretos.
 
+### 8. Diagnóstico completo quando um KPI próprio cai — nunca reagir sem investigar
+
+Rode `own_performance.py` com `--history-dir` (mesmo diretório do resto da war room)
+para detectar automaticamente queda de ROAS/CTR/taxa de conversão(GA4)/aumento de CPA
+entre rodadas:
+
+```bash
+python own_performance.py --input google-ads-30d.json --input ga4-30d.json \
+  --config config.json --out ../outputs/own-performance-por-produto.json \
+  --history-dir ../outputs/demo-history
+python war_room.py --config config.json --queda-kpi-json ../outputs/demo-history/queda-kpi-proprio.json \
+  --out ../outputs/war-room.xlsx --html ../outputs/war-room.html
+```
+
+Isso gera um alerta `queda_kpi_proprio` — e este é **diferente de todos os outros**:
+o playbook dele não traz uma estratégia tática pronta, porque a causa não é
+conhecida ainda. Ele manda rodar o **protocolo de diagnóstico completo**
+(`references/protocolo-diagnostico.md`) antes de propor qualquer ação:
+
+1. Reunir o que a própria war room já capturou (concorrência, leilão, criativo).
+2. Cruzar com sazonalidade do varejo/consumo brasileiro (calendário no protocolo).
+3. Pesquisar buzz da marca/produto/segmento (`WebSearch` real — Reclame Aqui,
+   redes, questão regulatória da categoria).
+4. Pesquisar notícias/imprensa sobre a marca, os produtos e o segmento.
+5. Pesquisar contexto micro/macroeconômico (Selic, inflação, câmbio, confiança do
+   consumidor, desempenho do varejo) relevante ao poder de compra do público.
+6. Sintetizar com 5 lentes: economista, administrador, estatístico, marketeiro,
+   vendedor — cada uma contribuindo a leitura da própria área.
+7. Fechar com o diagnóstico principal (causa mais provável + grau de confiança) e
+   as ações corretivas propostas, em ordem de prioridade.
+8. **Pedir autorização explícita antes de executar qualquer ação** — nunca chamar
+   uma ação de escrita (`mcp__Windsor_ai__execute_action`, que pausa/ativa campanha,
+   muda orçamento/lance de verdade) sem o usuário ter confirmado aquela ação
+   específica na conversa. Isso não é burocracia: a ferramenta tem acesso de escrita
+   real às contas de mídia da marca.
+
+Leia `references/protocolo-diagnostico.md` inteiro antes de conduzir esse
+diagnóstico — ele detalha as fontes e o formato de cada passo.
+
 ## O playbook de resposta (o que muda por tipo de mudança)
 
 O mapeamento completo tipo-de-mudança → impacto na concorrência → impacto estimado no
@@ -344,8 +383,10 @@ scripts beta do passo 6), concorrente saiu da busca (possível ruptura de estoqu
 entrante (concorrente novo pescando o mesmo termo), novo criativo de concorrente detectado
 no Meta Ad Library/Google Ads Transparency Center (com a peça embutida e análise, quando
 fornecida), pico de interesse de busca (Google Trends) na marca, num produto ou num
-concorrente, e queda de performance de palavra-chave no leilão do Google Ads (moderada/
-crítica — com pontos de interferência, CPC e estratégia de combate, passo 7, verificado).
+concorrente, queda de performance de palavra-chave no leilão do Google Ads (moderada/
+crítica — com pontos de interferência, CPC e estratégia de combate, passo 7, verificado),
+e queda de KPI próprio (ROAS/CTR/conversão GA4/CPA — moderada/crítica, passo 8), que não
+traz estratégia pronta e sim o gatilho para o protocolo de diagnóstico completo.
 
 ## Princípios
 
@@ -360,3 +401,12 @@ crítica — com pontos de interferência, CPC e estratégia de combate, passo 7
 - **Reutilizável:** troque `config.json` para outra marca/rodada de concorrentes.
 - **"Instantâneo" = cadência declarada:** sempre diga ao usuário qual o intervalo de
   verificação configurado, para não prometer tempo real que a fonte não entrega.
+- **Diagnóstico antes de ação, sempre que a causa não é óbvia:** um alerta de queda
+  de KPI próprio não vem com estratégia pronta de propósito — a causa pode ser
+  sazonalidade, economia, buzz, ou concorrência, e só o protocolo completo
+  (`references/protocolo-diagnostico.md`) distingue qual.
+- **Nunca executar ação de escrita sem autorização explícita e específica:** o
+  Windsor.ai pode de fato pausar campanha, mudar orçamento/lance ou publicar
+  criativo. Apresentar o diagnóstico e a proposta, esperar a confirmação do usuário
+  para aquela ação exata, e só então chamar `execute_action` — nunca antes, e uma
+  autorização não cobre ações futuras diferentes.
