@@ -230,6 +230,52 @@ Livre: `JOIE`.
     alertas (degrada sem chips/cards/erros), zero erro de JS, sem scroll
     horizontal.
 
+25. Pedido: mais efeitos nas outras abas + uma aba inteira de GA4 (jornada de
+    compra, funil, "tudo que a GA4 traz", compilado como um gestor de tráfego,
+    com as melhores práticas). **A GA4 está conectada de verdade**, então TUDO
+    nesta aba é dado MEDIDO, puxado ao vivo via Windsor.ai — não é simulação.
+    Criado **`scripts/ga4_jornada.py`** (VERIFICADO) + aba "GA4 · Jornada".
+    Números reais do período 02/07–31/07/2026 que ficaram nas fixtures
+    (`examples/ga4-real/`): 20.310 sessões, 16.466 usuários (93% novos),
+    engajamento 41,4%, funil 10.770 view_item → 2.974 add_to_cart → 528
+    begin_checkout → 199 purchase, receita R$ 111.184, ticket médio R$ 558,71,
+    conversão 0,98%, 188 compradores (82% na 1ª compra).
+    Achados técnicos da coleta (documentados no SKILL.md passo 13 e no docstring):
+    - **A GA4 aceita no máximo 10 métricas por `get_data`** (erro explícito
+      "GA4 allows at most 10 metrics per request") → coleta em blocos.
+    - O funil de e-commerce da conta é medido de verdade; existe até um funil
+      nomeado `conversions_funil_jornada_de_compra___ecommerce`.
+    - `engagement_rate`/`bounce_rate` voltam como fração (0-1), não %.
+    Diagnóstico que o motor produziu sozinho sobre o dado real (bom exemplo do
+    que o sistema deve fazer): maior vazamento = **Checkout** (só 17,8% do
+    carrinho chega lá, 2.446 perdidos); **Paid Shopping com 943 sessões, 449
+    add-to-cart e ZERO compra** (o script sugere checar rastreamento antes de
+    culpar a audiência — volume alto com zero compra costuma ser tag/atribuição);
+    Paid Social com engajamento 18,4% contra mediana 46,6%; 9 landing pages com
+    tráfego e nenhuma compra (a maior: /garrafa-copa-joie/p com 493 sessões e 712
+    adições ao carrinho).
+    Decisões de honestidade tomadas aqui (manter em qualquer evolução):
+    - Quadrantes de canal cortam pela **mediana do próprio período**, nunca por
+      benchmark de mercado — e isso está escrito na legenda da aba.
+    - Landing pages só entram acima de um limiar de sessões (default 100), porque
+      abaixo disso a taxa oscila demais para embasar decisão.
+    - A série diária tem 3 grandezas (sessões/compras/receita) e **NÃO usa dois
+      eixos Y** — cada uma tem faixa normalizada própria e o absoluto vem no
+      tooltip (dois eixos Y é o erro nº 1 de dataviz).
+    - Nada de projeção de receita futura; métrica ausente vira `n/d`, nunca 0.
+    Efeitos adicionados nas outras abas (em `_fx_neon.py`): linhas de tabela
+    entrando em cascata com IntersectionObserver, régua neon na linha sob o
+    cursor, linha "NÓS" do radar pulsando, shine percorrendo as barras/medidores,
+    lift+glow em quadrantes/diagnósticos/devices/gauges/squadron, reflexo de
+    lente nos KPIs da GA4 (sem tilt, movimento mais contido), barra da etapa de
+    vazamento respirando. Corrigido: o contador animado quebrava o separador de
+    milhar (mostrava "20310") — agora formata em pt-BR (`toLocaleString`) para
+    inteiros e vírgula decimal para frações.
+    Testado: 7 abas alternando, tooltip da série, popup de linha nas tabelas da
+    GA4, reduced-motion (barras com largura final, linhas visíveis, contadores
+    formatados), build sem `--ga4-json` mostrando como carregar em vez de
+    quebrar, 18 abas no xlsx, zero erro de JS, sem scroll horizontal.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

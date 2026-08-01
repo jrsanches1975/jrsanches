@@ -273,15 +273,78 @@ FX_CSS = """
     transition: opacity .3s ease var(--pd2, 0s), transform .42s cubic-bezier(.2,1.5,.4,1) var(--pd2, 0s);
   }
 
-  /* linhas de tabela clicáveis */
+  /* linhas de tabela clicáveis + varredura de entrada linha a linha */
   .data-table tbody tr, .ml-radar-table tbody tr { cursor: pointer; transition: background .16s ease; }
   .data-table tbody tr:hover td, .ml-radar-table tbody tr:hover td {
     background: rgba(17,135,240,.11); color: var(--text);
   }
+  .data-table tbody tr td:first-child, .ml-radar-table tbody tr td:first-child {
+    position: relative;
+  }
+  .data-table tbody tr:hover td:first-child::before,
+  .ml-radar-table tbody tr:hover td:first-child::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+  tr.fx-row { opacity: 0; transform: translateX(-8px); }
+  tr.fx-row.in {
+    opacity: 1; transform: none;
+    transition: opacity .4s ease var(--rowd, 0s), transform .4s cubic-bezier(.2,.8,.3,1) var(--rowd, 0s);
+  }
+  /* linha "NÓS" no radar pulsa de leve — é a nossa referência na tabela */
+  tr.radar-proprio td:first-child::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent-strong);
+    animation: fx-us-pulse 2.8s ease-in-out infinite;
+  }
+  @keyframes fx-us-pulse {
+    0%, 100% { opacity: .45; box-shadow: none; }
+    50% { opacity: 1; box-shadow: 0 0 12px var(--accent-strong); }
+  }
+
+  /* ---------------------------------------------- realce de barras/medidores */
+  .signal-bar span, .ga4-dev-bar, .ga4-funil-bar { position: relative; overflow: hidden; }
+  .signal-bar span::after, .ga4-dev-bar::after, .ga4-funil-bar::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+    animation: fx-shine 3.6s ease-in-out infinite; animation-delay: var(--sd, 0s);
+  }
+  @keyframes fx-shine { 0% { transform: translateX(-100%); } 55%, 100% { transform: translateX(230%); } }
+
+  /* KPI da GA4: brilho de borda ao passar o mouse + valor ganhando neon */
+  .ga4-kpi { transition: border-color .22s ease, transform .22s ease, box-shadow .22s ease; }
+  .ga4-kpi:hover {
+    border-color: var(--border-strong); transform: translateY(-3px);
+    box-shadow: 0 16px 32px -18px rgba(0,0,0,.85), 0 0 26px -10px rgba(17,135,240,.6);
+  }
+  .ga4-kpi:hover .ga4-kpi-value { text-shadow: 0 0 24px rgba(85,174,255,.6); }
+  .ga4-kpi::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 0%), rgba(160,215,255,.16), transparent 60%);
+    transition: opacity .22s ease;
+  }
+  .ga4-kpi.fx-tilt::after { opacity: 1; }
+
+  /* quadrantes e diagnóstico com lift */
+  .ga4-quad, .ga4-diag, .ga4-dev, .squadron-card, .gauge {
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+  }
+  .ga4-quad:hover, .ga4-diag:hover, .ga4-dev:hover, .squadron-card:hover, .gauge:hover {
+    transform: translateY(-3px); border-color: var(--border-strong);
+    box-shadow: 0 16px 32px -18px rgba(0,0,0,.85), 0 0 24px -12px rgba(17,135,240,.5);
+  }
+  .ga4-diag.sev-alta:hover { box-shadow: 0 16px 32px -18px rgba(0,0,0,.85), 0 0 26px -10px rgba(224,66,107,.6); }
+
+  /* etapa do funil com maior vazamento respira */
+  .ga4-funil-linha.vazamento { animation: fx-alert-breathe 3s ease-in-out infinite; }
 
   @media (prefers-reduced-motion: reduce) {
     #fx-aurora, #fx-scan, .pipe-step.on::before, .pipe-arrow::after,
-    .seal-spin, .seal-sweep, .status-pill.alta, .card.sev-alta::before { animation: none !important; }
+    .seal-spin, .seal-sweep, .status-pill.alta, .card.sev-alta::before,
+    .signal-bar span::after, .ga4-dev-bar::after, .ga4-funil-bar::after,
+    .ga4-funil-linha.vazamento, tr.radar-proprio td:first-child::after { animation: none !important; }
+    .ga4-funil-bar, .ga4-dev-bar { animation: none !important; width: var(--w) !important; }
+    tr.fx-row { opacity: 1; transform: none; }
+    .ga4-quad, .ga4-diag, .ga4-dev, .squadron-card, .gauge, .ga4-kpi { transition: none; }
     #fx-spotlight { display: none; }
     .fx-reveal { opacity: 1; transform: none; }
     .hist-linha.fx-draw { stroke-dasharray: none; stroke-dashoffset: 0; }
@@ -398,6 +461,52 @@ FX_JS = """<script>
         card.classList.remove('fx-tilt'); card.style.transform = '';
       });
     });
+    // reflexo (sem tilt) nos KPIs da GA4 — mesma lente, movimento mais contido
+    document.querySelectorAll('.ga4-kpi').forEach(function (k) {
+      k.addEventListener('mousemove', function (e) {
+        var r = k.getBoundingClientRect();
+        k.classList.add('fx-tilt');
+        k.style.setProperty('--gx', (((e.clientX - r.left) / r.width) * 100).toFixed(1) + '%');
+        k.style.setProperty('--gy', (((e.clientY - r.top) / r.height) * 100).toFixed(1) + '%');
+      });
+      k.addEventListener('mouseleave', function () { k.classList.remove('fx-tilt'); });
+    });
+  })();
+
+  /* ============================= linhas de tabela entrando em cascata + shine */
+  (function () {
+    document.querySelectorAll('.signal-bar span, .ga4-dev-bar, .ga4-funil-bar').forEach(function (b, i) {
+      b.style.setProperty('--sd', (i % 7) * 0.4 + 's');
+    });
+    var tabelas = document.querySelectorAll('.data-table tbody, .ml-radar-table tbody');
+    if (!tabelas.length) return;
+    tabelas.forEach(function (tb) {
+      Array.prototype.slice.call(tb.rows).forEach(function (tr, i) {
+        tr.classList.add('fx-row');
+        tr.style.setProperty('--rowd', Math.min(i, 18) * 0.028 + 's');
+      });
+    });
+    function mostrar(tb) {
+      Array.prototype.slice.call(tb.rows).forEach(function (tr) { tr.classList.add('in'); });
+    }
+    if (reduce || !('IntersectionObserver' in window)) {
+      tabelas.forEach(mostrar);
+      return;
+    }
+    var io = new IntersectionObserver(function (ens) {
+      ens.forEach(function (en) { if (en.isIntersecting) { mostrar(en.target); io.unobserve(en.target); } });
+    }, { threshold: 0.02, rootMargin: '0px 0px -4% 0px' });
+    tabelas.forEach(function (tb) { io.observe(tb); });
+    document.querySelectorAll('.tab-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        setTimeout(function () {
+          document.querySelectorAll('.tab-panel.active .data-table tbody, .tab-panel.active .ml-radar-table tbody')
+            .forEach(function (tb) {
+              if (tb.getBoundingClientRect().top < window.innerHeight * 1.1) mostrar(tb);
+            });
+        }, 40);
+      });
+    });
   })();
 
   /* =========================================== revelação em cascata (scroll) */
@@ -440,13 +549,18 @@ FX_JS = """<script>
       if (isNaN(alvo)) return;
       var dec = parseInt(el.dataset.countDec || '0', 10);
       var pre = el.dataset.countPre || '', suf = el.dataset.countSuf || '';
-      if (reduce) { el.textContent = pre + alvo.toFixed(dec) + suf; return; }
+      // inteiro grande mantém o separador de milhar pt-BR (senão "20310" no lugar de "20.310")
+      function fmt(v) {
+        if (dec > 0) return v.toFixed(dec).replace('.', ',');
+        return Math.round(v).toLocaleString('pt-BR');
+      }
+      if (reduce) { el.textContent = pre + fmt(alvo) + suf; return; }
       var t0 = null, dur = 1100;
       function step(ts) {
         if (t0 === null) t0 = ts;
         var k = Math.min(1, (ts - t0) / dur);
         var e = 1 - Math.pow(1 - k, 3);
-        el.textContent = pre + (alvo * e).toFixed(dec) + suf;
+        el.textContent = pre + fmt(alvo * e) + suf;
         if (k < 1) requestAnimationFrame(step);
       }
       requestAnimationFrame(step);

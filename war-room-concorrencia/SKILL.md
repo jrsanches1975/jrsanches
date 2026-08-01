@@ -578,6 +578,83 @@ Todas as três flags (`--descoberta-json`, `--keywords-relatorio-json`,
 `war_room.py` sozinho (como no passo 2) que as abas correspondentes mostram a
 mensagem de "nada carregado ainda" em vez de quebrar.
 
+### 13. Aba "GA4 · Jornada" — leitura de gestor de tráfego (`ga4_jornada.py`) — VERIFICADO
+
+Diferente do passo 5 (que casa GA4 *por produto* com o desempenho de mídia), esta
+aba é a **visão de tráfego inteira**: funil de compra, jornada por canal,
+dispositivo e landing page, com diagnóstico de onde agir primeiro. **Todos os
+campos foram testados ao vivo** na propriedade GA4 da Joie via Windsor.ai.
+
+Achados técnicos confirmados na coleta real:
+
+- A GA4 aceita **no máximo 10 métricas por chamada** `get_data` (erro explícito
+  "GA4 allows at most 10 metrics per request"). Por isso a coleta é feita em
+  **blocos** — um `get_data` por recorte.
+- O funil de e-commerce da conta é medido de verdade:
+  `item_view_events` → `add_to_carts` → `checkouts` → `ecommerce_purchases`.
+  A conta tem até um funil nomeado (`conversions_funil_jornada_de_compra___ecommerce`).
+- `engagement_rate` e `bounce_rate` voltam como **fração (0-1)**, não porcentagem.
+
+Coleta (o agente roda os `get_data` e grava cada retorno cru num JSON):
+
+```
+get_data(connector="googleanalytics4", fields=["sessions","totalusers","newusers",
+  "engaged_sessions","engagement_rate","bounce_rate","average_session_duration",
+  "screen_page_views"], date_preset="last_30d")                        → ga4-overview.json
+
+get_data(... fields=["item_view_events","add_to_carts","checkouts",
+  "ecommerce_purchases","purchase_revenue","transactions","total_purchasers",
+  "first_time_purchasers"])                                            → ga4-funil.json
+
+get_data(... fields=["default_channel_group","sessions","engaged_sessions",
+  "engagement_rate","add_to_carts","checkouts","ecommerce_purchases",
+  "purchase_revenue"])                                                 → ga4-canais.json
+
+get_data(... fields=["devicecategory", ...mesmas métricas...])          → ga4-devices.json
+get_data(... fields=["landing_page","sessions","engagement_rate","bounce_rate",
+  "add_to_carts","ecommerce_purchases","purchase_revenue"],
+  filters=[["sessions","gte",100]])                                    → ga4-landing.json
+get_data(... fields=["date","sessions","add_to_carts","checkouts",
+  "ecommerce_purchases","purchase_revenue","engagement_rate"])         → ga4-serie.json
+```
+
+Depois compile e injete:
+
+```bash
+python ga4_jornada.py --overview ga4-overview.json --funil ga4-funil.json \
+  --canais ga4-canais.json --devices ga4-devices.json --landing ga4-landing.json \
+  --serie ga4-serie.json --periodo "02/07 a 31/07/2026 (30 dias)" \
+  --out ../outputs/ga4-jornada.json
+
+python war_room.py --config config.json --ga4-json ../outputs/ga4-jornada.json \
+  --out ../outputs/war-room.xlsx --html ../outputs/war-room.html
+```
+
+O que a aba entrega (e o que o script **não** faz):
+
+- **KPIs de topo** — sessões, taxa de conversão, receita, receita/sessão, ticket
+  médio, engajamento, duração, compradores e % de 1ª compra.
+- **Funil de compra** em barras proporcionais, com taxa de passagem entre etapas,
+  perdidos em número absoluto, e a etapa de **maior vazamento destacada** (é o
+  ponto onde a correção tem maior efeito absoluto em vendas).
+- **Matriz de decisão por canal** (escalar / corrigir primeiro / testar aumento /
+  revisar ou cortar) — o corte é a **mediana do próprio período**, nunca um
+  benchmark de mercado inventado; isso está escrito na legenda da aba.
+- **Funil por canal** — sessão→carrinho, carrinho→checkout, checkout→compra, para
+  ver *em que etapa* cada origem perde a venda.
+- **Dispositivos** e **landing pages** (só acima de um limiar de sessões,
+  configurável em `--limiar-landing-sessions`, default 100 — abaixo disso a taxa
+  oscila demais para embasar decisão). Marca páginas com tráfego e **zero compra**.
+- **Diagnóstico priorizado** com o número que sustenta cada achado.
+- **Série diária** de sessões + compras + receita. Cada grandeza tem a própria
+  faixa normalizada e o valor absoluto vem no tooltip — **nunca dois eixos Y no
+  mesmo desenho**, que distorce a leitura.
+- O script **não projeta receita futura** e **não inventa benchmark**. Métrica que
+  não veio na coleta aparece como `n/d`, nunca como zero.
+
+Também gera 4 abas na planilha: `GA4 Funil`, `GA4 Canais`, `GA4 Landing Pages` e
+`GA4 Diagnóstico`.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

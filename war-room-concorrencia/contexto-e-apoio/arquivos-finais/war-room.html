@@ -375,6 +375,132 @@
 
   a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  /* ------------------------------------------------------------ GA4 · Jornada */
+  .ga4-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 12px; }
+  .ga4-kpi {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 15px 16px;
+    position: relative; overflow: hidden;
+  }
+  .ga4-kpi::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent);
+    opacity: .55;
+  }
+  .ga4-kpi-label {
+    font-size: .6rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--text-mute); margin-bottom: 9px;
+  }
+  .ga4-kpi-value {
+    font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; color: var(--text);
+    font-variant-numeric: tabular-nums; line-height: 1.05;
+  }
+  .ga4-kpi-sub { font-size: .7rem; color: var(--text-dim); margin-top: 7px; line-height: 1.4; }
+
+  .ga4-funil { display: flex; flex-direction: column; gap: 4px; }
+  .ga4-funil-linha {
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; background: var(--surface);
+  }
+  .ga4-funil-linha.vazamento { border-color: rgba(224,66,107,.5); background: rgba(224,66,107,.06); }
+  .ga4-funil-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .ga4-funil-nome { font-size: .8rem; font-weight: 700; letter-spacing: .02em; }
+  .ga4-funil-valor { font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .ga4-funil-track {
+    position: relative; height: 26px; margin: 9px 0 7px; background: rgba(255,255,255,.04);
+    border-radius: 5px; overflow: hidden; display: flex; align-items: center;
+  }
+  .ga4-funil-bar {
+    height: 100%; width: var(--w); border-radius: 5px;
+    background: linear-gradient(90deg, rgba(17,135,240,.85), rgba(85,174,255,.5));
+    box-shadow: 0 0 18px -4px rgba(17,135,240,.8);
+    animation: ga4-grow 1s cubic-bezier(.2,.8,.3,1) both;
+  }
+  .ga4-funil-linha.vazamento .ga4-funil-bar {
+    background: linear-gradient(90deg, rgba(224,66,107,.85), rgba(255,140,170,.45));
+    box-shadow: 0 0 18px -4px rgba(224,66,107,.85);
+  }
+  @keyframes ga4-grow { from { width: 0; } to { width: var(--w); } }
+  .ga4-funil-topo {
+    position: absolute; right: 10px; font-size: .66rem; font-weight: 700; color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .ga4-funil-foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .ga4-funil-desc { font-size: .68rem; color: var(--text-mute); }
+  .ga4-funil-passagem { font-size: .68rem; font-weight: 700; color: var(--accent-strong); }
+  .ga4-funil-passagem.vazamento { color: #ff9c96; }
+
+  .ga4-quad-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+  .ga4-quad {
+    border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; background: var(--surface);
+    border-top: 2px solid var(--border-strong);
+  }
+  .ga4-quad.q-escalar { border-top-color: var(--good); }
+  .ga4-quad.q-corrigir { border-top-color: var(--critical); }
+  .ga4-quad.q-testar { border-top-color: var(--accent); }
+  .ga4-quad.q-cortar { border-top-color: var(--text-mute); }
+  .ga4-quad-head { margin-bottom: 10px; }
+  .ga4-quad-titulo { display: block; font-size: .76rem; font-weight: 800; letter-spacing: .04em; }
+  .ga4-quad-desc { display: block; font-size: .66rem; color: var(--text-mute); margin-top: 3px; }
+  .ga4-quad-lista { list-style: none; margin: 0; padding: 0; }
+  .ga4-quad-lista li {
+    display: flex; justify-content: space-between; gap: 10px; padding: 6px 0;
+    border-top: 1px solid var(--border); font-size: .76rem;
+  }
+  .ga4-quad-lista li:first-child { border-top: none; }
+  .ga4-q-canal { color: var(--text); font-weight: 600; }
+  .ga4-q-num { color: var(--text-mute); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ga4-q-vazio { color: var(--text-mute); font-style: italic; }
+
+  .ga4-badge {
+    display: inline-block; font-size: .58rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }
+  .ga4-badge.q-escalar { color: #8fe38f; border-color: rgba(12,163,12,.55); background: var(--good-bg); }
+  .ga4-badge.q-corrigir { color: #ff9c96; border-color: rgba(224,66,107,.55); background: var(--critical-bg); }
+  .ga4-badge.q-testar { color: var(--accent-strong); border-color: var(--border-strong); background: var(--accent-soft); }
+  .ga4-badge.q-cortar { color: var(--text-mute); border-color: var(--border); background: var(--surface-2); }
+
+  .ga4-serie-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px 8px;
+  }
+  .ga4-serie-svg { width: 100%; height: auto; display: block; }
+  .ga4-grid { stroke: rgba(255,255,255,.055); stroke-width: 1; }
+  .ga4-bar { fill: rgba(85,174,255,.2); transition: fill .15s ease; }
+  .ga4-bar:hover { fill: rgba(85,174,255,.55); }
+  .ga4-area { fill: url(#ga4-area-grad); opacity: .3; }
+  .ga4-linha-sessoes { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+  .ga4-linha-compras { fill: none; stroke: #ffd68a; stroke-width: 2; stroke-dasharray: 5 3; stroke-linejoin: round; }
+  .ga4-dot-compras { fill: #ffd68a; stroke: #0a1526; stroke-width: 1.4; cursor: crosshair; }
+  .leg-swatch.sw-sessoes { background: var(--accent); }
+  .leg-swatch.sw-compras { background: #ffd68a; }
+  .leg-swatch.sw-receita { background: rgba(85,174,255,.4); border-radius: 2px; }
+
+  .ga4-dev-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  .ga4-dev { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .ga4-dev-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .ga4-dev-nome { font-size: .82rem; font-weight: 700; text-transform: capitalize; }
+  .ga4-dev-share { font-size: .68rem; color: var(--accent-strong); font-weight: 700; }
+  .ga4-dev-track { height: 5px; background: rgba(255,255,255,.05); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+  .ga4-dev-bar {
+    height: 100%; width: var(--w); background: var(--accent); border-radius: 3px;
+    box-shadow: 0 0 12px -2px rgba(17,135,240,.9); animation: ga4-grow .9s cubic-bezier(.2,.8,.3,1) both;
+  }
+
+  .ga4-diag-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+  .ga4-diag {
+    background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--text-mute);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .ga4-diag.sev-alta { border-left-color: var(--critical); }
+  .ga4-diag.sev-media { border-left-color: var(--warning); }
+  .ga4-diag.sev-baixa { border-left-color: var(--accent); }
+  .ga4-diag-nivel {
+    display: inline-block; font-size: .58rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-mute); margin-bottom: 6px;
+  }
+  .ga4-diag.sev-alta .ga4-diag-nivel { color: #ff9c96; }
+  .ga4-diag.sev-media .ga4-diag-nivel { color: #ffd68a; }
+  .ga4-diag-titulo { font-size: .88rem; font-weight: 700; margin-bottom: 6px; }
+  .ga4-diag-detalhe { margin: 0; font-size: .8rem; color: var(--text-dim); line-height: 1.55; }
   @media (prefers-reduced-motion: reduce) {
     .card, .tab-panel.active, .status-pill { animation: none !important; }
   }
@@ -624,15 +750,78 @@
     transition: opacity .3s ease var(--pd2, 0s), transform .42s cubic-bezier(.2,1.5,.4,1) var(--pd2, 0s);
   }
 
-  /* linhas de tabela clicáveis */
+  /* linhas de tabela clicáveis + varredura de entrada linha a linha */
   .data-table tbody tr, .ml-radar-table tbody tr { cursor: pointer; transition: background .16s ease; }
   .data-table tbody tr:hover td, .ml-radar-table tbody tr:hover td {
     background: rgba(17,135,240,.11); color: var(--text);
   }
+  .data-table tbody tr td:first-child, .ml-radar-table tbody tr td:first-child {
+    position: relative;
+  }
+  .data-table tbody tr:hover td:first-child::before,
+  .ml-radar-table tbody tr:hover td:first-child::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+  tr.fx-row { opacity: 0; transform: translateX(-8px); }
+  tr.fx-row.in {
+    opacity: 1; transform: none;
+    transition: opacity .4s ease var(--rowd, 0s), transform .4s cubic-bezier(.2,.8,.3,1) var(--rowd, 0s);
+  }
+  /* linha "NÓS" no radar pulsa de leve — é a nossa referência na tabela */
+  tr.radar-proprio td:first-child::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent-strong);
+    animation: fx-us-pulse 2.8s ease-in-out infinite;
+  }
+  @keyframes fx-us-pulse {
+    0%, 100% { opacity: .45; box-shadow: none; }
+    50% { opacity: 1; box-shadow: 0 0 12px var(--accent-strong); }
+  }
+
+  /* ---------------------------------------------- realce de barras/medidores */
+  .signal-bar span, .ga4-dev-bar, .ga4-funil-bar { position: relative; overflow: hidden; }
+  .signal-bar span::after, .ga4-dev-bar::after, .ga4-funil-bar::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+    animation: fx-shine 3.6s ease-in-out infinite; animation-delay: var(--sd, 0s);
+  }
+  @keyframes fx-shine { 0% { transform: translateX(-100%); } 55%, 100% { transform: translateX(230%); } }
+
+  /* KPI da GA4: brilho de borda ao passar o mouse + valor ganhando neon */
+  .ga4-kpi { transition: border-color .22s ease, transform .22s ease, box-shadow .22s ease; }
+  .ga4-kpi:hover {
+    border-color: var(--border-strong); transform: translateY(-3px);
+    box-shadow: 0 16px 32px -18px rgba(0,0,0,.85), 0 0 26px -10px rgba(17,135,240,.6);
+  }
+  .ga4-kpi:hover .ga4-kpi-value { text-shadow: 0 0 24px rgba(85,174,255,.6); }
+  .ga4-kpi::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+    background: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 0%), rgba(160,215,255,.16), transparent 60%);
+    transition: opacity .22s ease;
+  }
+  .ga4-kpi.fx-tilt::after { opacity: 1; }
+
+  /* quadrantes e diagnóstico com lift */
+  .ga4-quad, .ga4-diag, .ga4-dev, .squadron-card, .gauge {
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+  }
+  .ga4-quad:hover, .ga4-diag:hover, .ga4-dev:hover, .squadron-card:hover, .gauge:hover {
+    transform: translateY(-3px); border-color: var(--border-strong);
+    box-shadow: 0 16px 32px -18px rgba(0,0,0,.85), 0 0 24px -12px rgba(17,135,240,.5);
+  }
+  .ga4-diag.sev-alta:hover { box-shadow: 0 16px 32px -18px rgba(0,0,0,.85), 0 0 26px -10px rgba(224,66,107,.6); }
+
+  /* etapa do funil com maior vazamento respira */
+  .ga4-funil-linha.vazamento { animation: fx-alert-breathe 3s ease-in-out infinite; }
 
   @media (prefers-reduced-motion: reduce) {
     #fx-aurora, #fx-scan, .pipe-step.on::before, .pipe-arrow::after,
-    .seal-spin, .seal-sweep, .status-pill.alta, .card.sev-alta::before { animation: none !important; }
+    .seal-spin, .seal-sweep, .status-pill.alta, .card.sev-alta::before,
+    .signal-bar span::after, .ga4-dev-bar::after, .ga4-funil-bar::after,
+    .ga4-funil-linha.vazamento, tr.radar-proprio td:first-child::after { animation: none !important; }
+    .ga4-funil-bar, .ga4-dev-bar { animation: none !important; width: var(--w) !important; }
+    tr.fx-row { opacity: 1; transform: none; }
+    .ga4-quad, .ga4-diag, .ga4-dev, .squadron-card, .gauge, .ga4-kpi { transition: none; }
     #fx-spotlight { display: none; }
     .fx-reveal { opacity: 1; transform: none; }
     .hist-linha.fx-draw { stroke-dasharray: none; stroke-dashoffset: 0; }
@@ -690,7 +879,7 @@
         <text x="64" y="106" class="seal-label">dado real</text>
       </svg>
       <div class="top-stats">
-        <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">2026-08-01 10:34 UTC</span></div>
+        <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">2026-08-01 10:55 UTC</span></div>
         <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value" data-count="6">6</span></div>
       </div>
     </div>
@@ -728,6 +917,7 @@
   <button class="tab-btn active" data-tab="visao-geral" role="tab" aria-selected="true">Visão Geral</button>
   <button class="tab-btn" data-tab="marketplaces" role="tab" aria-selected="false">Marketplaces</button>
   <button class="tab-btn" data-tab="concorrentes" role="tab" aria-selected="false">Concorrentes</button>
+  <button class="tab-btn" data-tab="ga4" role="tab" aria-selected="false">GA4 · Jornada</button>
   <button class="tab-btn" data-tab="keywords" role="tab" aria-selected="false">Keywords &amp; Leilão</button>
   <button class="tab-btn" data-tab="historico" role="tab" aria-selected="false">Histórico Preço × Ads</button>
   <button class="tab-btn" data-tab="selecao" role="tab" aria-selected="false">Seleção Manual</button>
@@ -830,7 +1020,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Price-match seletivo só nos SKUs mais expostos, não na linha toda</li><li>Reforçar prova social (reviews/garantia) para justificar não seguir a queda</li><li>Campanha de retenção/e-mail para base já convertida</li><li>Checar se é liquidação temporária antes de comprometer margem de forma permanente</li></ul>
       <div class="kpis"><span class="kpi">Margem de contribuição</span><span class="kpi">ROAS</span><span class="kpi">CAC</span><span class="kpi">Share of search/Buy Box</span><span class="kpi">Taxa de conversão</span><span class="kpi">Ticket médio</span></div>
-      <div class="foot"><span>2026-08-01 10:34 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.05s" data-alerta-idx="1"
              aria-label="Battlecard Faciderm contra Black Skull — abrir detalhe">
@@ -848,7 +1038,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Cupom-espelho de curta duração no produto equivalente</li><li>Destacar frete grátis/parcelamento se não puder cobrir o desconto</li><li>Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado</li></ul>
       <div class="kpis"><span class="kpi">CTR</span><span class="kpi">Taxa de conversão</span><span class="kpi">CAC no período do cupom</span><span class="kpi">ROAS da campanha ativa</span></div>
-      <div class="foot"><span>2026-08-01 10:34 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.10s" data-alerta-idx="2"
              aria-label="Battlecard Faciderm contra Growth Supplements — abrir detalhe">
@@ -866,7 +1056,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas</li><li>Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta</li></ul>
       <div class="kpis"><span class="kpi">Share of search</span><span class="kpi">Posição média</span><span class="kpi">Taxa de conversão</span></div>
-      <div class="foot"><span>2026-08-01 10:34 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.15s" data-alerta-idx="3"
              aria-label="Battlecard Amaze contra Black Skull — abrir detalhe">
@@ -884,7 +1074,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)</li><li>Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa</li><li>Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento</li></ul>
       <div class="kpis"><span class="kpi">Posição média na busca</span><span class="kpi">CTR</span><span class="kpi">Taxa de conversão</span><span class="kpi">Impression share (Mercado Ads)</span></div>
-      <div class="foot"><span>2026-08-01 10:34 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.20s" data-alerta-idx="4"
              aria-label="Battlecard Amaze contra Growth Supplements — abrir detalhe">
@@ -902,7 +1092,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã</li><li>Não reduzir preço proativamente — a demanda já não tem para onde ir</li></ul>
       <div class="kpis"><span class="kpi">Share of search</span><span class="kpi">Volume/conversão do SKU equivalente</span><span class="kpi">ROAS</span></div>
-      <div class="foot"><span>2026-08-01 10:34 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.25s" data-alerta-idx="5"
              aria-label="Battlecard Linha Joie Fit contra Black Skull — abrir detalhe">
@@ -920,7 +1110,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura</li><li>Atualizar comparativos de preço em conteúdo/anúncio</li></ul>
       <div class="kpis"><span class="kpi">Share of search/impressões</span><span class="kpi">ROAS</span><span class="kpi">CAC</span></div>
-      <div class="foot"><span>2026-08-01 10:34 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-whey" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-whey" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article></div>
     </section>
     <p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os sinais de
@@ -958,24 +1148,6 @@
           </tr></thead>
           <tbody>
             <tr class="radar-concorrente">
-              <td>Faciderm</td><td class="quem">Black Skull</td><td>#1</td>
-              <td>R$ 71.90</td><td>20%</td><td>365</td>
-              <td>4.6</td><td>não</td>
-              <td class="ads-flag">n/d</td>
-            </tr>
-            <tr class="radar-concorrente">
-              <td>Faciderm</td><td class="quem">Growth Supplements</td><td>#2</td>
-              <td>R$ 68.90</td><td>—</td><td>12</td>
-              <td>4.4</td><td>não</td>
-              <td class="ads-flag">n/d</td>
-            </tr>
-            <tr class="radar-proprio">
-              <td>Faciderm</td><td class="quem">NÓS</td><td>#3</td>
-              <td>R$ 149.90</td><td>—</td><td>210</td>
-              <td>4.7</td><td>sim</td>
-              <td class="ads-flag">n/d</td>
-            </tr>
-            <tr class="radar-concorrente">
               <td>Amaze</td><td class="quem">Black Skull</td><td>#1</td>
               <td>R$ 84.90</td><td>—</td><td>95</td>
               <td>4.3</td><td>não</td>
@@ -998,6 +1170,24 @@
               <td>R$ 129.90</td><td>—</td><td>480</td>
               <td>4.6</td><td>não</td>
               <td class="ads-flag">n/d</td>
+            </tr>
+            <tr class="radar-concorrente">
+              <td>Faciderm</td><td class="quem">Black Skull</td><td>#1</td>
+              <td>R$ 71.90</td><td>20%</td><td>365</td>
+              <td>4.6</td><td>não</td>
+              <td class="ads-flag">n/d</td>
+            </tr>
+            <tr class="radar-concorrente">
+              <td>Faciderm</td><td class="quem">Growth Supplements</td><td>#2</td>
+              <td>R$ 68.90</td><td>—</td><td>12</td>
+              <td>4.4</td><td>não</td>
+              <td class="ads-flag">n/d</td>
+            </tr>
+            <tr class="radar-proprio">
+              <td>Faciderm</td><td class="quem">NÓS</td><td>#3</td>
+              <td>R$ 149.90</td><td>—</td><td>210</td>
+              <td>4.7</td><td>sim</td>
+              <td class="ads-flag">n/d</td>
             </tr></tbody>
         </table>
       </div>
@@ -1011,18 +1201,6 @@
             <th>Reviews</th><th>Rating</th><th>Frete grátis</th><th>Anúncio patrocinado?</th>
           </tr></thead>
           <tbody>
-            <tr class="radar-concorrente">
-              <td>Faciderm</td><td class="quem">Black Skull</td><td>#1</td>
-              <td>R$ 74.90</td><td>17%</td><td>210</td>
-              <td>4.5</td><td>sim</td>
-              <td class="ads-flag">SIM</td>
-            </tr>
-            <tr class="radar-proprio">
-              <td>Faciderm</td><td class="quem">NÓS</td><td>#4</td>
-              <td>R$ 149.90</td><td>—</td><td>95</td>
-              <td>4.7</td><td>sim</td>
-              <td class="ads-flag">SIM</td>
-            </tr>
             <tr class="radar-proprio">
               <td>Amaze</td><td class="quem">NÓS</td><td>#1</td>
               <td>R$ 99.90</td><td>—</td><td>150</td>
@@ -1052,6 +1230,18 @@
               <td>R$ 129.90</td><td>—</td><td>210</td>
               <td>4.6</td><td>não</td>
               <td class="ads-flag">não</td>
+            </tr>
+            <tr class="radar-concorrente">
+              <td>Faciderm</td><td class="quem">Black Skull</td><td>#1</td>
+              <td>R$ 74.90</td><td>17%</td><td>210</td>
+              <td>4.5</td><td>sim</td>
+              <td class="ads-flag">SIM</td>
+            </tr>
+            <tr class="radar-proprio">
+              <td>Faciderm</td><td class="quem">NÓS</td><td>#4</td>
+              <td>R$ 149.90</td><td>—</td><td>95</td>
+              <td>4.7</td><td>sim</td>
+              <td class="ads-flag">SIM</td>
             </tr></tbody>
         </table>
       </div>
@@ -1229,6 +1419,561 @@ coletado" em vez de inventar posição/preço.</p></section>
     </div>
 <p class="tab-note">Score renormalizado entre os componentes DISPONÍVEIS nesta rodada — um componente sem
 dado sai do somatório em vez de virar 0 (ver metodologia completa em descoberta.xlsx / SKILL.md, passo 11).</p></section>
+  </div>
+
+  <div class="tab-panel" data-tab="ga4">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+      <defs><linearGradient id="ga4-area-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1187f0" stop-opacity=".85" />
+        <stop offset="100%" stop-color="#1187f0" stop-opacity="0" />
+      </linearGradient></defs>
+    </svg>
+    
+<section>
+  <h2>Visão do gestor de tráfego — 02/07 a 31/07/2026 (30 dias)</h2>
+  <div class="ga4-kpi-grid">
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Sessões</div>
+      <div class="ga4-kpi-value" data-count="20310" data-count-dec="0" data-count-suf="">20.310</div>
+      <div class="ga4-kpi-sub">16.466 usuários · 93% novos</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Taxa de conversão</div>
+      <div class="ga4-kpi-value" data-count="0.98" data-count-dec="2" data-count-suf="%">0.98%</div>
+      <div class="ga4-kpi-sub">199 compras</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Receita</div>
+      <div class="ga4-kpi-value">R$ 111.184</div>
+      <div class="ga4-kpi-sub">ticket médio R$ 558,71</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Receita por sessão</div>
+      <div class="ga4-kpi-value">R$ 5,47</div>
+      <div class="ga4-kpi-sub">o quanto cada visita vale</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Engajamento</div>
+      <div class="ga4-kpi-value" data-count="41.4" data-count-dec="1" data-count-suf="%">41.4%</div>
+      <div class="ga4-kpi-sub">rejeição 58.6%</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Duração média</div>
+      <div class="ga4-kpi-value">1m 49s</div>
+      <div class="ga4-kpi-sub">1.8 páginas/sessão</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Compradores</div>
+      <div class="ga4-kpi-value" data-count="188" data-count-dec="0" data-count-suf="">188</div>
+      <div class="ga4-kpi-sub">82% na 1ª compra</div>
+    </div></div>
+</section>
+<section>
+  <h2>Diagnóstico — onde agir primeiro</h2>
+  <div class="ga4-diag-grid">
+    <div class="ga4-diag sev-alta">
+      <span class="ga4-diag-nivel">Prioridade alta</span>
+      <div class="ga4-diag-titulo">Maior vazamento do funil: Checkout</div>
+      <p class="ga4-diag-detalhe">Só 17.8% da etapa anterior chega em 'Checkout' (528 de 2,974). É onde a correção tem o maior efeito absoluto no número de compras.</p>
+    </div>
+    <div class="ga4-diag sev-alta">
+      <span class="ga4-diag-nivel">Prioridade alta</span>
+      <div class="ga4-diag-titulo">Canal 'Paid Shopping' traz volume e não converte</div>
+      <p class="ga4-diag-detalhe">943 sessões e 0 compra(s) no período, com 449 adições ao carrinho. Checar rastreamento de conversão desse canal antes de concluir que é audiência ruim — volume alto com zero compra costuma ser tag/atribuição.</p>
+    </div>
+    <div class="ga4-diag sev-media">
+      <span class="ga4-diag-nivel">Atenção</span>
+      <div class="ga4-diag-titulo">Engajamento de 'Direct' muito abaixo da mediana</div>
+      <p class="ga4-diag-detalhe">27.1% de sessões engajadas contra mediana de 46.6% entre os canais, sobre 2,891 sessões. Sinal clássico de descasamento entre criativo/segmentação e a página de destino.</p>
+    </div>
+    <div class="ga4-diag sev-media">
+      <span class="ga4-diag-nivel">Atenção</span>
+      <div class="ga4-diag-titulo">Engajamento de 'Unassigned' muito abaixo da mediana</div>
+      <p class="ga4-diag-detalhe">23.2% de sessões engajadas contra mediana de 46.6% entre os canais, sobre 676 sessões. Sinal clássico de descasamento entre criativo/segmentação e a página de destino.</p>
+    </div>
+    <div class="ga4-diag sev-media">
+      <span class="ga4-diag-nivel">Atenção</span>
+      <div class="ga4-diag-titulo">Engajamento de 'Paid Social' muito abaixo da mediana</div>
+      <p class="ga4-diag-detalhe">18.4% de sessões engajadas contra mediana de 46.6% entre os canais, sobre 2,683 sessões. Sinal clássico de descasamento entre criativo/segmentação e a página de destino.</p>
+    </div>
+    <div class="ga4-diag sev-media">
+      <span class="ga4-diag-nivel">Atenção</span>
+      <div class="ga4-diag-titulo">9 landing page(s) com tráfego e nenhuma compra</div>
+      <p class="ga4-diag-detalhe">Maiores: /garrafa-copa-joie/p (493 sessões, 712 no carrinho); /colageno-verisol-em-po---sabor-frutas-vermelhas-450g/p (293 sessões, 22 no carrinho); (sem página) (288 sessões, 40 no carrinho). Priorize por sessão perdida, não por número de páginas.</p>
+    </div>
+    <div class="ga4-diag sev-baixa">
+      <span class="ga4-diag-nivel">Contexto</span>
+      <div class="ga4-diag-titulo">Concentração por dispositivo</div>
+      <p class="ga4-diag-detalhe">mobile concentra 74% da receita. Pior conversão entre devices com volume: mobile (0.87%).</p>
+    </div>
+    <div class="ga4-diag sev-baixa">
+      <span class="ga4-diag-nivel">Contexto</span>
+      <div class="ga4-diag-titulo">Dependência de cliente novo</div>
+      <p class="ga4-diag-detalhe">82% dos compradores do período compraram pela primeira vez (155 de 188). Quanto mais alto, mais o faturamento depende de aquisição paga e menos de base.</p>
+    </div></div>
+</section>
+<section>
+  <h2>Funil de compra — jornada completa</h2>
+  <div class="ga4-funil">
+      <div class="ga4-funil-linha">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">1. Sessões</span>
+          <span class="ga4-funil-valor">20.310</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:100.00%"></div>
+          <span class="ga4-funil-topo">100.0% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">tráfego que entrou no site</span></div>
+      </div>
+      <div class="ga4-funil-linha">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">2. Viu produto</span>
+          <span class="ga4-funil-valor">10.770</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:53.03%"></div>
+          <span class="ga4-funil-topo">53.0% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">visualizações de item (view_item)</span><span class="ga4-funil-passagem">53.0% da etapa anterior · −9.540 perdidos</span></div>
+      </div>
+      <div class="ga4-funil-linha">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">3. Add ao carrinho</span>
+          <span class="ga4-funil-valor">2.974</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:14.64%"></div>
+          <span class="ga4-funil-topo">14.6% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">add_to_cart</span><span class="ga4-funil-passagem">27.6% da etapa anterior · −7.796 perdidos</span></div>
+      </div>
+      <div class="ga4-funil-linha vazamento">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">4. Checkout</span>
+          <span class="ga4-funil-valor">528</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:2.60%"></div>
+          <span class="ga4-funil-topo">2.6% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">begin_checkout</span><span class="ga4-funil-passagem vazamento">17.8% da etapa anterior · −2.446 perdidos</span></div>
+      </div>
+      <div class="ga4-funil-linha">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">5. Compra</span>
+          <span class="ga4-funil-valor">199</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:2.50%"></div>
+          <span class="ga4-funil-topo">1.0% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">purchase</span><span class="ga4-funil-passagem">37.7% da etapa anterior · −329 perdidos</span></div>
+      </div></div>
+</section>
+<section>
+  <h2>Evolução diária</h2>
+  
+<div class="ga4-serie-card">
+  <div class="hist-chart-head">
+    <span class="hist-chart-title">Evolução diária <span class="vs">· 30 dias</span></span>
+    <span class="hist-chart-legend">
+      <span class="leg-item"><span class="leg-swatch sw-sessoes"></span>sessões</span>
+      <span class="leg-item"><span class="leg-swatch sw-compras"></span>compras</span>
+      <span class="leg-item"><span class="leg-swatch sw-receita"></span>receita</span>
+    </span>
+  </div>
+  <svg viewBox="0 0 980 260" class="ga4-serie-svg hist-chart-svg" role="img"
+       aria-label="Evolução diária de sessões, compras e receita nos últimos 30 dias">
+    <line class="ga4-grid" x1="54" y1="16.0" x2="962" y2="16.0" /><line class="ga4-grid" x1="54" y1="67.0" x2="962" y2="67.0" /><line class="ga4-grid" x1="54" y1="118.0" x2="962" y2="118.0" /><line class="ga4-grid" x1="54" y1="169.0" x2="962" y2="169.0" /><line class="ga4-grid" x1="54" y1="220.0" x2="962" y2="220.0" /><rect class="ga4-bar" x="47.6" y="78.5" width="12.7" height="141.5" rx="1.5"><title>2026-07-02 — receita R$ 7.182</title></rect><rect class="ga4-bar" x="79.0" y="160.1" width="12.7" height="59.9" rx="1.5"><title>2026-07-03 — receita R$ 3.038</title></rect><rect class="ga4-bar" x="110.3" y="164.3" width="12.7" height="55.7" rx="1.5"><title>2026-07-04 — receita R$ 2.829</title></rect><rect class="ga4-bar" x="141.6" y="170.5" width="12.7" height="49.5" rx="1.5"><title>2026-07-05 — receita R$ 2.512</title></rect><rect class="ga4-bar" x="172.9" y="157.1" width="12.7" height="62.9" rx="1.5"><title>2026-07-06 — receita R$ 3.195</title></rect><rect class="ga4-bar" x="204.2" y="131.7" width="12.7" height="88.3" rx="1.5"><title>2026-07-07 — receita R$ 4.480</title></rect><rect class="ga4-bar" x="235.5" y="104.5" width="12.7" height="115.5" rx="1.5"><title>2026-07-08 — receita R$ 5.863</title></rect><rect class="ga4-bar" x="266.8" y="52.9" width="12.7" height="167.1" rx="1.5"><title>2026-07-09 — receita R$ 8.483</title></rect><rect class="ga4-bar" x="298.1" y="162.9" width="12.7" height="57.1" rx="1.5"><title>2026-07-10 — receita R$ 2.897</title></rect><rect class="ga4-bar" x="329.4" y="209.7" width="12.7" height="10.3" rx="1.5"><title>2026-07-11 — receita R$ 524</title></rect><rect class="ga4-bar" x="360.7" y="165.6" width="12.7" height="54.4" rx="1.5"><title>2026-07-12 — receita R$ 2.762</title></rect><rect class="ga4-bar" x="392.1" y="145.9" width="12.7" height="74.1" rx="1.5"><title>2026-07-13 — receita R$ 3.762</title></rect><rect class="ga4-bar" x="423.4" y="35.4" width="12.7" height="184.6" rx="1.5"><title>2026-07-14 — receita R$ 9.369</title></rect><rect class="ga4-bar" x="454.7" y="199.3" width="12.7" height="20.7" rx="1.5"><title>2026-07-15 — receita R$ 1.050</title></rect><rect class="ga4-bar" x="486.0" y="152.2" width="12.7" height="67.8" rx="1.5"><title>2026-07-16 — receita R$ 3.441</title></rect><rect class="ga4-bar" x="517.3" y="190.0" width="12.7" height="30.0" rx="1.5"><title>2026-07-17 — receita R$ 1.521</title></rect><rect class="ga4-bar" x="548.6" y="154.1" width="12.7" height="65.9" rx="1.5"><title>2026-07-18 — receita R$ 3.343</title></rect><rect class="ga4-bar" x="579.9" y="211.4" width="12.7" height="8.6" rx="1.5"><title>2026-07-19 — receita R$ 437</title></rect><rect class="ga4-bar" x="611.2" y="187.0" width="12.7" height="33.0" rx="1.5"><title>2026-07-20 — receita R$ 1.674</title></rect><rect class="ga4-bar" x="642.5" y="65.5" width="12.7" height="154.5" rx="1.5"><title>2026-07-21 — receita R$ 7.841</title></rect><rect class="ga4-bar" x="673.9" y="120.1" width="12.7" height="99.9" rx="1.5"><title>2026-07-22 — receita R$ 5.068</title></rect><rect class="ga4-bar" x="705.2" y="215.5" width="12.7" height="4.5" rx="1.5"><title>2026-07-23 — receita R$ 230</title></rect><rect class="ga4-bar" x="736.5" y="187.7" width="12.7" height="32.3" rx="1.5"><title>2026-07-24 — receita R$ 1.641</title></rect><rect class="ga4-bar" x="767.8" y="207.7" width="12.7" height="12.3" rx="1.5"><title>2026-07-25 — receita R$ 625</title></rect><rect class="ga4-bar" x="799.1" y="201.0" width="12.7" height="19.0" rx="1.5"><title>2026-07-26 — receita R$ 967</title></rect><rect class="ga4-bar" x="830.4" y="162.2" width="12.7" height="57.8" rx="1.5"><title>2026-07-27 — receita R$ 2.935</title></rect><rect class="ga4-bar" x="861.7" y="130.9" width="12.7" height="89.1" rx="1.5"><title>2026-07-28 — receita R$ 4.522</title></rect><rect class="ga4-bar" x="893.0" y="74.8" width="12.7" height="145.2" rx="1.5"><title>2026-07-29 — receita R$ 7.370</title></rect><rect class="ga4-bar" x="924.3" y="32.3" width="12.7" height="187.7" rx="1.5"><title>2026-07-30 — receita R$ 9.525</title></rect><rect class="ga4-bar" x="955.6" y="178.7" width="12.7" height="41.3" rx="1.5"><title>2026-07-31 — receita R$ 2.097</title></rect>
+    <path class="ga4-area" d="M 54.0,220.0 L 54.0,121.2 L 85.3,87.1 L 116.6,124.0 L 147.9,120.7 L 179.2,96.5 L 210.6,102.7 L 241.9,108.0 L 273.2,107.6 L 304.5,115.2 L 335.8,142.5 L 367.1,127.8 L 398.4,64.9 L 429.7,95.7 L 461.0,106.0 L 492.3,94.5 L 523.7,103.1 L 555.0,119.9 L 586.3,89.9 L 617.6,88.4 L 648.9,76.3 L 680.2,83.5 L 711.5,89.1 L 742.8,82.0 L 774.1,101.2 L 805.4,100.3 L 836.8,64.9 L 868.1,56.5 L 899.4,32.3 L 930.7,73.6 L 962.0,87.7 L 962.0,220.0 Z" />
+    <polyline class="ga4-linha-sessoes hist-linha" points="54.0,121.2 85.3,87.1 116.6,124.0 147.9,120.7 179.2,96.5 210.6,102.7 241.9,108.0 273.2,107.6 304.5,115.2 335.8,142.5 367.1,127.8 398.4,64.9 429.7,95.7 461.0,106.0 492.3,94.5 523.7,103.1 555.0,119.9 586.3,89.9 617.6,88.4 648.9,76.3 680.2,83.5 711.5,89.1 742.8,82.0 774.1,101.2 805.4,100.3 836.8,64.9 868.1,56.5 899.4,32.3 930.7,73.6 962.0,87.7" />
+    <polyline class="ga4-linha-compras" points="54.0,91.0 85.3,126.2 116.6,137.9 147.9,184.8 179.2,126.2 210.6,126.2 241.9,32.3 273.2,91.0 304.5,91.0 335.8,208.3 367.1,149.6 398.4,149.6 429.7,137.9 461.0,173.1 492.3,102.7 523.7,196.5 555.0,161.3 586.3,196.5 617.6,161.3 648.9,102.7 680.2,114.4 711.5,208.3 742.8,184.8 774.1,184.8 805.4,173.1 836.8,137.9 868.1,126.2 899.4,149.6 930.7,44.0 962.0,196.5" />
+    <circle class="ga4-dot-compras" cx="54.0" cy="91.0" r="3.4"><title>2026-07-02 — 11 compra(s) — 539 sessões — conv. 2.04% — receita R$ 7.182</title></circle><circle class="ga4-dot-compras" cx="85.3" cy="126.2" r="3.4"><title>2026-07-03 — 8 compra(s) — 725 sessões — conv. 1.10% — receita R$ 3.038</title></circle><circle class="ga4-dot-compras" cx="116.6" cy="137.9" r="3.4"><title>2026-07-04 — 7 compra(s) — 524 sessões — conv. 1.34% — receita R$ 2.829</title></circle><circle class="ga4-dot-compras" cx="147.9" cy="184.8" r="3.4"><title>2026-07-05 — 3 compra(s) — 542 sessões — conv. 0.55% — receita R$ 2.512</title></circle><circle class="ga4-dot-compras" cx="179.2" cy="126.2" r="3.4"><title>2026-07-06 — 8 compra(s) — 674 sessões — conv. 1.19% — receita R$ 3.195</title></circle><circle class="ga4-dot-compras" cx="210.6" cy="126.2" r="3.4"><title>2026-07-07 — 8 compra(s) — 640 sessões — conv. 1.25% — receita R$ 4.480</title></circle><circle class="ga4-dot-compras" cx="241.9" cy="32.3" r="3.4"><title>2026-07-08 — 16 compra(s) — 611 sessões — conv. 2.62% — receita R$ 5.863</title></circle><circle class="ga4-dot-compras" cx="273.2" cy="91.0" r="3.4"><title>2026-07-09 — 11 compra(s) — 613 sessões — conv. 1.79% — receita R$ 8.483</title></circle><circle class="ga4-dot-compras" cx="304.5" cy="91.0" r="3.4"><title>2026-07-10 — 11 compra(s) — 572 sessões — conv. 1.92% — receita R$ 2.897</title></circle><circle class="ga4-dot-compras" cx="335.8" cy="208.3" r="3.4"><title>2026-07-11 — 1 compra(s) — 423 sessões — conv. 0.24% — receita R$ 524</title></circle><circle class="ga4-dot-compras" cx="367.1" cy="149.6" r="3.4"><title>2026-07-12 — 6 compra(s) — 503 sessões — conv. 1.19% — receita R$ 2.762</title></circle><circle class="ga4-dot-compras" cx="398.4" cy="149.6" r="3.4"><title>2026-07-13 — 6 compra(s) — 846 sessões — conv. 0.71% — receita R$ 3.762</title></circle><circle class="ga4-dot-compras" cx="429.7" cy="137.9" r="3.4"><title>2026-07-14 — 7 compra(s) — 678 sessões — conv. 1.03% — receita R$ 9.369</title></circle><circle class="ga4-dot-compras" cx="461.0" cy="173.1" r="3.4"><title>2026-07-15 — 4 compra(s) — 622 sessões — conv. 0.64% — receita R$ 1.050</title></circle><circle class="ga4-dot-compras" cx="492.3" cy="102.7" r="3.4"><title>2026-07-16 — 10 compra(s) — 685 sessões — conv. 1.46% — receita R$ 3.441</title></circle><circle class="ga4-dot-compras" cx="523.7" cy="196.5" r="3.4"><title>2026-07-17 — 2 compra(s) — 638 sessões — conv. 0.31% — receita R$ 1.521</title></circle><circle class="ga4-dot-compras" cx="555.0" cy="161.3" r="3.4"><title>2026-07-18 — 5 compra(s) — 546 sessões — conv. 0.92% — receita R$ 3.343</title></circle><circle class="ga4-dot-compras" cx="586.3" cy="196.5" r="3.4"><title>2026-07-19 — 2 compra(s) — 710 sessões — conv. 0.28% — receita R$ 437</title></circle><circle class="ga4-dot-compras" cx="617.6" cy="161.3" r="3.4"><title>2026-07-20 — 5 compra(s) — 718 sessões — conv. 0.70% — receita R$ 1.674</title></circle><circle class="ga4-dot-compras" cx="648.9" cy="102.7" r="3.4"><title>2026-07-21 — 10 compra(s) — 784 sessões — conv. 1.28% — receita R$ 7.841</title></circle><circle class="ga4-dot-compras" cx="680.2" cy="114.4" r="3.4"><title>2026-07-22 — 9 compra(s) — 745 sessões — conv. 1.21% — receita R$ 5.068</title></circle><circle class="ga4-dot-compras" cx="711.5" cy="208.3" r="3.4"><title>2026-07-23 — 1 compra(s) — 714 sessões — conv. 0.14% — receita R$ 230</title></circle><circle class="ga4-dot-compras" cx="742.8" cy="184.8" r="3.4"><title>2026-07-24 — 3 compra(s) — 753 sessões — conv. 0.40% — receita R$ 1.641</title></circle><circle class="ga4-dot-compras" cx="774.1" cy="184.8" r="3.4"><title>2026-07-25 — 3 compra(s) — 648 sessões — conv. 0.46% — receita R$ 625</title></circle><circle class="ga4-dot-compras" cx="805.4" cy="173.1" r="3.4"><title>2026-07-26 — 4 compra(s) — 653 sessões — conv. 0.61% — receita R$ 967</title></circle><circle class="ga4-dot-compras" cx="836.8" cy="137.9" r="3.4"><title>2026-07-27 — 7 compra(s) — 846 sessões — conv. 0.83% — receita R$ 2.935</title></circle><circle class="ga4-dot-compras" cx="868.1" cy="126.2" r="3.4"><title>2026-07-28 — 8 compra(s) — 892 sessões — conv. 0.90% — receita R$ 4.522</title></circle><circle class="ga4-dot-compras" cx="899.4" cy="149.6" r="3.4"><title>2026-07-29 — 6 compra(s) — 1.024 sessões — conv. 0.59% — receita R$ 7.370</title></circle><circle class="ga4-dot-compras" cx="930.7" cy="44.0" r="3.4"><title>2026-07-30 — 15 compra(s) — 799 sessões — conv. 1.88% — receita R$ 9.525</title></circle><circle class="ga4-dot-compras" cx="962.0" cy="196.5" r="3.4"><title>2026-07-31 — 2 compra(s) — 722 sessões — conv. 0.28% — receita R$ 2.097</title></circle>
+    <text class="eixo-label" x="46" y="22" text-anchor="end">1.024</text>
+    <text class="eixo-label" x="46" y="220" text-anchor="end">0</text>
+    <text class="eixo-label" x="54.0" y="248" text-anchor="middle">07-02</text><text class="eixo-label" x="367.1" y="248" text-anchor="middle">07-12</text><text class="eixo-label" x="680.2" y="248" text-anchor="middle">07-22</text><text class="eixo-label" x="962.0" y="248" text-anchor="middle">07-31</text>
+  </svg>
+  <p class="tab-note">Três grandezas com escalas diferentes: cada uma tem a própria faixa normalizada
+  (nunca dois eixos Y no mesmo desenho, que distorce a leitura). Os valores absolutos aparecem ao passar
+  o mouse em cada ponto/barra.</p>
+</div>
+</section>
+<section>
+  <h2>Matriz de decisão por canal — volume × conversão</h2>
+  
+<div class="ga4-quad-grid">
+      <div class="ga4-quad q-escalar">
+        <div class="ga4-quad-head"><span class="ga4-quad-titulo">▲ Escalar</span>
+        <span class="ga4-quad-desc">volume alto + converte acima da mediana</span></div>
+        <ul class="ga4-quad-lista"><li><span class="ga4-q-canal">Cross-network</span><span class="ga4-q-num">8.819 sess · 0.90%</span></li><li><span class="ga4-q-canal">Direct</span><span class="ga4-q-num">2.891 sess · 1.49%</span></li><li><span class="ga4-q-canal">Organic Search</span><span class="ga4-q-num">1.683 sess · 1.31%</span></li><li><span class="ga4-q-canal">Paid Search</span><span class="ga4-q-num">1.571 sess · 1.53%</span></li><li><span class="ga4-q-canal">Unassigned</span><span class="ga4-q-num">676 sess · 1.33%</span></li></ul>
+      </div>
+      <div class="ga4-quad q-corrigir">
+        <div class="ga4-quad-head"><span class="ga4-quad-titulo">◆ Corrigir primeiro</span>
+        <span class="ga4-quad-desc">volume alto + converte abaixo da mediana</span></div>
+        <ul class="ga4-quad-lista"><li><span class="ga4-q-canal">Paid Social</span><span class="ga4-q-num">2.683 sess · 0.04%</span></li><li><span class="ga4-q-canal">Paid Shopping</span><span class="ga4-q-num">943 sess · 0.00%</span></li></ul>
+      </div>
+      <div class="ga4-quad q-testar">
+        <div class="ga4-quad-head"><span class="ga4-quad-titulo">◇ Testar aumento</span>
+        <span class="ga4-quad-desc">converte bem, volume baixo</span></div>
+        <ul class="ga4-quad-lista"><li><span class="ga4-q-canal">Referral</span><span class="ga4-q-num">415 sess · 4.10%</span></li><li><span class="ga4-q-canal">Email</span><span class="ga4-q-num">79 sess · 2.53%</span></li></ul>
+      </div>
+      <div class="ga4-quad q-cortar">
+        <div class="ga4-quad-head"><span class="ga4-quad-titulo">○ Revisar ou cortar</span>
+        <span class="ga4-quad-desc">volume baixo + converte abaixo</span></div>
+        <ul class="ga4-quad-lista"><li><span class="ga4-q-canal">Organic Social</span><span class="ga4-q-num">616 sess · 0.32%</span></li><li><span class="ga4-q-canal">Display</span><span class="ga4-q-num">123 sess · 0.00%</span></li><li><span class="ga4-q-canal">AI Assistant</span><span class="ga4-q-num">16 sess · 0.00%</span></li><li><span class="ga4-q-canal">Organic Shopping</span><span class="ga4-q-num">13 sess · 0.00%</span></li><li><span class="ga4-q-canal">Paid Video</span><span class="ga4-q-num">1 sess · 0.00%</span></li></ul>
+      </div></div>
+<p class="tab-note">Corte dos quadrantes = mediana do próprio período
+(646 sessões e 0.61% de
+conversão entre os canais). Não é benchmark de mercado — é a comparação dos seus canais entre si.</p>
+</section>
+<section>
+  <h2>Funil por canal — onde cada origem perde a venda</h2>
+  
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr>
+      <th>Canal</th><th>Decisão</th><th>Sessões</th><th>Engajamento</th>
+      <th>Sessão→carrinho</th><th>Carrinho→checkout</th><th>Checkout→compra</th>
+      <th>Conversão total</th><th>Receita</th><th>R$/sessão</th><th>Ticket médio</th>
+    </tr></thead>
+    <tbody>
+        <tr>
+          <td class="quem">Cross-network</td>
+          <td><span class="ga4-badge q-escalar">escalar</span></td>
+          <td>8.819</td><td>43.2%</td>
+          <td>9.92%</td><td>20.2%</td>
+          <td>44.6%</td>
+          <td>0.90%</td>
+          <td>R$ 38.793</td><td>R$ 4,40</td>
+          <td>R$ 491</td>
+        </tr>
+        <tr>
+          <td class="quem">Direct</td>
+          <td><span class="ga4-badge q-escalar">escalar</span></td>
+          <td>2.891</td><td>27.1%</td>
+          <td>17.43%</td><td>28.6%</td>
+          <td>29.9%</td>
+          <td>1.49%</td>
+          <td>R$ 30.442</td><td>R$ 10,53</td>
+          <td>R$ 708</td>
+        </tr>
+        <tr>
+          <td class="quem">Organic Search</td>
+          <td><span class="ga4-badge q-escalar">escalar</span></td>
+          <td>1.683</td><td>62.6%</td>
+          <td>14.02%</td><td>20.3%</td>
+          <td>45.8%</td>
+          <td>1.31%</td>
+          <td>R$ 11.207</td><td>R$ 6,66</td>
+          <td>R$ 509</td>
+        </tr>
+        <tr>
+          <td class="quem">Referral</td>
+          <td><span class="ga4-badge q-testar">testar aumento</span></td>
+          <td>415</td><td>58.3%</td>
+          <td>53.01%</td><td>25.5%</td>
+          <td>30.4%</td>
+          <td>4.10%</td>
+          <td>R$ 10.762</td><td>R$ 25,93</td>
+          <td>R$ 633</td>
+        </tr>
+        <tr>
+          <td class="quem">Paid Search</td>
+          <td><span class="ga4-badge q-escalar">escalar</span></td>
+          <td>1.571</td><td>60.9%</td>
+          <td>18.59%</td><td>13.7%</td>
+          <td>60.0%</td>
+          <td>1.53%</td>
+          <td>R$ 9.937</td><td>R$ 6,33</td>
+          <td>R$ 414</td>
+        </tr>
+        <tr>
+          <td class="quem">Unassigned</td>
+          <td><span class="ga4-badge q-escalar">escalar</span></td>
+          <td>676</td><td>23.2%</td>
+          <td>20.12%</td><td>20.6%</td>
+          <td>32.1%</td>
+          <td>1.33%</td>
+          <td>R$ 8.515</td><td>R$ 12,60</td>
+          <td>R$ 946</td>
+        </tr>
+        <tr>
+          <td class="quem">Email</td>
+          <td><span class="ga4-badge q-testar">testar aumento</span></td>
+          <td>79</td><td>54.4%</td>
+          <td>96.20%</td><td>3.9%</td>
+          <td>66.7%</td>
+          <td>2.53%</td>
+          <td>R$ 1.014</td><td>R$ 12,83</td>
+          <td>R$ 507</td>
+        </tr>
+        <tr>
+          <td class="quem">Organic Social</td>
+          <td><span class="ga4-badge q-cortar">revisar ou cortar</span></td>
+          <td>616</td><td>51.0%</td>
+          <td>10.39%</td><td>15.6%</td>
+          <td>20.0%</td>
+          <td>0.32%</td>
+          <td>R$ 393</td><td>R$ 0,64</td>
+          <td>R$ 197</td>
+        </tr>
+        <tr>
+          <td class="quem">Paid Social</td>
+          <td><span class="ga4-badge q-corrigir">corrigir</span></td>
+          <td>2.683</td><td>18.4%</td>
+          <td>4.47%</td><td>8.3%</td>
+          <td>10.0%</td>
+          <td>0.04%</td>
+          <td>R$ 122</td><td>R$ 0,05</td>
+          <td>R$ 122</td>
+        </tr>
+        <tr>
+          <td class="quem">Paid Shopping</td>
+          <td><span class="ga4-badge q-corrigir">corrigir</span></td>
+          <td>943</td><td>41.1%</td>
+          <td>47.61%</td><td>2.7%</td>
+          <td>0.0%</td>
+          <td>0.00%</td>
+          <td>R$ 0</td><td>R$ 0,00</td>
+          <td>n/d</td>
+        </tr>
+        <tr>
+          <td class="quem">AI Assistant</td>
+          <td><span class="ga4-badge q-cortar">revisar ou cortar</span></td>
+          <td>16</td><td>50.0%</td>
+          <td>0.00%</td><td>n/d</td>
+          <td>n/d</td>
+          <td>0.00%</td>
+          <td>R$ 0</td><td>R$ 0,00</td>
+          <td>n/d</td>
+        </tr>
+        <tr>
+          <td class="quem">Display</td>
+          <td><span class="ga4-badge q-cortar">revisar ou cortar</span></td>
+          <td>123</td><td>33.3%</td>
+          <td>1.63%</td><td>0.0%</td>
+          <td>n/d</td>
+          <td>0.00%</td>
+          <td>R$ 0</td><td>R$ 0,00</td>
+          <td>n/d</td>
+        </tr>
+        <tr>
+          <td class="quem">Organic Shopping</td>
+          <td><span class="ga4-badge q-cortar">revisar ou cortar</span></td>
+          <td>13</td><td>69.2%</td>
+          <td>0.00%</td><td>n/d</td>
+          <td>n/d</td>
+          <td>0.00%</td>
+          <td>R$ 0</td><td>R$ 0,00</td>
+          <td>n/d</td>
+        </tr>
+        <tr>
+          <td class="quem">Paid Video</td>
+          <td><span class="ga4-badge q-cortar">revisar ou cortar</span></td>
+          <td>1</td><td>0.0%</td>
+          <td>0.00%</td><td>n/d</td>
+          <td>n/d</td>
+          <td>0.00%</td>
+          <td>R$ 0</td><td>R$ 0,00</td>
+          <td>n/d</td>
+        </tr></tbody>
+  </table>
+</div>
+</section>
+<section>
+  <h2>Dispositivos</h2>
+  <div class="ga4-dev-grid">
+    <div class="ga4-dev">
+      <div class="ga4-dev-head"><span class="ga4-dev-nome">mobile</span>
+        <span class="ga4-dev-share">74% da receita</span></div>
+      <div class="ga4-dev-track"><div class="ga4-dev-bar" style="--w:73.5%"></div></div>
+      <div class="gauge-row"><span>Sessões</span><strong>17.375</strong></div>
+      <div class="gauge-row"><span>Conversão</span><strong>0.87%</strong></div>
+      <div class="gauge-row"><span>Engajamento</span><strong>40.1%</strong></div>
+      <div class="gauge-row"><span>R$/sessão</span><strong>R$ 4,70</strong></div>
+    </div>
+    <div class="ga4-dev">
+      <div class="ga4-dev-head"><span class="ga4-dev-nome">desktop</span>
+        <span class="ga4-dev-share">26% da receita</span></div>
+      <div class="ga4-dev-track"><div class="ga4-dev-bar" style="--w:26.5%"></div></div>
+      <div class="gauge-row"><span>Sessões</span><strong>2.982</strong></div>
+      <div class="gauge-row"><span>Conversão</span><strong>1.61%</strong></div>
+      <div class="gauge-row"><span>Engajamento</span><strong>46.9%</strong></div>
+      <div class="gauge-row"><span>R$/sessão</span><strong>R$ 9,88</strong></div>
+    </div>
+    <div class="ga4-dev">
+      <div class="ga4-dev-head"><span class="ga4-dev-nome">tablet</span>
+        <span class="ga4-dev-share">0% da receita</span></div>
+      <div class="ga4-dev-track"><div class="ga4-dev-bar" style="--w:0.0%"></div></div>
+      <div class="gauge-row"><span>Sessões</span><strong>48</strong></div>
+      <div class="gauge-row"><span>Conversão</span><strong>0.00%</strong></div>
+      <div class="gauge-row"><span>Engajamento</span><strong>39.6%</strong></div>
+      <div class="gauge-row"><span>R$/sessão</span><strong>R$ 0,00</strong></div>
+    </div></div>
+</section>
+<section>
+  <h2>Landing pages — porta de entrada</h2>
+  
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr>
+      <th>Landing page</th><th>Sessões</th><th>Engajamento</th><th>Rejeição</th>
+      <th>Sessão→carrinho</th><th>Compras</th><th>Conversão</th><th>Receita</th>
+    </tr></thead>
+    <tbody>
+        <tr>
+          <td class="quem">/</td>
+          <td>8.543</td><td>46.2%</td>
+          <td>53.8%</td><td>13.11%</td>
+          <td>68 </td>
+          <td>0.80%</td><td>R$ 28.393</td>
+        </tr>
+        <tr>
+          <td class="quem">/vitaminas-b5-b6-com-magnesio---1g-frasco-x-60-caps-softgel/p</td>
+          <td>1.726</td><td>39.0%</td>
+          <td>61.0%</td><td>14.83%</td>
+          <td>16 </td>
+          <td>0.93%</td><td>R$ 4.602</td>
+        </tr>
+        <tr>
+          <td class="quem">/produtos/faciderm/c</td>
+          <td>1.234</td><td>41.6%</td>
+          <td>58.4%</td><td>7.46%</td>
+          <td>7 </td>
+          <td>0.57%</td><td>R$ 1.927</td>
+        </tr>
+        <tr>
+          <td class="quem">/busca</td>
+          <td>1.062</td><td>26.3%</td>
+          <td>73.7%</td><td>3.39%</td>
+          <td>5 </td>
+          <td>0.47%</td><td>R$ 1.207</td>
+        </tr>
+        <tr>
+          <td class="quem">/produtos/magnesio/c</td>
+          <td>1.014</td><td>62.1%</td>
+          <td>37.9%</td><td>17.26%</td>
+          <td>15 </td>
+          <td>1.48%</td><td>R$ 5.359</td>
+        </tr>
+        <tr>
+          <td class="quem">/tpower-testofen-fenogrego-30-caps-softgel/p</td>
+          <td>523</td><td>14.3%</td>
+          <td>85.7%</td><td>1.91%</td>
+          <td>1 </td>
+          <td>0.19%</td><td>R$ 380</td>
+        </tr>
+        <tr>
+          <td class="quem">/garrafa-copa-joie/p</td>
+          <td>493</td><td>65.3%</td>
+          <td>34.7%</td><td>144.42%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">/joiefit/c</td>
+          <td>406</td><td>45.1%</td>
+          <td>54.9%</td><td>8.87%</td>
+          <td>3 </td>
+          <td>0.74%</td><td>R$ 1.170</td>
+        </tr>
+        <tr>
+          <td class="quem">/amaze---1g-frasco-x-120-caps-softgel/p</td>
+          <td>389</td><td>48.3%</td>
+          <td>51.7%</td><td>7.71%</td>
+          <td>2 </td>
+          <td>0.51%</td><td>R$ 304</td>
+        </tr>
+        <tr>
+          <td class="quem">/produtos/c</td>
+          <td>331</td><td>61.3%</td>
+          <td>38.7%</td><td>14.80%</td>
+          <td>2 </td>
+          <td>0.60%</td><td>R$ 1.329</td>
+        </tr>
+        <tr>
+          <td class="quem">/colageno-verisol-em-po---sabor-frutas-vermelhas-450g/p</td>
+          <td>293</td><td>23.9%</td>
+          <td>76.1%</td><td>7.51%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">(sem página)</td>
+          <td>288</td><td>0.0%</td>
+          <td>100.0%</td><td>13.89%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">(not set)</td>
+          <td>274</td><td>2.9%</td>
+          <td>97.1%</td><td>1.46%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">/kit-magnesio-quelato-mais-calcio-600---60-caps-soft-gel---joie-suplementos-1/p</td>
+          <td>175</td><td>36.6%</td>
+          <td>63.4%</td><td>9.14%</td>
+          <td>2 </td>
+          <td>1.14%</td><td>R$ 585</td>
+        </tr>
+        <tr>
+          <td class="quem">/faciderm---colageno-hidrolisado-e-vitamina-c-120-capsulas---135g---vitamina-para-a-pele-do-rosto/p</td>
+          <td>124</td><td>29.8%</td>
+          <td>70.2%</td><td>6.45%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">/kit-magnesio-quelato-mais-colageno-verisol---joie-suplementos/p</td>
+          <td>115</td><td>33.0%</td>
+          <td>67.0%</td><td>1.74%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">/fale-conosco</td>
+          <td>112</td><td>63.4%</td>
+          <td>36.6%</td><td>0.00%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">/curcuma-e-vitamina-c-joie---60-capsulas-600mg---auxilia-a-aumentar-a-imunidade/p</td>
+          <td>111</td><td>28.8%</td>
+          <td>71.2%</td><td>0.00%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">/colageno-verisol-em-po---sabor-limao-450g/p</td>
+          <td>104</td><td>23.1%</td>
+          <td>76.9%</td><td>5.77%</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">/oleo-de-cartamo---1g-frasco-x-120-caps-softgel/p</td>
+          <td>100</td><td>36.0%</td>
+          <td>64.0%</td><td>41.00%</td>
+          <td>2 </td>
+          <td>2.00%</td><td>R$ 2.146</td>
+        </tr></tbody>
+  </table>
+</div>
+<p class="tab-note">Só páginas com pelo menos 100 sessões no período — abaixo disso a taxa oscila
+demais para embasar decisão. "Sem compra" marca tráfego que chega e não fecha: é a fila de correção,
+ordenada por sessão perdida.</p>
+</section>
+<p class="caveat">Tudo nesta aba é dado <strong>medido pela GA4</strong> da propriedade, não estimativa:
+sessões, engajamento, etapas do funil (view_item → add_to_cart → begin_checkout → purchase), receita e
+suas divisões por canal, dispositivo e página. As taxas e os quadrantes são aritmética sobre esses
+números, com o corte na mediana do próprio período. Onde a GA4 não devolveu valor, aparece "n/d" —
+nunca zero disfarçado. Limitação conhecida: a GA4 aceita no máximo 10 métricas por consulta, então a
+coleta é feita em blocos (ver ga4_jornada.py).</p>
   </div>
 
   <div class="tab-panel" data-tab="keywords">
@@ -1537,7 +2282,7 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
   render();
 })();
 </script>
-<script id="fx-alertas-data" type="application/json">[{"severidade": "alta", "nivel": "agressiva", "tipo": "queda_preco", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull baixou o preço de 'Faciderm' de R$ 89.90 para R$ 71.90 (-20.0%).", "impacto_concorrencia": "Sinal de liquidação de estoque, novo substituto ou guerra de preço deliberada. Risco alto de canibalização no curto prazo.", "impacto_volume": "Estimativa por elasticidade deve ser tratada como piso — quedas agressivas convertem desproporcionalmente mais (efeito ancoragem). Estimativa: +30.0% de deslocamento de demanda (a seu favor), usando elasticidade configurada (-1.5) x variação de preço observada (-20.0%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 104.90, ROAS 5.00, CTR 6.47% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Price-match seletivo só nos SKUs mais expostos, não na linha toda", "Reforçar prova social (reviews/garantia) para justificar não seguir a queda", "Campanha de retenção/e-mail para base já convertida", "Checar se é liquidação temporária antes de comprometer margem de forma permanente"], "kpis": ["Margem de contribuição", "ROAS", "CAC", "Share of search/Buy Box", "Taxa de conversão", "Ticket médio"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-01 10:34 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "aguardando_autorizacao"}, {"severidade": "media", "nivel": "default", "tipo": "novo_desconto", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull passou a oferecer 20% de desconto em 'Faciderm' (antes 0%).", "impacto_concorrencia": "Desconto por tempo limitado costuma converter mais rápido que uma baixa de preço permanente (efeito urgência).", "impacto_volume": "Tratar como a queda de preço equivalente, com efeito concentrado na janela do cupom (não distribuído).", "estrategia": ["Cupom-espelho de curta duração no produto equivalente", "Destacar frete grátis/parcelamento se não puder cobrir o desconto", "Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado"], "kpis": ["CTR", "Taxa de conversão", "CAC no período do cupom", "ROAS da campanha ativa"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-01 10:34 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "novo_entrante", "produto": "Faciderm", "concorrente": "Growth Supplements", "resumo": "Growth Supplements apareceu pela 1a vez na busca de 'Faciderm' (posição 2).", "impacto_concorrencia": "Aumento da concorrência direta no mesmo termo de busca; dilui share entre mais players.", "impacto_volume": "Risco difuso, maior quanto mais barato/melhor avaliado for o novo entrante.", "estrategia": ["Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas", "Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta"], "kpis": ["Share of search", "Posição média", "Taxa de conversão"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-faciderm", "data": "2026-08-01 10:34 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "salto_visibilidade_ml", "produto": "Amaze", "concorrente": "Black Skull", "resumo": "Black Skull ganhou visibilidade em 'Amaze': subiu da posição 4 para 1 e reviews de 60 para 95.", "impacto_concorrencia": "Mais impressões para o concorrente no mesmo termo; nas primeiras posições do ML o CTR cai muito rápido por posição perdida.", "impacto_volume": "Correlacionado com perda de share of search; não quantificável com precisão sem dados de leilão — tratar como alerta de atenção.", "estrategia": ["Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)", "Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa", "Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento"], "kpis": ["Posição média na busca", "CTR", "Taxa de conversão", "Impression share (Mercado Ads)"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-amaze", "data": "2026-08-01 10:34 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "concorrente_sumiu", "produto": "Amaze", "concorrente": "Growth Supplements", "resumo": "Growth Supplements sumiu da busca de 'Amaze' (estava na posição 1). Hipótese: ruptura de estoque ou pausa de campanha — não confirmado.", "impacto_concorrencia": "Janela de oportunidade temporária — menos competição direta pelo termo/posição.", "impacto_volume": "Oportunidade de ganho de share enquanto durar; não é permanente até confirmar (pode ser reposição de estoque em dias).", "estrategia": ["Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã", "Não reduzir preço proativamente — a demanda já não tem para onde ir"], "kpis": ["Share of search", "Volume/conversão do SKU equivalente", "ROAS"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-amaze", "data": "2026-08-01 10:34 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "moderada", "tipo": "aumento_preco_concorrente", "produto": "Linha Joie Fit", "concorrente": "Black Skull", "resumo": "Black Skull subiu o preço de 'Linha Joie Fit' de R$ 119.90 para R$ 129.90 (+8.3%).", "impacto_concorrencia": "Janela real de oportunidade para ganhar posição/Buy Box e volume sem sacrificar margem.", "impacto_volume": "Ganho potencial relevante (ver estimativa por elasticidade, sentido positivo). Estimativa: -12.5% de deslocamento de demanda (a favor do concorrente), usando elasticidade configurada (-1.5) x variação de preço observada (+8.3%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 134.49, ROAS 3.55, CTR 2.29% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura", "Atualizar comparativos de preço em conteúdo/anúncio"], "kpis": ["Share of search/impressões", "ROAS", "CAC"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-whey", "data": "2026-08-01 10:34 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}]</script>
+<script id="fx-alertas-data" type="application/json">[{"severidade": "alta", "nivel": "agressiva", "tipo": "queda_preco", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull baixou o preço de 'Faciderm' de R$ 89.90 para R$ 71.90 (-20.0%).", "impacto_concorrencia": "Sinal de liquidação de estoque, novo substituto ou guerra de preço deliberada. Risco alto de canibalização no curto prazo.", "impacto_volume": "Estimativa por elasticidade deve ser tratada como piso — quedas agressivas convertem desproporcionalmente mais (efeito ancoragem). Estimativa: +30.0% de deslocamento de demanda (a seu favor), usando elasticidade configurada (-1.5) x variação de preço observada (-20.0%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 104.90, ROAS 5.00, CTR 6.47% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Price-match seletivo só nos SKUs mais expostos, não na linha toda", "Reforçar prova social (reviews/garantia) para justificar não seguir a queda", "Campanha de retenção/e-mail para base já convertida", "Checar se é liquidação temporária antes de comprometer margem de forma permanente"], "kpis": ["Margem de contribuição", "ROAS", "CAC", "Share of search/Buy Box", "Taxa de conversão", "Ticket médio"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "aguardando_autorizacao"}, {"severidade": "media", "nivel": "default", "tipo": "novo_desconto", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull passou a oferecer 20% de desconto em 'Faciderm' (antes 0%).", "impacto_concorrencia": "Desconto por tempo limitado costuma converter mais rápido que uma baixa de preço permanente (efeito urgência).", "impacto_volume": "Tratar como a queda de preço equivalente, com efeito concentrado na janela do cupom (não distribuído).", "estrategia": ["Cupom-espelho de curta duração no produto equivalente", "Destacar frete grátis/parcelamento se não puder cobrir o desconto", "Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado"], "kpis": ["CTR", "Taxa de conversão", "CAC no período do cupom", "ROAS da campanha ativa"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "novo_entrante", "produto": "Faciderm", "concorrente": "Growth Supplements", "resumo": "Growth Supplements apareceu pela 1a vez na busca de 'Faciderm' (posição 2).", "impacto_concorrencia": "Aumento da concorrência direta no mesmo termo de busca; dilui share entre mais players.", "impacto_volume": "Risco difuso, maior quanto mais barato/melhor avaliado for o novo entrante.", "estrategia": ["Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas", "Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta"], "kpis": ["Share of search", "Posição média", "Taxa de conversão"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-faciderm", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "salto_visibilidade_ml", "produto": "Amaze", "concorrente": "Black Skull", "resumo": "Black Skull ganhou visibilidade em 'Amaze': subiu da posição 4 para 1 e reviews de 60 para 95.", "impacto_concorrencia": "Mais impressões para o concorrente no mesmo termo; nas primeiras posições do ML o CTR cai muito rápido por posição perdida.", "impacto_volume": "Correlacionado com perda de share of search; não quantificável com precisão sem dados de leilão — tratar como alerta de atenção.", "estrategia": ["Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)", "Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa", "Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento"], "kpis": ["Posição média na busca", "CTR", "Taxa de conversão", "Impression share (Mercado Ads)"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-amaze", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "concorrente_sumiu", "produto": "Amaze", "concorrente": "Growth Supplements", "resumo": "Growth Supplements sumiu da busca de 'Amaze' (estava na posição 1). Hipótese: ruptura de estoque ou pausa de campanha — não confirmado.", "impacto_concorrencia": "Janela de oportunidade temporária — menos competição direta pelo termo/posição.", "impacto_volume": "Oportunidade de ganho de share enquanto durar; não é permanente até confirmar (pode ser reposição de estoque em dias).", "estrategia": ["Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã", "Não reduzir preço proativamente — a demanda já não tem para onde ir"], "kpis": ["Share of search", "Volume/conversão do SKU equivalente", "ROAS"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-amaze", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "moderada", "tipo": "aumento_preco_concorrente", "produto": "Linha Joie Fit", "concorrente": "Black Skull", "resumo": "Black Skull subiu o preço de 'Linha Joie Fit' de R$ 119.90 para R$ 129.90 (+8.3%).", "impacto_concorrencia": "Janela real de oportunidade para ganhar posição/Buy Box e volume sem sacrificar margem.", "impacto_volume": "Ganho potencial relevante (ver estimativa por elasticidade, sentido positivo). Estimativa: -12.5% de deslocamento de demanda (a favor do concorrente), usando elasticidade configurada (-1.5) x variação de preço observada (+8.3%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 134.49, ROAS 3.55, CTR 2.29% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura", "Atualizar comparativos de preço em conteúdo/anúncio"], "kpis": ["Share of search/impressões", "ROAS", "CAC"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-whey", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}]</script>
 <script>
 (function () {
   'use strict';
@@ -1628,6 +2373,52 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
         card.classList.remove('fx-tilt'); card.style.transform = '';
       });
     });
+    // reflexo (sem tilt) nos KPIs da GA4 — mesma lente, movimento mais contido
+    document.querySelectorAll('.ga4-kpi').forEach(function (k) {
+      k.addEventListener('mousemove', function (e) {
+        var r = k.getBoundingClientRect();
+        k.classList.add('fx-tilt');
+        k.style.setProperty('--gx', (((e.clientX - r.left) / r.width) * 100).toFixed(1) + '%');
+        k.style.setProperty('--gy', (((e.clientY - r.top) / r.height) * 100).toFixed(1) + '%');
+      });
+      k.addEventListener('mouseleave', function () { k.classList.remove('fx-tilt'); });
+    });
+  })();
+
+  /* ============================= linhas de tabela entrando em cascata + shine */
+  (function () {
+    document.querySelectorAll('.signal-bar span, .ga4-dev-bar, .ga4-funil-bar').forEach(function (b, i) {
+      b.style.setProperty('--sd', (i % 7) * 0.4 + 's');
+    });
+    var tabelas = document.querySelectorAll('.data-table tbody, .ml-radar-table tbody');
+    if (!tabelas.length) return;
+    tabelas.forEach(function (tb) {
+      Array.prototype.slice.call(tb.rows).forEach(function (tr, i) {
+        tr.classList.add('fx-row');
+        tr.style.setProperty('--rowd', Math.min(i, 18) * 0.028 + 's');
+      });
+    });
+    function mostrar(tb) {
+      Array.prototype.slice.call(tb.rows).forEach(function (tr) { tr.classList.add('in'); });
+    }
+    if (reduce || !('IntersectionObserver' in window)) {
+      tabelas.forEach(mostrar);
+      return;
+    }
+    var io = new IntersectionObserver(function (ens) {
+      ens.forEach(function (en) { if (en.isIntersecting) { mostrar(en.target); io.unobserve(en.target); } });
+    }, { threshold: 0.02, rootMargin: '0px 0px -4% 0px' });
+    tabelas.forEach(function (tb) { io.observe(tb); });
+    document.querySelectorAll('.tab-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        setTimeout(function () {
+          document.querySelectorAll('.tab-panel.active .data-table tbody, .tab-panel.active .ml-radar-table tbody')
+            .forEach(function (tb) {
+              if (tb.getBoundingClientRect().top < window.innerHeight * 1.1) mostrar(tb);
+            });
+        }, 40);
+      });
+    });
   })();
 
   /* =========================================== revelação em cascata (scroll) */
@@ -1670,13 +2461,18 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
       if (isNaN(alvo)) return;
       var dec = parseInt(el.dataset.countDec || '0', 10);
       var pre = el.dataset.countPre || '', suf = el.dataset.countSuf || '';
-      if (reduce) { el.textContent = pre + alvo.toFixed(dec) + suf; return; }
+      // inteiro grande mantém o separador de milhar pt-BR (senão "20310" no lugar de "20.310")
+      function fmt(v) {
+        if (dec > 0) return v.toFixed(dec).replace('.', ',');
+        return Math.round(v).toLocaleString('pt-BR');
+      }
+      if (reduce) { el.textContent = pre + fmt(alvo) + suf; return; }
       var t0 = null, dur = 1100;
       function step(ts) {
         if (t0 === null) t0 = ts;
         var k = Math.min(1, (ts - t0) / dur);
         var e = 1 - Math.pow(1 - k, 3);
-        el.textContent = pre + (alvo * e).toFixed(dec) + suf;
+        el.textContent = pre + fmt(alvo * e) + suf;
         if (k < 1) requestAnimationFrame(step);
       }
       requestAnimationFrame(step);

@@ -532,7 +532,7 @@ def print_console(alertas):
 # --------------------------------------------------------------------------- xlsx
 def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, config, meta, path,
                own_perf=None, radar_ml=None, descoberta=None, keywords_data=None, marketplaces=None,
-               historico=None):
+               historico=None, ga4=None):
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
@@ -802,6 +802,70 @@ def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, 
                             ws.cell(row=ws.max_row, column=c).fill = PatternFill("solid", fgColor="FCE4E4")
         for i, w in enumerate([20, 22, 12, 10, 10, 12, 16, 16, 12], 1):
             ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
+
+    # -- GA4: funil, canais, devices, landing pages (dado medido pela GA4)
+    if ga4 and ga4.get("kpis"):
+        ws = wb.create_sheet("GA4 Funil")
+        ws.append(["ETAPA", "VALOR", "% DO TOPO", "% DA ANTERIOR", "PERDIDOS", "MAIOR VAZAMENTO", "EVENTO"])
+        style_header(ws, 7)
+        for e in ga4.get("funil", []):
+            ws.append([e["nome"], e.get("valor"),
+                       round(e["pct_do_topo"], 4) if e.get("pct_do_topo") is not None else "n/d",
+                       round(e["pct_da_anterior"], 4) if e.get("pct_da_anterior") is not None else "n/d",
+                       e.get("perda_abs"), "SIM" if e.get("maior_vazamento") else "", e.get("desc")])
+            if e.get("maior_vazamento"):
+                for c in range(1, 8):
+                    ws.cell(row=ws.max_row, column=c).fill = PatternFill("solid", fgColor="FCE4E4")
+        for i, w in enumerate([20, 14, 12, 15, 12, 18, 34], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
+
+        ws = wb.create_sheet("GA4 Canais")
+        cols_gc = ["canal", "decisao", "sessions", "engagement_rate", "tx_carrinho",
+                   "tx_checkout_p_carrinho", "tx_compra_p_checkout", "tx_conversao",
+                   "compras", "receita", "receita_por_sessao", "ticket_medio"]
+        ws.append([c.upper() for c in cols_gc])
+        style_header(ws, len(cols_gc))
+        for c in ga4.get("canais", []):
+            ws.append([c["canal"], c["quadrante"], c["sessions"], c["engagement_rate"],
+                       c["tx_carrinho"], c["tx_checkout_p_carrinho"], c["tx_compra_p_checkout"],
+                       c["tx_conversao"], c["compras"], c["receita"], c["receita_por_sessao"],
+                       c["ticket_medio"]])
+        for i, w in enumerate([22, 18, 12, 14, 13, 18, 18, 14, 10, 14, 16, 14], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
+
+        ws = wb.create_sheet("GA4 Landing Pages")
+        cols_gl = ["pagina", "sessions", "engagement_rate", "bounce_rate", "tx_carrinho",
+                   "compras", "tx_conversao", "receita", "sem_compra"]
+        ws.append([c.upper() for c in cols_gl])
+        style_header(ws, len(cols_gl))
+        for p in ga4.get("landing_pages", []):
+            ws.append([p["pagina"], p["sessions"], p["engagement_rate"], p["bounce_rate"],
+                       p["tx_carrinho"], p["compras"], p["tx_conversao"], p["receita"],
+                       "SIM" if p["vazamento"] else ""])
+            if p["vazamento"]:
+                for c in range(1, len(cols_gl) + 1):
+                    ws.cell(row=ws.max_row, column=c).fill = PatternFill("solid", fgColor="FFF4E0")
+        for i, w in enumerate([64, 12, 14, 12, 13, 10, 14, 14, 12], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
+
+        ws = wb.create_sheet("GA4 Diagnóstico")
+        ws.append(["NÍVEL", "ACHADO", "DETALHE"])
+        style_header(ws, 3)
+        for a in ga4.get("diagnostico", []):
+            ws.append([a["nivel"].upper(), a["titulo"], a["detalhe"]])
+            sf = sev_fill.get(a["nivel"])
+            if sf:
+                cell = ws.cell(row=ws.max_row, column=1)
+                cell.fill = PatternFill("solid", fgColor=sf); cell.font = Font(color="FFFFFF", bold=True)
+        for i, w in enumerate([12, 42, 100], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
         ws.freeze_panes = "A2"
 
     # -- Catálogo (Produtos + Concorrentes) — inclui os candidatos manuais
@@ -1503,9 +1567,353 @@ def render_credbar(config, own_perf=None, keywords_data=None):
 </div>"""
 
 
+# =============================================================== GA4 · Jornada
+def _f_int(v):
+    return f"{v:,.0f}".replace(",", ".") if isinstance(v, (int, float)) else "n/d"
+
+
+def _f_pct(v, dec=1):
+    return f"{v * 100:.{dec}f}%" if isinstance(v, (int, float)) else "n/d"
+
+
+def _f_brl(v, dec=2):
+    if not isinstance(v, (int, float)):
+        return "n/d"
+    s = f"{v:,.{dec}f}"
+    return "R$ " + s.replace(",", "@").replace(".", ",").replace("@", ".")
+
+
+def _f_dur(seg):
+    if not isinstance(seg, (int, float)):
+        return "n/d"
+    m, s = int(seg // 60), int(seg % 60)
+    return f"{m}m {s:02d}s"
+
+
+def render_ga4_kpis(k):
+    """Cartões de topo da aba GA4 — o bloco que um gestor de tráfego lê primeiro."""
+    cards = [
+        ("Sessões", _f_int(k.get("sessions")), f"{_f_int(k.get('usuarios'))} usuários · "
+         f"{_f_pct(k.get('pct_novos'), 0)} novos", k.get("sessions"), 0, ""),
+        ("Taxa de conversão", _f_pct(k.get("tx_conversao"), 2),
+         f"{_f_int(k.get('compras'))} compras", k.get("tx_conversao"), 2, "%"),
+        ("Receita", _f_brl(k.get("receita"), 0),
+         f"ticket médio {_f_brl(k.get('ticket_medio'))}", None, 0, ""),
+        ("Receita por sessão", _f_brl(k.get("receita_por_sessao")),
+         "o quanto cada visita vale", None, 0, ""),
+        ("Engajamento", _f_pct(k.get("engagement_rate")),
+         f"rejeição {_f_pct(k.get('bounce_rate'))}", k.get("engagement_rate"), 1, "%"),
+        ("Duração média", _f_dur(k.get("duracao_media_sessao")),
+         f"{k.get('pageviews_por_sessao'):.1f} páginas/sessão"
+         if isinstance(k.get("pageviews_por_sessao"), (int, float)) else "n/d", None, 0, ""),
+        ("Compradores", _f_int(k.get("compradores")),
+         f"{_f_pct(k.get('pct_primeira_compra'), 0)} na 1ª compra", k.get("compradores"), 0, ""),
+    ]
+    html = []
+    for titulo, valor, sub, count, dec, suf in cards:
+        # o contador animado só entra quando existe número real por trás
+        attr = ""
+        if isinstance(count, (int, float)):
+            base = count * 100 if suf == "%" else count
+            attr = f' data-count="{base:.{dec}f}" data-count-dec="{dec}" data-count-suf="{suf}"'
+        html.append(f"""
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">{titulo}</div>
+      <div class="ga4-kpi-value"{attr}>{valor}</div>
+      <div class="ga4-kpi-sub">{sub}</div>
+    </div>""")
+    return f'<div class="ga4-kpi-grid">{"".join(html)}</div>'
+
+
+def render_ga4_funil(etapas):
+    """Funil de compra em barras proporcionais, com taxa de passagem entre etapas
+    e a etapa de maior vazamento destacada."""
+    if not etapas:
+        return '<p class="hist-empty">Funil não carregado.</p>'
+    topo = next((e["valor"] for e in etapas if e.get("valor")), 1) or 1
+    linhas = []
+    for i, e in enumerate(etapas):
+        largura = max(2.5, (e["valor"] / topo * 100) if isinstance(e["valor"], (int, float)) else 0)
+        vaz = " vazamento" if e.get("maior_vazamento") else ""
+        passagem = ""
+        if e.get("pct_da_anterior") is not None:
+            perda = f" · −{_f_int(e.get('perda_abs'))} perdidos" if e.get("perda_abs") else ""
+            passagem = (f'<span class="ga4-funil-passagem{vaz}">'
+                        f'{_f_pct(e["pct_da_anterior"])} da etapa anterior{perda}</span>')
+        linhas.append(f"""
+      <div class="ga4-funil-linha{vaz}">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">{i + 1}. {e['nome']}</span>
+          <span class="ga4-funil-valor">{_f_int(e['valor'])}</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:{largura:.2f}%"></div>
+          <span class="ga4-funil-topo">{_f_pct(e.get('pct_do_topo'), 1)} do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">{e['desc']}</span>{passagem}</div>
+      </div>""")
+    return f'<div class="ga4-funil">{"".join(linhas)}</div>'
+
+
+def render_ga4_quadrantes(canais, cortes):
+    """Matriz de decisão volume × conversão. O corte é a MEDIANA do próprio
+    período (não benchmark de mercado) — está escrito na legenda."""
+    if not canais:
+        return ""
+    grupos = {"escalar": [], "corrigir": [], "testar aumento": [], "revisar ou cortar": [], "sem dado": []}
+    for c in canais:
+        grupos.setdefault(c["quadrante"], []).append(c)
+    rotulos = [
+        ("escalar", "▲ Escalar", "volume alto + converte acima da mediana", "q-escalar"),
+        ("corrigir", "◆ Corrigir primeiro", "volume alto + converte abaixo da mediana", "q-corrigir"),
+        ("testar aumento", "◇ Testar aumento", "converte bem, volume baixo", "q-testar"),
+        ("revisar ou cortar", "○ Revisar ou cortar", "volume baixo + converte abaixo", "q-cortar"),
+    ]
+    cels = []
+    for chave, titulo, desc, cls in rotulos:
+        itens = sorted(grupos.get(chave, []), key=lambda c: -(c["sessions"] or 0))
+        if not itens:
+            corpo = '<li class="ga4-q-vazio">nenhum canal aqui neste período</li>'
+        else:
+            corpo = "".join(
+                f'<li><span class="ga4-q-canal">{c["canal"]}</span>'
+                f'<span class="ga4-q-num">{_f_int(c["sessions"])} sess · {_f_pct(c["tx_conversao"], 2)}</span></li>'
+                for c in itens)
+        cels.append(f"""
+      <div class="ga4-quad {cls}">
+        <div class="ga4-quad-head"><span class="ga4-quad-titulo">{titulo}</span>
+        <span class="ga4-quad-desc">{desc}</span></div>
+        <ul class="ga4-quad-lista">{corpo}</ul>
+      </div>""")
+    return f"""
+<div class="ga4-quad-grid">{''.join(cels)}</div>
+<p class="tab-note">Corte dos quadrantes = mediana do próprio período
+({_f_int(cortes.get('mediana_sessoes'))} sessões e {_f_pct(cortes.get('mediana_tx_conversao'), 2)} de
+conversão entre os canais). Não é benchmark de mercado — é a comparação dos seus canais entre si.</p>"""
+
+
+def render_ga4_serie(serie):
+    """Série diária: sessões (área) + compras (linha) + receita nas barras de
+    fundo. Um eixo por grandeza é impossível num só gráfico sem enganar, então
+    cada grandeza vira sua própria faixa normalizada e o número real vem no
+    tooltip — nunca dois eixos y no mesmo desenho."""
+    pontos = [p for p in serie if p.get("sessions") is not None]
+    n = len(pontos)
+    if n < 2:
+        return '<p class="hist-empty">Série diária insuficiente.</p>'
+    W, H = 980, 260
+    PL, PR, PT, PB = 54, 18, 16, 40
+    pw, ph = W - PL - PR, H - PT - PB
+
+    max_s = max(p["sessions"] for p in pontos) or 1
+    max_r = max((p.get("receita") or 0) for p in pontos) or 1
+    max_c = max((p.get("compras") or 0) for p in pontos) or 1
+
+    def x(i):
+        return PL + (i / (n - 1)) * pw
+
+    bw = max(2.0, pw / n * 0.42)
+    barras = "".join(
+        f'<rect class="ga4-bar" x="{x(i) - bw / 2:.1f}" y="{PT + ph - ((p.get("receita") or 0) / max_r * ph * .92):.1f}" '
+        f'width="{bw:.1f}" height="{((p.get("receita") or 0) / max_r * ph * .92):.1f}" rx="1.5">'
+        f'<title>{p["data"]} — receita {_f_brl(p.get("receita"), 0)}</title></rect>'
+        for i, p in enumerate(pontos))
+
+    ptos_s = [(x(i), PT + ph - (p["sessions"] / max_s * ph * .92)) for i, p in enumerate(pontos)]
+    area = (f'M {ptos_s[0][0]:.1f},{PT + ph:.1f} '
+            + " ".join(f"L {px:.1f},{py:.1f}" for px, py in ptos_s)
+            + f" L {ptos_s[-1][0]:.1f},{PT + ph:.1f} Z")
+    linha_s = " ".join(f"{px:.1f},{py:.1f}" for px, py in ptos_s)
+
+    ptos_c = [(x(i), PT + ph - ((p.get("compras") or 0) / max_c * ph * .92)) for i, p in enumerate(pontos)]
+    linha_c = " ".join(f"{px:.1f},{py:.1f}" for px, py in ptos_c)
+    marcas_c = "".join(
+        f'<circle class="ga4-dot-compras" cx="{px:.1f}" cy="{py:.1f}" r="3.4">'
+        f'<title>{pontos[i]["data"]} — {_f_int(pontos[i].get("compras"))} compra(s) — '
+        f'{_f_int(pontos[i].get("sessions"))} sessões — conv. {_f_pct(pontos[i].get("tx_conversao"), 2)} — '
+        f'receita {_f_brl(pontos[i].get("receita"), 0)}</title></circle>'
+        for i, (px, py) in enumerate(ptos_c))
+
+    rotulos = "".join(
+        f'<text class="eixo-label" x="{x(i):.1f}" y="{H - 12}" text-anchor="middle">{pontos[i]["data"][5:]}</text>'
+        for i in (0, n // 3, 2 * n // 3, n - 1))
+    grade = "".join(
+        f'<line class="ga4-grid" x1="{PL}" y1="{PT + ph * k:.1f}" x2="{W - PR}" y2="{PT + ph * k:.1f}" />'
+        for k in (0, .25, .5, .75, 1))
+
+    return f"""
+<div class="ga4-serie-card">
+  <div class="hist-chart-head">
+    <span class="hist-chart-title">Evolução diária <span class="vs">· {n} dias</span></span>
+    <span class="hist-chart-legend">
+      <span class="leg-item"><span class="leg-swatch sw-sessoes"></span>sessões</span>
+      <span class="leg-item"><span class="leg-swatch sw-compras"></span>compras</span>
+      <span class="leg-item"><span class="leg-swatch sw-receita"></span>receita</span>
+    </span>
+  </div>
+  <svg viewBox="0 0 {W} {H}" class="ga4-serie-svg hist-chart-svg" role="img"
+       aria-label="Evolução diária de sessões, compras e receita nos últimos {n} dias">
+    {grade}{barras}
+    <path class="ga4-area" d="{area}" />
+    <polyline class="ga4-linha-sessoes hist-linha" points="{linha_s}" />
+    <polyline class="ga4-linha-compras" points="{linha_c}" />
+    {marcas_c}
+    <text class="eixo-label" x="{PL - 8}" y="{PT + 6}" text-anchor="end">{_f_int(max_s)}</text>
+    <text class="eixo-label" x="{PL - 8}" y="{PT + ph}" text-anchor="end">0</text>
+    {rotulos}
+  </svg>
+  <p class="tab-note">Três grandezas com escalas diferentes: cada uma tem a própria faixa normalizada
+  (nunca dois eixos Y no mesmo desenho, que distorce a leitura). Os valores absolutos aparecem ao passar
+  o mouse em cada ponto/barra.</p>
+</div>"""
+
+
+def render_ga4_tabela_canais(canais):
+    if not canais:
+        return ""
+    rows = []
+    for c in canais:
+        badge = {"escalar": "q-escalar", "corrigir": "q-corrigir",
+                 "testar aumento": "q-testar"}.get(c["quadrante"], "q-cortar")
+        rows.append(f"""
+        <tr>
+          <td class="quem">{c['canal']}</td>
+          <td><span class="ga4-badge {badge}">{c['quadrante']}</span></td>
+          <td>{_f_int(c['sessions'])}</td><td>{_f_pct(c['engagement_rate'])}</td>
+          <td>{_f_pct(c['tx_carrinho'], 2)}</td><td>{_f_pct(c['tx_checkout_p_carrinho'], 1)}</td>
+          <td>{_f_pct(c['tx_compra_p_checkout'], 1)}</td>
+          <td>{_f_pct(c['tx_conversao'], 2)}</td>
+          <td>{_f_brl(c['receita'], 0)}</td><td>{_f_brl(c['receita_por_sessao'])}</td>
+          <td>{_f_brl(c['ticket_medio'], 0)}</td>
+        </tr>""")
+    return f"""
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr>
+      <th>Canal</th><th>Decisão</th><th>Sessões</th><th>Engajamento</th>
+      <th>Sessão→carrinho</th><th>Carrinho→checkout</th><th>Checkout→compra</th>
+      <th>Conversão total</th><th>Receita</th><th>R$/sessão</th><th>Ticket médio</th>
+    </tr></thead>
+    <tbody>{''.join(rows)}</tbody>
+  </table>
+</div>"""
+
+
+def render_ga4_devices(devices):
+    if not devices:
+        return ""
+    total_r = sum(d["receita"] or 0 for d in devices) or 1
+    cards = []
+    for d in devices:
+        share = (d["receita"] or 0) / total_r
+        cards.append(f"""
+    <div class="ga4-dev">
+      <div class="ga4-dev-head"><span class="ga4-dev-nome">{d['device']}</span>
+        <span class="ga4-dev-share">{_f_pct(share, 0)} da receita</span></div>
+      <div class="ga4-dev-track"><div class="ga4-dev-bar" style="--w:{share * 100:.1f}%"></div></div>
+      <div class="gauge-row"><span>Sessões</span><strong>{_f_int(d['sessions'])}</strong></div>
+      <div class="gauge-row"><span>Conversão</span><strong>{_f_pct(d['tx_conversao'], 2)}</strong></div>
+      <div class="gauge-row"><span>Engajamento</span><strong>{_f_pct(d['engagement_rate'])}</strong></div>
+      <div class="gauge-row"><span>R$/sessão</span><strong>{_f_brl(d['receita_por_sessao'])}</strong></div>
+    </div>""")
+    return f'<div class="ga4-dev-grid">{"".join(cards)}</div>'
+
+
+def render_ga4_landing(landings, limiar):
+    if not landings:
+        return '<p class="hist-empty">Nenhuma landing page acima do limiar de sessões.</p>'
+    rows = []
+    for p in landings:
+        flag = '<span class="ga4-badge q-corrigir">sem compra</span>' if p["vazamento"] else ""
+        rows.append(f"""
+        <tr>
+          <td class="quem">{p['pagina'] or '(vazio)'}</td>
+          <td>{_f_int(p['sessions'])}</td><td>{_f_pct(p['engagement_rate'])}</td>
+          <td>{_f_pct(p['bounce_rate'])}</td><td>{_f_pct(p['tx_carrinho'], 2)}</td>
+          <td>{_f_int(p['compras'])} {flag}</td>
+          <td>{_f_pct(p['tx_conversao'], 2)}</td><td>{_f_brl(p['receita'], 0)}</td>
+        </tr>""")
+    return f"""
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr>
+      <th>Landing page</th><th>Sessões</th><th>Engajamento</th><th>Rejeição</th>
+      <th>Sessão→carrinho</th><th>Compras</th><th>Conversão</th><th>Receita</th>
+    </tr></thead>
+    <tbody>{''.join(rows)}</tbody>
+  </table>
+</div>
+<p class="tab-note">Só páginas com pelo menos {limiar} sessões no período — abaixo disso a taxa oscila
+demais para embasar decisão. "Sem compra" marca tráfego que chega e não fecha: é a fila de correção,
+ordenada por sessão perdida.</p>"""
+
+
+def render_ga4_diagnostico(achados):
+    if not achados:
+        return ""
+    cards = []
+    for a in achados:
+        cards.append(f"""
+    <div class="ga4-diag sev-{a['nivel']}">
+      <span class="ga4-diag-nivel">{ {'alta': 'Prioridade alta', 'media': 'Atenção',
+                                        'baixa': 'Contexto'}.get(a['nivel'], a['nivel']) }</span>
+      <div class="ga4-diag-titulo">{a['titulo']}</div>
+      <p class="ga4-diag-detalhe">{a['detalhe']}</p>
+    </div>""")
+    return f'<div class="ga4-diag-grid">{"".join(cards)}</div>'
+
+
+def render_ga4_tab(ga4):
+    """A aba inteira. Sem dado carregado, explica como carregar em vez de quebrar."""
+    if not ga4 or not ga4.get("kpis"):
+        return ('<p class="hist-empty">GA4 não carregada — rode <code>ga4_jornada.py</code> com os '
+                'retornos de <code>get_data</code> (connector <code>googleanalytics4</code>) e passe o '
+                'resultado em <code>--ga4-json</code>.</p>')
+    k = ga4["kpis"]
+    return f"""
+<section>
+  <h2>Visão do gestor de tráfego — {ga4.get('periodo', 'período coletado')}</h2>
+  {render_ga4_kpis(k)}
+</section>
+<section>
+  <h2>Diagnóstico — onde agir primeiro</h2>
+  {render_ga4_diagnostico(ga4.get('diagnostico', []))}
+</section>
+<section>
+  <h2>Funil de compra — jornada completa</h2>
+  {render_ga4_funil(ga4.get('funil', []))}
+</section>
+<section>
+  <h2>Evolução diária</h2>
+  {render_ga4_serie(ga4.get('serie', []))}
+</section>
+<section>
+  <h2>Matriz de decisão por canal — volume × conversão</h2>
+  {render_ga4_quadrantes(ga4.get('canais', []), ga4.get('cortes_quadrante', {}))}
+</section>
+<section>
+  <h2>Funil por canal — onde cada origem perde a venda</h2>
+  {render_ga4_tabela_canais(ga4.get('canais', []))}
+</section>
+<section>
+  <h2>Dispositivos</h2>
+  {render_ga4_devices(ga4.get('devices', []))}
+</section>
+<section>
+  <h2>Landing pages — porta de entrada</h2>
+  {render_ga4_landing(ga4.get('landing_pages', []), ga4.get('limiar_landing_sessions', 100))}
+</section>
+<p class="caveat">Tudo nesta aba é dado <strong>medido pela GA4</strong> da propriedade, não estimativa:
+sessões, engajamento, etapas do funil (view_item → add_to_cart → begin_checkout → purchase), receita e
+suas divisões por canal, dispositivo e página. As taxas e os quadrantes são aritmética sobre esses
+números, com o corte na mediana do próprio período. Onde a GA4 não devolveu valor, aparece "n/d" —
+nunca zero disfarçado. Limitação conhecida: a GA4 aceita no máximo 10 métricas por consulta, então a
+coleta é feita em blocos (ver ga4_jornada.py).</p>"""
+
+
 def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
                descoberta=None, keywords_data=None, marketplaces=None, historico=None,
-               primeira_rodada=False):
+               primeira_rodada=False, ga4=None):
     ordem = {"alta": 0, "media": 1, "baixa": 2}
     ordenados = sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]])
     cards = "".join(render_card(a, i) for i, a in enumerate(ordenados))
@@ -1549,6 +1957,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     keywords_html = render_keywords_tab(keywords_data)
     historico_html = render_historico_chart(historico)
     selecao_html = render_selecao_manual_tab(config)
+    ga4_html = render_ga4_tab(ga4)
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1927,6 +2336,132 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 
   a:focus-visible, button:focus-visible, input:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
   .card:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 3px; }}
+
+  /* ------------------------------------------------------------ GA4 · Jornada */
+  .ga4-kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 12px; }}
+  .ga4-kpi {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 15px 16px;
+    position: relative; overflow: hidden;
+  }}
+  .ga4-kpi::before {{
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent);
+    opacity: .55;
+  }}
+  .ga4-kpi-label {{
+    font-size: .6rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--text-mute); margin-bottom: 9px;
+  }}
+  .ga4-kpi-value {{
+    font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; color: var(--text);
+    font-variant-numeric: tabular-nums; line-height: 1.05;
+  }}
+  .ga4-kpi-sub {{ font-size: .7rem; color: var(--text-dim); margin-top: 7px; line-height: 1.4; }}
+
+  .ga4-funil {{ display: flex; flex-direction: column; gap: 4px; }}
+  .ga4-funil-linha {{
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; background: var(--surface);
+  }}
+  .ga4-funil-linha.vazamento {{ border-color: rgba(224,66,107,.5); background: rgba(224,66,107,.06); }}
+  .ga4-funil-head {{ display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }}
+  .ga4-funil-nome {{ font-size: .8rem; font-weight: 700; letter-spacing: .02em; }}
+  .ga4-funil-valor {{ font-size: 1.1rem; font-weight: 800; font-variant-numeric: tabular-nums; }}
+  .ga4-funil-track {{
+    position: relative; height: 26px; margin: 9px 0 7px; background: rgba(255,255,255,.04);
+    border-radius: 5px; overflow: hidden; display: flex; align-items: center;
+  }}
+  .ga4-funil-bar {{
+    height: 100%; width: var(--w); border-radius: 5px;
+    background: linear-gradient(90deg, rgba(17,135,240,.85), rgba(85,174,255,.5));
+    box-shadow: 0 0 18px -4px rgba(17,135,240,.8);
+    animation: ga4-grow 1s cubic-bezier(.2,.8,.3,1) both;
+  }}
+  .ga4-funil-linha.vazamento .ga4-funil-bar {{
+    background: linear-gradient(90deg, rgba(224,66,107,.85), rgba(255,140,170,.45));
+    box-shadow: 0 0 18px -4px rgba(224,66,107,.85);
+  }}
+  @keyframes ga4-grow {{ from {{ width: 0; }} to {{ width: var(--w); }} }}
+  .ga4-funil-topo {{
+    position: absolute; right: 10px; font-size: .66rem; font-weight: 700; color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }}
+  .ga4-funil-foot {{ display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }}
+  .ga4-funil-desc {{ font-size: .68rem; color: var(--text-mute); }}
+  .ga4-funil-passagem {{ font-size: .68rem; font-weight: 700; color: var(--accent-strong); }}
+  .ga4-funil-passagem.vazamento {{ color: #ff9c96; }}
+
+  .ga4-quad-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }}
+  .ga4-quad {{
+    border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; background: var(--surface);
+    border-top: 2px solid var(--border-strong);
+  }}
+  .ga4-quad.q-escalar {{ border-top-color: var(--good); }}
+  .ga4-quad.q-corrigir {{ border-top-color: var(--critical); }}
+  .ga4-quad.q-testar {{ border-top-color: var(--accent); }}
+  .ga4-quad.q-cortar {{ border-top-color: var(--text-mute); }}
+  .ga4-quad-head {{ margin-bottom: 10px; }}
+  .ga4-quad-titulo {{ display: block; font-size: .76rem; font-weight: 800; letter-spacing: .04em; }}
+  .ga4-quad-desc {{ display: block; font-size: .66rem; color: var(--text-mute); margin-top: 3px; }}
+  .ga4-quad-lista {{ list-style: none; margin: 0; padding: 0; }}
+  .ga4-quad-lista li {{
+    display: flex; justify-content: space-between; gap: 10px; padding: 6px 0;
+    border-top: 1px solid var(--border); font-size: .76rem;
+  }}
+  .ga4-quad-lista li:first-child {{ border-top: none; }}
+  .ga4-q-canal {{ color: var(--text); font-weight: 600; }}
+  .ga4-q-num {{ color: var(--text-mute); font-variant-numeric: tabular-nums; white-space: nowrap; }}
+  .ga4-q-vazio {{ color: var(--text-mute); font-style: italic; }}
+
+  .ga4-badge {{
+    display: inline-block; font-size: .58rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }}
+  .ga4-badge.q-escalar {{ color: #8fe38f; border-color: rgba(12,163,12,.55); background: var(--good-bg); }}
+  .ga4-badge.q-corrigir {{ color: #ff9c96; border-color: rgba(224,66,107,.55); background: var(--critical-bg); }}
+  .ga4-badge.q-testar {{ color: var(--accent-strong); border-color: var(--border-strong); background: var(--accent-soft); }}
+  .ga4-badge.q-cortar {{ color: var(--text-mute); border-color: var(--border); background: var(--surface-2); }}
+
+  .ga4-serie-card {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px 8px;
+  }}
+  .ga4-serie-svg {{ width: 100%; height: auto; display: block; }}
+  .ga4-grid {{ stroke: rgba(255,255,255,.055); stroke-width: 1; }}
+  .ga4-bar {{ fill: rgba(85,174,255,.2); transition: fill .15s ease; }}
+  .ga4-bar:hover {{ fill: rgba(85,174,255,.55); }}
+  .ga4-area {{ fill: url(#ga4-area-grad); opacity: .3; }}
+  .ga4-linha-sessoes {{ fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }}
+  .ga4-linha-compras {{ fill: none; stroke: #ffd68a; stroke-width: 2; stroke-dasharray: 5 3; stroke-linejoin: round; }}
+  .ga4-dot-compras {{ fill: #ffd68a; stroke: #0a1526; stroke-width: 1.4; cursor: crosshair; }}
+  .leg-swatch.sw-sessoes {{ background: var(--accent); }}
+  .leg-swatch.sw-compras {{ background: #ffd68a; }}
+  .leg-swatch.sw-receita {{ background: rgba(85,174,255,.4); border-radius: 2px; }}
+
+  .ga4-dev-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }}
+  .ga4-dev {{ background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }}
+  .ga4-dev-head {{ display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }}
+  .ga4-dev-nome {{ font-size: .82rem; font-weight: 700; text-transform: capitalize; }}
+  .ga4-dev-share {{ font-size: .68rem; color: var(--accent-strong); font-weight: 700; }}
+  .ga4-dev-track {{ height: 5px; background: rgba(255,255,255,.05); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }}
+  .ga4-dev-bar {{
+    height: 100%; width: var(--w); background: var(--accent); border-radius: 3px;
+    box-shadow: 0 0 12px -2px rgba(17,135,240,.9); animation: ga4-grow .9s cubic-bezier(.2,.8,.3,1) both;
+  }}
+
+  .ga4-diag-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }}
+  .ga4-diag {{
+    background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--text-mute);
+    border-radius: 10px; padding: 14px 16px;
+  }}
+  .ga4-diag.sev-alta {{ border-left-color: var(--critical); }}
+  .ga4-diag.sev-media {{ border-left-color: var(--warning); }}
+  .ga4-diag.sev-baixa {{ border-left-color: var(--accent); }}
+  .ga4-diag-nivel {{
+    display: inline-block; font-size: .58rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-mute); margin-bottom: 6px;
+  }}
+  .ga4-diag.sev-alta .ga4-diag-nivel {{ color: #ff9c96; }}
+  .ga4-diag.sev-media .ga4-diag-nivel {{ color: #ffd68a; }}
+  .ga4-diag-titulo {{ font-size: .88rem; font-weight: 700; margin-bottom: 6px; }}
+  .ga4-diag-detalhe {{ margin: 0; font-size: .8rem; color: var(--text-dim); line-height: 1.55; }}
   @media (prefers-reduced-motion: reduce) {{
     .card, .tab-panel.active, .status-pill {{ animation: none !important; }}
   }}
@@ -1959,6 +2494,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   <button class="tab-btn active" data-tab="visao-geral" role="tab" aria-selected="true">Visão Geral</button>
   <button class="tab-btn" data-tab="marketplaces" role="tab" aria-selected="false">Marketplaces</button>
   <button class="tab-btn" data-tab="concorrentes" role="tab" aria-selected="false">Concorrentes</button>
+  <button class="tab-btn" data-tab="ga4" role="tab" aria-selected="false">GA4 · Jornada</button>
   <button class="tab-btn" data-tab="keywords" role="tab" aria-selected="false">Keywords &amp; Leilão</button>
   <button class="tab-btn" data-tab="historico" role="tab" aria-selected="false">Histórico Preço × Ads</button>
   <button class="tab-btn" data-tab="selecao" role="tab" aria-selected="false">Seleção Manual</button>
@@ -1984,6 +2520,16 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 
   <div class="tab-panel" data-tab="concorrentes">
     <section><h2>Motor de descoberta e composição de concorrentes</h2>{descoberta_html}</section>
+  </div>
+
+  <div class="tab-panel" data-tab="ga4">
+    <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+      <defs><linearGradient id="ga4-area-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1187f0" stop-opacity=".85" />
+        <stop offset="100%" stop-color="#1187f0" stop-opacity="0" />
+      </linearGradient></defs>
+    </svg>
+    {ga4_html}
   </div>
 
   <div class="tab-panel" data-tab="keywords">
@@ -2206,6 +2752,9 @@ def main():
     ap.add_argument("--simulate-google-shopping-proprio", default=None,
                      help="JSON com o NOSSO anúncio simulado no Google Shopping (mesmo formato de "
                           "--simulate-ml-proprio). Só usado junto com --simulate-google-shopping.")
+    ap.add_argument("--ga4-json", default=None,
+                     help="saída de ga4_jornada.py — vira a aba 'GA4 · Jornada' (KPIs, funil de compra, "
+                          "matriz de decisão por canal, devices, landing pages e diagnóstico)")
     ap.add_argument("--simulate-historico-preco-ads", default=None,
                      help="JSON {produto: {concorrente: [pontos...]}} pronto para semear/sobrescrever o "
                           "histórico acumulado de preço×ads (demonstração — em produção ele acumula "
@@ -2305,13 +2854,14 @@ def main():
 
     descoberta = load_json(args.descoberta_json, {}) if args.descoberta_json else {}
     keywords_data = load_json(args.keywords_relatorio_json, {}) if args.keywords_relatorio_json else {}
+    ga4 = load_json(args.ga4_json, {}) if args.ga4_json else {}
 
     write_xlsx(alertas, alertas_log, snapshot_novo, ads_entries, load_json(ads_hist_path, {}), config, meta, args.out,
                own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta, keywords_data=keywords_data,
-               marketplaces=marketplaces, historico=historico)
+               marketplaces=marketplaces, historico=historico, ga4=ga4)
     write_html(alertas, config, meta, args.html, own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta,
                keywords_data=keywords_data, marketplaces=marketplaces, historico=historico,
-               primeira_rodada=primeira_rodada)
+               primeira_rodada=primeira_rodada, ga4=ga4)
     print_console(alertas)
 
     if not args.ads_manual:
