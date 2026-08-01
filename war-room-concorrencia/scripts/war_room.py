@@ -29,6 +29,7 @@ import urllib.parse
 from datetime import datetime, timezone
 
 from _fonts import FONT_ORBITRON_B64, FONT_SHARETECH_B64
+from _effects import EFFECTS_CSS, EFFECTS_BODY_HTML, EFFECTS_JS
 from apify_common import apify_run, get_token, load_json, norm, save_json
 
 ML_ACTOR = "viralanalyzer~mercadolivre-scraper"
@@ -1126,7 +1127,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None)
   }}
   .card {{
     position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
-    padding: 16px 18px; animation: rise .5s ease both; animation-delay: var(--d, 0s);
+    padding: 16px 18px; animation: rise .5s ease backwards; animation-delay: var(--d, 0s);
   }}
   .card::before, .card::after {{ content: ""; position: absolute; width: 14px; height: 14px; }}
   .card::before {{ top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }}
@@ -1134,7 +1135,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None)
   .card.sev-alta::before, .card.sev-alta::after {{ border-color: var(--alta); }}
   .card.sev-media::before, .card.sev-media::after {{ border-color: var(--media); }}
   .card.sev-baixa::before, .card.sev-baixa::after {{ border-color: var(--baixa); }}
-  .card.sev-alta {{ animation: rise .5s ease both, pulse-alta 2.4s ease-in-out .5s infinite; }}
+  .card.sev-alta {{ animation: rise .5s ease backwards, pulse-alta 2.4s ease-in-out .5s infinite; }}
   @keyframes pulse-alta {{
     0%, 100% {{ box-shadow: 0 0 0 rgba(255,59,82,0); }} 50% {{ box-shadow: 0 0 18px -3px var(--alta); }}
   }}
@@ -1216,8 +1217,10 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None)
     .scan-band {{ display: none; }}
     * {{ animation: none !important; transition: none !important; }}
   }}
+{EFFECTS_CSS}
 </style></head>
 <body>
+{EFFECTS_BODY_HTML}
 <div class="scan-band"></div>
 <header class="frame">
   <div class="hud-top-row">
@@ -1240,6 +1243,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None)
 sinais de atividade em ads (Meta Ad Library / Google Ads Transparency Center) refletem
 contagem de anúncios ativos capturada manualmente, não valor gasto. Ver
 references/fontes-e-limitacoes.md.</p>
+{EFFECTS_JS}
 </body></html>"""
 
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)

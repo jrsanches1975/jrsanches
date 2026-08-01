@@ -311,7 +311,7 @@ def render_demo(eventos, own_perf, radar_ml, config, meta, path):
   }}
   .card {{
     position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
-    padding: 16px 18px; animation: rise .5s ease both;
+    padding: 16px 18px; animation: rise .5s ease backwards;
   }}
   .card::before, .card::after {{ content: ""; position: absolute; width: 14px; height: 14px; }}
   .card::before {{ top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }}
@@ -319,7 +319,7 @@ def render_demo(eventos, own_perf, radar_ml, config, meta, path):
   .card.sev-alta::before, .card.sev-alta::after {{ border-color: var(--alta); }}
   .card.sev-media::before, .card.sev-media::after {{ border-color: var(--media); }}
   .card.sev-baixa::before, .card.sev-baixa::after {{ border-color: var(--baixa); }}
-  .card.sev-alta {{ animation: rise .5s ease both, pulse-alta 2.4s ease-in-out .5s infinite; }}
+  .card.sev-alta {{ animation: rise .5s ease backwards, pulse-alta 2.4s ease-in-out .5s infinite; }}
   @keyframes pulse-alta {{
     0%, 100% {{ box-shadow: 0 0 0 rgba(255,59,82,0); }} 50% {{ box-shadow: 0 0 18px -3px var(--alta); }}
   }}
@@ -378,8 +378,10 @@ def render_demo(eventos, own_perf, radar_ml, config, meta, path):
   .caveat {{ padding: 0 32px 30px; font-size: .76rem; color: var(--text-dim); max-width: 860px; line-height: 1.6; position: relative; z-index: 1; }}
   a:focus-visible, button:focus-visible {{ outline: 2px solid var(--hud); outline-offset: 2px; }}
   @media (prefers-reduced-motion: reduce) {{ .scan-band {{ display: none; }} * {{ animation: none !important; transition: none !important; }} }}
+{wr.EFFECTS_CSS}
 </style></head>
 <body>
+{wr.EFFECTS_BODY_HTML}
 <div class="scan-band"></div>
 <header class="frame">
   <div class="hud-top-row">
@@ -497,6 +499,7 @@ function tocarSequencia() {{
 btnReplay.addEventListener('click', tocarSequencia);
 window.addEventListener('load', () => setTimeout(tocarSequencia, 600));
 </script>
+{wr.EFFECTS_JS}
 </body></html>"""
 
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
