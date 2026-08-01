@@ -158,6 +158,42 @@ Livre: `JOIE`.
     outra referência por URL, checar de novo antes de assumir que vai
     funcionar, e pedir print como alternativa direta.
 
+23. Nova referência visual (print de capa de livro técnico "Spec-Driven
+    Development"): navy quase-preto, **um único azul** de acento (sem gradiente
+    multicolorido), bordas finas de 1px, micro-labels em CAIXA ALTA com
+    letter-spacing largo, pill badge com separadores "·", título bicolor
+    (branco + azul), régua fina sob o título, **pipeline horizontal de etapas
+    com setas `»` e a etapa final acesa/glow**, **selo circular** com texto
+    curvo, e **barra de credenciais** no rodapé (3 células com ícone + 2 linhas,
+    separadas por régua fina). Pedido também: "procure skills de design
+    avançado" — pesquisei (`SearchSkills`), só existem `canvas-design` (para
+    PNG/PDF, não HTML) e `brand-guidelines` (identidade da Anthropic, não
+    aplicável); as relevantes (`artifact-design`, `dataviz`) já estavam em uso.
+    Implementado no `war_room.py`:
+    - Paleta trocada: `--bg #040814`, `--accent #1187f0` (azul único; violeta e
+      magenta REMOVIDOS), superfícies translúcidas navy, bordas
+      `rgba(17,135,240,.2)`, raio 10px (era 14-16px). Fundo com grade
+      blueprint 44px + glow radial azul no topo.
+    - `render_seal(config)` — selo SVG com anel duplo, 24 ticks radiais
+      (`math.radians`), texto curvo via `textPath` e a cadência real no centro.
+      Cuidado tomado: o texto curvo estoura o arco se for longo — ficou
+      "Polling · Diff" com font-size 7.6px/letter-spacing .16em num arco r=42.
+    - `render_pipeline(alertas_rodada, primeira_rodada)` — COLETA » DIFF »
+      ALERTA » AGENTE » AÇÃO. **Não é decoração**: a etapa acesa é a última que
+      de fato aconteceu na rodada (primeira rodada acende DIFF/"linha de base";
+      com alerta aguardando autorização acende AÇÃO). Os sublabels são contagens
+      reais.
+    - `render_credbar(config, own_perf, keywords_data)` — 3 células com fatos
+      verificáveis (produtos monitorados + candidatos, concorrentes + candidatos,
+      fontes ativas na rodada, marcando "(simulado)" quando for o caso).
+    - `h2` virou micro-label azul tracked com régua degradê à direita;
+      `h3.descoberta-produto` virou caixa alta tracked.
+    - Cores CATEGÓRICAS dos gráficos (`--s1`..`--s8`) mantidas intactas de novo
+      — só o chrome/identidade mudou.
+    Testado: sintaxe, `node --check`, openpyxl (14 abas), Playwright (6 abas,
+    selo legível, pipeline refletindo estado real em rodada-base E rodada com
+    alertas, seleção manual, sem scroll horizontal no body, zero erros de JS).
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

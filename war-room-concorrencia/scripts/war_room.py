@@ -23,6 +23,7 @@ Uso:
 """
 import argparse
 import json
+import math
 import os
 import sys
 import urllib.parse
@@ -1400,8 +1401,99 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
     }, ensure_ascii=False)}</script>"""
 
 
+def render_seal(config):
+    """Selo circular do cabeçalho (motivo da referência visual) — texto em volta do
+    círculo + a cadência configurada no centro. Só dado real do config."""
+    cadencia = config.get("cadencia_sugerida_horas", "—")
+    # ticks radiais no anel externo (decoração estrutural do selo, como na referência)
+    ticks = []
+    for g in range(0, 360, 15):
+        rad = math.radians(g)
+        x1, y1 = 64 + 57 * math.cos(rad), 64 + 57 * math.sin(rad)
+        x2, y2 = 64 + 61 * math.cos(rad), 64 + 61 * math.sin(rad)
+        ticks.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" class="seal-tick" />')
+    return f"""
+      <svg class="seal" viewBox="0 0 128 128" role="img"
+           aria-label="Monitoramento por polling, cadência de {cadencia} horas">
+        <defs><path id="seal-arc" d="M 22 64 A 42 42 0 0 1 106 64" /></defs>
+        <circle cx="64" cy="64" r="62" class="seal-ring" />
+        <circle cx="64" cy="64" r="47" class="seal-ring" />
+        {''.join(ticks)}
+        <text class="seal-text"><textPath href="#seal-arc" startOffset="50%" text-anchor="middle">
+          Polling · Diff</textPath></text>
+        <text x="64" y="70" class="seal-value">{cadencia}h</text>
+        <text x="64" y="83" class="seal-label">cadência</text>
+        <text x="64" y="106" class="seal-label">dado real</text>
+      </svg>"""
+
+
+def render_pipeline(alertas_rodada, primeira_rodada=False):
+    """Pipeline de etapas do cabeçalho (motivo-assinatura da referência: caixas com
+    seta entre elas, a etapa corrente acesa). Reflete o ESTADO REAL da rodada, não
+    é decoração: a etapa acesa é a mais avançada que de fato aconteceu."""
+    n_alertas = len(alertas_rodada)
+    agentes_acionados = {a.get("agente_chave") for a in alertas_rodada if a.get("agente_chave")}
+    aguardando = [a for a in alertas_rodada if a.get("status_acao") == "aguardando_autorizacao"]
+
+    etapas = [
+        ("◈", "COLETA", "snapshot capturado", True),
+        ("◇", "DIFF", "linha de base" if primeira_rodada else "comparado c/ rodada anterior", True),
+        ("▲", "ALERTA", f"{n_alertas} detectado(s)", n_alertas > 0),
+        ("⬢", "AGENTE", f"{len(agentes_acionados)} acionado(s)", bool(agentes_acionados)),
+        ("⬣", "AÇÃO", f"{len(aguardando)} aguardando você" if aguardando else "nada pendente", bool(aguardando)),
+    ]
+    # a etapa "acesa" é a última que de fato aconteceu
+    idx_on = max((i for i, e in enumerate(etapas) if e[3]), default=0)
+
+    partes = []
+    for i, (ico, nome, sub, _) in enumerate(etapas):
+        if i:
+            partes.append('<span class="pipe-arrow" aria-hidden="true">»</span>')
+        on = " on" if i == idx_on else ""
+        partes.append(f"""
+    <div class="pipe-step{on}">
+      <span class="pipe-ico" aria-hidden="true">{ico}</span>
+      <span class="pipe-name">{nome}</span>
+      <span class="pipe-sub">{sub}</span>
+    </div>""")
+    return f'<div class="pipeline">{"".join(partes)}</div>'
+
+
+def render_credbar(config, own_perf=None, keywords_data=None):
+    """Barra de credenciais do rodapé (3 células separadas por régua fina, como na
+    referência) — cada célula é um fato verificável da rodada, não slogan."""
+    n_prod = len(config.get("produtos_monitorados", []))
+    n_cand_prod = len(config.get("produtos_candidatos_manual", []))
+    n_conc = len(config.get("concorrentes", []))
+    n_cand_conc = len(config.get("candidatos_concorrentes_manual", []))
+    fontes = ["Mercado Livre"]
+    if own_perf:
+        fontes.append("Google Ads/GA4")
+    if keywords_data and keywords_data.get("keywords"):
+        fontes.append("Auction Insight" + (" (simulado)" if keywords_data.get("simulado") else ""))
+    return f"""
+<div class="credbar">
+  <div class="cred-cell">
+    <span class="cred-ico" aria-hidden="true">▣</span>
+    <span><span class="cred-label">{n_prod} produto(s) monitorado(s)</span>
+    <span class="cred-sub">+ {n_cand_prod} candidato(s) em avaliação</span></span>
+  </div>
+  <div class="cred-cell">
+    <span class="cred-ico" aria-hidden="true">◎</span>
+    <span><span class="cred-label">{n_conc} concorrente(s) na mira</span>
+    <span class="cred-sub">+ {n_cand_conc} candidato(s) manual(is)</span></span>
+  </div>
+  <div class="cred-cell">
+    <span class="cred-ico" aria-hidden="true">⛁</span>
+    <span><span class="cred-label">Fontes ativas nesta rodada</span>
+    <span class="cred-sub">{' · '.join(fontes)}</span></span>
+  </div>
+</div>"""
+
+
 def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
-               descoberta=None, keywords_data=None, marketplaces=None, historico=None):
+               descoberta=None, keywords_data=None, marketplaces=None, historico=None,
+               primeira_rodada=False):
     ordem = {"alta": 0, "media": 1, "baixa": 2}
     ordenados = sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]])
     cards = "".join(render_card(a, i) for i, a in enumerate(ordenados))
@@ -1428,6 +1520,9 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 </section>"""
 
     esquadrao_section = render_esquadrao(alertas_rodada)
+    seal_svg = render_seal(config)
+    pipeline_html = render_pipeline(alertas_rodada, primeira_rodada)
+    credbar_html = render_credbar(config, own_perf, keywords_data)
     marketplaces_html = render_marketplaces_tab(marketplaces or {"Mercado Livre": radar_ml or {}})
     descoberta_html = render_descoberta_tab(descoberta)
     keywords_html = render_keywords_tab(keywords_data)
@@ -1443,59 +1538,108 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     src: url(data:font/woff2;base64,{FONT_SORA_B64}) format('woff2');
   }}
   :root {{
-    --bg: #07070f; --surface: rgba(255,255,255,.05); --surface-2: rgba(255,255,255,.075);
-    --surface-3: rgba(255,255,255,.1);
-    --border: rgba(255,255,255,.09); --border-strong: rgba(255,255,255,.18);
-    --text: #f4f2fb; --text-dim: #a9a4c2; --text-mute: #716c8c;
-    --violet: #8b6bf2; --magenta: #e34fa8; --blue: #4a7cf6;
-    --accent: #8b6bf2; --accent-soft: rgba(139,107,242,.18); --accent-strong: #b09bff;
-    --gradient: linear-gradient(120deg, var(--blue), var(--violet) 55%, var(--magenta));
+    --bg: #040814; --bg-2: #070e1e;
+    --surface: rgba(9,20,40,.72); --surface-2: rgba(13,28,54,.8); --surface-3: rgba(18,38,70,.9);
+    --border: rgba(17,135,240,.2); --border-strong: rgba(17,135,240,.45);
+    --text: #f2f7fd; --text-dim: #93a8c4; --text-mute: #5e7391;
+    --accent: #1187f0; --accent-soft: rgba(17,135,240,.14); --accent-strong: #55aeff;
     --good: #0ca30c; --good-bg: rgba(12,163,12,.14);
     --warning: #fab219; --warning-bg: rgba(250,178,25,.14);
     --critical: #e0426b; --critical-bg: rgba(224,66,107,.16);
     /* paleta categórica p/ gráficos (dataviz skill) — NÃO reordenar, ordem é o que garante */
-    /* separação segura p/ daltonismo; identidade de marca usa --gradient, não estas cores. */
+    /* separação segura p/ daltonismo; a identidade visual usa --accent, não estas cores. */
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
     --s5: #d55181; --s6: #29a329; --s7: #9085e9; --s8: #e66767;
     color-scheme: dark;
   }}
   * {{ box-sizing: border-box; }}
   html, body {{ background: var(--bg); }}
-  .tabs, .gauge, .squadron-card, .hist-chart-card, .card, .selecao-coluna, .data-table td,
-  .ml-radar-table td, .add-form-mini input {{
-    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  }}
   body {{
     margin: 0; color: var(--text); min-height: 100vh; position: relative;
     font-family: 'Sora', ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-feature-settings: "ss01" 1;
-    background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
-    background-size: 28px 28px;
+    background-image:
+      linear-gradient(rgba(17,135,240,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17,135,240,.055) 1px, transparent 1px);
+    background-size: 44px 44px;
   }}
   body::before {{
     content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
     background:
-      radial-gradient(760px 520px at 82% -8%, rgba(139,107,242,.28), transparent 60%),
-      radial-gradient(620px 460px at 100% 18%, rgba(227,79,168,.20), transparent 60%),
-      radial-gradient(680px 520px at -6% 46%, rgba(74,124,246,.16), transparent 62%);
+      radial-gradient(900px 560px at 50% -12%, rgba(17,135,240,.22), transparent 62%),
+      radial-gradient(700px 500px at 88% 8%, rgba(17,135,240,.12), transparent 60%),
+      linear-gradient(180deg, var(--bg-2), var(--bg) 42%);
   }}
   a {{ color: var(--accent-strong); }}
   h1, h2, h3, .gauge-value, .stat-value, .brand-mark {{ font-family: 'Sora', ui-sans-serif, sans-serif; }}
   .shell {{ max-width: 1240px; margin: 0 auto; padding: 0 28px 56px; position: relative; z-index: 1; }}
-  header.top {{
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;
-    padding: 26px 28px 20px; max-width: 1240px; margin: 0 auto; position: relative; z-index: 1;
+
+  /* --- cabeçalho no estilo "capa técnica": eyebrow em pill, título bicolor, selo circular --- */
+  header.top {{ max-width: 1240px; margin: 0 auto; padding: 34px 28px 22px; position: relative; z-index: 1; }}
+  .head-grid {{ display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 26px; }}
+  .pill-badge {{
+    display: inline-flex; align-items: center; gap: 9px; padding: 6px 15px; border-radius: 999px;
+    border: 1px solid var(--border-strong); color: var(--accent-strong);
+    font-size: .64rem; font-weight: 700; letter-spacing: .17em; text-transform: uppercase;
   }}
-  .brand {{ display: flex; align-items: center; gap: 12px; }}
-  .brand-mark {{
-    width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center;
-    background: var(--gradient); font-weight: 800; font-size: 1.05rem; color: #fff; flex: none; position: relative;
-    box-shadow: 0 0 0 1px rgba(255,255,255,.14) inset, 0 8px 22px -6px rgba(139,107,242,.7);
+  h1.cover-title {{
+    margin: 16px 0 0; font-size: clamp(2.1rem, 4.6vw, 3.4rem); font-weight: 800; line-height: 1.02;
+    letter-spacing: -.03em; color: var(--text); text-wrap: balance;
   }}
-  .brand-mark::after {{
-    content: ""; position: absolute; inset: 0; border-radius: inherit;
-    background: linear-gradient(160deg, rgba(255,255,255,.5), transparent 55%); opacity: .5;
+  h1.cover-title em {{ font-style: normal; color: var(--accent); display: block; }}
+  .rule {{ height: 1px; width: 190px; margin: 18px 0 16px; background: linear-gradient(90deg, var(--accent), transparent); }}
+  .cover-sub {{ margin: 0; font-size: .95rem; color: var(--text-dim); max-width: 46ch; line-height: 1.55; }}
+  .cover-sub b {{ color: var(--accent-strong); font-weight: 600; }}
+  .head-right {{ display: flex; flex-direction: column; align-items: flex-end; gap: 18px; }}
+  .seal {{ width: 142px; height: 142px; flex: none; }}
+  .seal-ring {{ fill: none; stroke: var(--border-strong); stroke-width: 1; }}
+  .seal-text {{ fill: var(--accent-strong); font-size: 7.6px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }}
+  .seal-value {{ fill: var(--text); font-size: 21px; font-weight: 800; text-anchor: middle; }}
+  .seal-label {{ fill: var(--text-mute); font-size: 7.2px; font-weight: 700; letter-spacing: .16em; text-anchor: middle; text-transform: uppercase; }}
+  .seal-tick {{ stroke: var(--border-strong); stroke-width: 1; }}
+  .top-stats {{ display: flex; flex-wrap: wrap; gap: 26px; justify-content: flex-end; }}
+  .top-stat {{ text-align: right; }}
+  .top-stat-label {{ display: block; font-size: .6rem; text-transform: uppercase; letter-spacing: .14em; color: var(--text-mute); font-weight: 700; }}
+  .top-stat-value {{ font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }}
+
+  /* --- pipeline de etapas (motivo-assinatura da referência) --- */
+  .pipeline {{
+    display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 0 auto 26px;
+    max-width: 1240px; padding: 0 28px; position: relative; z-index: 1;
   }}
+  .pipe-step {{
+    flex: 1 1 150px; min-width: 138px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); padding: 13px 14px 12px; text-align: center;
+  }}
+  .pipe-step.on {{
+    border-color: var(--accent); background: rgba(17,135,240,.13);
+    box-shadow: 0 0 0 1px var(--accent) inset, 0 0 26px -6px rgba(17,135,240,.75);
+  }}
+  .pipe-ico {{ font-size: 1.05rem; line-height: 1; display: block; margin-bottom: 8px; color: var(--accent-strong); }}
+  .pipe-step.on .pipe-ico {{ color: #fff; }}
+  .pipe-name {{
+    display: block; font-size: .64rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--text); margin-bottom: 5px;
+  }}
+  .pipe-sub {{ display: block; font-size: .68rem; color: var(--text-mute); line-height: 1.3; }}
+  .pipe-step.on .pipe-sub {{ color: var(--accent-strong); }}
+  .pipe-arrow {{
+    flex: none; display: flex; align-items: center; padding: 0 9px; color: var(--border-strong);
+    font-size: .9rem; font-weight: 700; letter-spacing: -.12em;
+  }}
+
+  /* --- barra de credenciais do rodapé (3 células separadas por régua fina) --- */
+  .credbar {{
+    display: flex; flex-wrap: wrap; margin-top: 34px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface); overflow: hidden;
+  }}
+  .cred-cell {{
+    flex: 1 1 210px; display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+    border-left: 1px solid var(--border);
+  }}
+  .cred-cell:first-child {{ border-left: none; }}
+  .cred-ico {{ font-size: 1.15rem; color: var(--accent-strong); flex: none; }}
+  .cred-label {{ display: block; font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text); }}
+  .cred-sub {{ display: block; font-size: .7rem; color: var(--text-mute); margin-top: 2px; }}
   .brand-text .eyebrow {{
     display: block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-mute);
     font-weight: 600; margin-bottom: 2px;
@@ -1522,25 +1666,35 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 
   .tabs {{
     display: flex; gap: 6px; flex-wrap: wrap; padding: 6px; margin: 0 auto 24px; max-width: 1240px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; position: sticky; top: 12px; z-index: 20;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; position: sticky; top: 12px; z-index: 20;
   }}
   .tab-btn {{
     font-family: inherit; font-size: .82rem; font-weight: 600; color: var(--text-dim); background: transparent;
     border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; transition: background .15s, color .15s;
   }}
   .tab-btn:hover {{ color: var(--text); background: var(--surface-2); }}
-  .tab-btn.active {{ color: #fff; background: var(--gradient); box-shadow: 0 6px 18px -8px rgba(139,107,242,.7); }}
+  .tab-btn.active {{
+    color: #fff; background: rgba(17,135,240,.16); border: 1px solid var(--accent);
+    padding: 9px 15px; box-shadow: 0 0 22px -6px rgba(17,135,240,.7);
+  }}
   .tab-panel {{ display: none; }}
   .tab-panel.active {{ display: block; animation: fade-in .25s ease; }}
   @keyframes fade-in {{ from {{ opacity: 0; transform: translateY(4px); }} to {{ opacity: 1; transform: none; }} }}
 
   section {{ margin-bottom: 28px; }}
-  h2 {{ font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); font-weight: 700; margin: 0 0 14px; }}
-  h3.descoberta-produto {{ font-size: .95rem; font-weight: 700; margin: 0 0 10px; color: var(--text); }}
+  h2 {{
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .16em; color: var(--accent-strong);
+    font-weight: 700; margin: 0 0 14px; display: flex; align-items: center; gap: 12px;
+  }}
+  h2::after {{ content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }}
+  h3.descoberta-produto {{
+    font-size: .78rem; font-weight: 800; margin: 0 0 10px; color: var(--text);
+    text-transform: uppercase; letter-spacing: .1em;
+  }}
 
   .gauge-grid, .squadron-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
   .gauge, .squadron-card {{
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px;
     min-width: 190px; box-shadow: 0 8px 24px -14px rgba(0,0,0,.6);
   }}
   .gauge {{ min-width: 178px; }}
@@ -1574,7 +1728,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .squadron-list li {{ padding: 5px 0; border-top: 1px solid var(--border); }}
   .squadron-list li:first-child {{ border-top: none; padding-top: 0; }}
 
-  .data-table-wrap, .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }}
+  .data-table-wrap, .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }}
   table.data-table, table.ml-radar-table {{ width: 100%; border-collapse: collapse; font-size: .82rem; white-space: nowrap; }}
   .data-table th, .ml-radar-table th {{
     text-align: left; padding: 11px 14px; background: var(--surface-2); color: var(--text-dim);
@@ -1600,11 +1754,11 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   }}
   .tab-note {{ margin-top: 14px; font-size: .78rem; color: var(--text-mute); line-height: 1.6; max-width: 860px; }}
   .hist-empty {{ color: var(--text-mute); font-size: .86rem; padding: 30px; text-align: center;
-                 border: 1px dashed var(--border); border-radius: 14px; }}
+                 border: 1px dashed var(--border); border-radius: 10px; }}
 
   .hist-chart-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; }}
   .hist-chart-card {{
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px 6px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px 6px;
     box-shadow: 0 8px 24px -14px rgba(0,0,0,.6);
   }}
   .hist-chart-head {{ display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }}
@@ -1628,11 +1782,14 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 
   .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }}
   .card {{
-    position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
     padding: 18px 20px; animation: rise .4s ease backwards; animation-delay: var(--d, 0s);
     box-shadow: 0 10px 28px -16px rgba(0,0,0,.65); transition: transform .2s ease, box-shadow .2s ease;
   }}
-  .card:hover {{ transform: translateY(-3px); box-shadow: 0 16px 34px -16px rgba(0,0,0,.75); }}
+  .card:hover {{
+    transform: translateY(-3px); border-color: var(--border-strong);
+    box-shadow: 0 16px 34px -16px rgba(0,0,0,.8), 0 0 26px -10px rgba(17,135,240,.45);
+  }}
   .card.sev-alta {{ border-color: rgba(224,66,107,.4); }}
   .card.sev-media {{ border-color: rgba(250,178,25,.35); }}
   @keyframes rise {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: none; }} }}
@@ -1699,12 +1856,12 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .btn-mini {{ font-size: .76rem; padding: 6px 12px; }}
   .btn:hover, .btn-mini:hover {{ border-color: var(--border-strong); }}
   .btn.primary, .btn-mini.primary {{
-    background: var(--gradient); border-color: transparent; color: #fff;
-    box-shadow: 0 6px 18px -8px rgba(139,107,242,.65);
+    background: rgba(17,135,240,.16); border-color: var(--accent); color: #fff;
+    box-shadow: 0 0 22px -6px rgba(17,135,240,.7);
   }}
   .selecao-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }}
   .selecao-coluna {{
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px;
   }}
   .selecao-head {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }}
   .selecao-stat {{ font-size: .78rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }}
@@ -1752,19 +1909,24 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 </style></head>
 <body>
 <header class="top">
-  <div class="brand">
-    <span class="brand-mark" aria-hidden="true">{(config.get('marca') or '?')[:1].upper()}</span>
-    <div class="brand-text">
-      <span class="eyebrow">War room de inteligência competitiva</span>
-      <h1>{config.get('marca', '')}</h1>
+  <div class="head-grid">
+    <div>
+      <span class="pill-badge">War Room · Inteligência Competitiva · {meta['data'][:10]}</span>
+      <h1 class="cover-title">{config.get('marca', '')}<em>Monitoramento Competitivo</em></h1>
+      <div class="rule"></div>
+      <p class="cover-sub">Preço, desconto e posição da concorrência em marketplaces, cruzados com o
+      <b>desempenho real</b> das nossas campanhas — com <b>diagnóstico antes de qualquer ação</b>.</p>
+    </div>
+    <div class="head-right">
+      {seal_svg}
+      <div class="top-stats">
+        <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">{meta['data']}</span></div>
+        <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value">{len(alertas_rodada)}</span></div>
+      </div>
     </div>
   </div>
-  <div class="top-stats">
-    <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">{meta['data']}</span></div>
-    <div class="top-stat"><span class="top-stat-label">Cadência</span><span class="top-stat-value">{config.get('cadencia_sugerida_horas')}h</span></div>
-    <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value">{len(alertas_rodada)}</span></div>
-  </div>
 </header>
+{pipeline_html}
 <div class="status-banner"><span class="status-pill {mc_level}"><span class="dot"></span>{mc_text}</span></div>
 
 <nav class="tabs" role="tablist" aria-label="Seções da war room">
@@ -1787,6 +1949,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     <p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os sinais de
     atividade em ads (Meta Ad Library / Google Ads Transparency Center) refletem contagem de anúncios ativos
     capturada manualmente, não valor gasto. Ver references/fontes-e-limitacoes.md.</p>
+    {credbar_html}
   </div>
 
   <div class="tab-panel" data-tab="marketplaces">
@@ -2119,7 +2282,8 @@ def main():
                own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta, keywords_data=keywords_data,
                marketplaces=marketplaces, historico=historico)
     write_html(alertas, config, meta, args.html, own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta,
-               keywords_data=keywords_data, marketplaces=marketplaces, historico=historico)
+               keywords_data=keywords_data, marketplaces=marketplaces, historico=historico,
+               primeira_rodada=primeira_rodada)
     print_console(alertas)
 
     if not args.ads_manual:
