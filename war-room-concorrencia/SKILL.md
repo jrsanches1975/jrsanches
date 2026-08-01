@@ -93,6 +93,27 @@ Copie `scripts/config.example.json`, preencha com o usuário:
   o cálculo de impacto estimado no volume — é uma estimativa configurável, não um dado
   medido. Se o usuário tiver dado histórico melhor, ajuste aqui.
 
+### 1b. Alternativa visual: painel de seleção de produtos (`gerar_painel_produtos.py`)
+
+Em vez de editar `produtos_monitorados`/`produtos_candidatos_manual` direto no JSON,
+gere um painel HTML self-contained (sem backend, mesmo estilo cockpit/HUD do resto do
+projeto) onde dá para ligar/desligar cada produto, editar nome/termo de busca/preço,
+adicionar um produto novo ou remover um do catálogo:
+
+```bash
+python gerar_painel_produtos.py --config config.json --out ../outputs/painel-produtos.html
+```
+
+Cada produto aparece com um interruptor: ligado = vai para `produtos_monitorados`
+(o monitor de preço/visibilidade do Mercado Livre roda pra ele); desligado = vira
+`produtos_candidatos_manual` (o motor de descoberta ainda considera, mas o monitor de
+preço não roda). Como não há servidor, o painel não grava nada sozinho — depois de
+mexer nos toggles/campos, clique em **"Exportar config.json atualizado"** (baixa um
+`config.json` novo, com o resto da configuração preservado e só
+`produtos_monitorados`/`produtos_candidatos_manual` recalculados) ou em
+**"Copiar JSON"** como alternativa. Salve o arquivo baixado por cima do seu
+`scripts/config.json` e rode `war_room.py` normalmente na próxima rodada.
+
 ### 2. Rode o monitor
 
 ```bash
