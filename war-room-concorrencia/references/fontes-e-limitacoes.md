@@ -161,8 +161,26 @@ disponível neste ambiente), `get_data` traz spend, impressões, cliques, conver
 ROAS, CPA etc. **reais**, por campanha e por dia — não é proxy, é o dado da própria
 conta. É isso que `scripts/own_performance.py` agrega por produto e o `war_room.py`
 usa (via `--own-performance`) para trocar a estimativa genérica de elasticidade por uma
-leitura calibrada com o desempenho real da marca naquele produto. GA4 entra do mesmo
-jeito quando conectado (conector `googleanalytics4` no Windsor.ai).
+leitura calibrada com o desempenho real da marca naquele produto.
+
+**GA4 é uma fonte DIFERENTE, não um substituto de Google Ads/Meta:** não tem
+impressões/cliques/gasto — tem `sessions`, `engaged_sessions`, `conversions`,
+`transactions` (testado ao vivo, campos confirmados). `own_performance.py` calcula
+taxa de engajamento e taxa de conversão a partir disso, em colunas separadas
+(`ga4_*`), nunca misturadas com CTR/CPA/ROAS de anúncio. Achado útil confirmado: a
+sessão do GA4 carrega o nome da campanha via UTM mesmo quando a origem foi um anúncio
+do Meta — ou seja, dá pra ver conversão/engajamento de tráfego do Meta pelo GA4
+**mesmo sem o conector do Meta Ads conectado no Windsor.ai**, só sem o lado de
+gasto/impressão/clique daquela campanha.
+
+**Plano Free do Windsor.ai — achado real, não hipotético:** ao autorizar o GA4 nesta
+conta, o Google Ads (que estava funcionando) caiu — `get_connectors` passou a listar
+só o GA4 com `accounts` preenchido, e uma chamada de teste em `google_ads` retornou
+"No google_ads account for user ... was found". `get_current_user` confirmou que o
+usuário do Windsor também mudou. Isso indica que o plano Free não sustenta múltiplos
+conectores de anúncio simultâneos (ou a autorização trocou de conta no meio do
+processo) — sempre rode `get_connectors` depois de qualquer nova autorização para
+confirmar que nada caiu, antes de prometer que "os três estão conectados".
 
 ## "Instantâneo"
 

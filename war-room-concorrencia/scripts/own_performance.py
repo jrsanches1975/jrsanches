@@ -1,27 +1,40 @@
 #!/usr/bin/env python3
 """
-Desempenho próprio (Google Ads / Meta Ads, via Windsor.ai) — enriquece a war room com
-KPIs REAIS da própria marca, para calibrar a reação a um alerta de concorrência com o
-CPA/ROAS/conversão que a marca já está tendo naquele produto, em vez de só a premissa
-de elasticidade.
+Desempenho próprio (Google Ads / Meta Ads / GA4, via Windsor.ai) — enriquece a war
+room com KPIs REAIS da própria marca, para calibrar a reação a um alerta de
+concorrência com o CPA/ROAS/conversão que a marca já está tendo naquele produto, em
+vez de só a premissa de elasticidade.
 
 Este script NÃO coleta dados sozinho — ele não tem acesso a Google Ads/Meta/GA4. Quem
 coleta é o agente Claude, via o MCP do Windsor.ai (get_fields + get_data), e grava aqui
 o JSON bruto por conector (um arquivo por fonte). Este script só agrega por campanha e
 mapeia para os produtos do config.
 
+Dois grupos de métrica, porque GA4 não é uma plataforma de anúncio (não tem
+impressões/cliques/gasto — tem sessões/engajamento/conversão):
+  - google_ads / facebook: impressions, clicks, spend, conversions, conversions_value
+    → CTR, CPC, CPA, ROAS.
+  - googleanalytics4: sessions, engaged_sessions, conversions, transactions
+    → taxa de engajamento, taxa de conversão. Útil inclusive para tráfego pago do
+    Meta quando o conector do Meta não está disponível: a sessão chega com o nome da
+    campanha via UTM mesmo sem o Meta Ads estar conectado no Windsor.ai.
+
 Uso:
-    python own_performance.py --input google-ads-30d.json --input meta-30d.json \
+    python own_performance.py --input google-ads-30d.json --input ga4-30d.json \
         --config config.json --out ../outputs/own-performance-por-produto.json
 
 Formato esperado de cada --input (o que sai de Windsor.ai get_data, embrulhado com o
 nome do conector):
     {"connector": "google_ads", "registros": [{"campaign": "...", "impressions": 123,
       "clicks": 4, "spend": 88.0, "conversions": 1.0, "conversions_value": 50.0, ...}]}
+    {"connector": "googleanalytics4", "registros": [{"campaign": "...", "sessions": 100,
+      "engaged_sessions": 40, "conversions": 5.0, "transactions": 1, ...}]}
 """
 import argparse
 import json
 from collections import defaultdict
+
+GA4_CONNECTOR = "googleanalytics4"
 
 
 def norm(s):
@@ -42,44 +55,67 @@ def load_records(paths):
 
 
 def aggregate_by_campaign(records):
-    agg = defaultdict(lambda: {"impressions": 0.0, "clicks": 0.0, "spend": 0.0,
-                                "conversions": 0.0, "conversions_value": 0.0})
+    ads_agg = defaultdict(lambda: {"impressions": 0.0, "clicks": 0.0, "spend": 0.0,
+                                    "conversions": 0.0, "conversions_value": 0.0})
+    ga4_agg = defaultdict(lambda: {"sessions": 0.0, "engaged_sessions": 0.0,
+                                    "conversions": 0.0, "transactions": 0.0})
     for r in records:
-        chave = (r["_connector"], r.get("campaign") or r.get("campaign_name") or "(sem nome)")
-        a = agg[chave]
-        a["impressions"] += float(r.get("impressions") or 0)
-        a["clicks"] += float(r.get("clicks") or 0)
-        a["spend"] += float(r.get("spend") or 0)
-        a["conversions"] += float(r.get("conversions") or 0)
-        a["conversions_value"] += float(r.get("conversions_value") or 0)
+        conector = r["_connector"]
+        campanha = r.get("campaign") or r.get("campaign_name") or "(sem nome)"
+        if conector == GA4_CONNECTOR:
+            a = ga4_agg[campanha]
+            a["sessions"] += float(r.get("sessions") or 0)
+            a["engaged_sessions"] += float(r.get("engaged_sessions") or 0)
+            a["conversions"] += float(r.get("conversions") or 0)
+            a["transactions"] += float(r.get("transactions") or 0)
+        else:
+            a = ads_agg[(conector, campanha)]
+            a["impressions"] += float(r.get("impressions") or 0)
+            a["clicks"] += float(r.get("clicks") or 0)
+            a["spend"] += float(r.get("spend") or 0)
+            a["conversions"] += float(r.get("conversions") or 0)
+            a["conversions_value"] += float(r.get("conversions_value") or 0)
+
     out = []
-    for (conector, campanha), v in agg.items():
+    for (conector, campanha), v in ads_agg.items():
         ctr = v["clicks"] / v["impressions"] * 100 if v["impressions"] else 0
         cpc = v["spend"] / v["clicks"] if v["clicks"] else 0
         cpa = v["spend"] / v["conversions"] if v["conversions"] else None
         roas = v["conversions_value"] / v["spend"] if v["spend"] else None
         out.append({"conector": conector, "campanha": campanha, **v,
                      "ctr_pct": ctr, "cpc": cpc, "cpa": cpa, "roas": roas})
+    for campanha, v in ga4_agg.items():
+        taxa_engajamento = v["engaged_sessions"] / v["sessions"] * 100 if v["sessions"] else 0
+        taxa_conversao = v["conversions"] / v["sessions"] * 100 if v["sessions"] else 0
+        out.append({"conector": GA4_CONNECTOR, "campanha": campanha, **v,
+                     "taxa_engajamento_pct": taxa_engajamento, "taxa_conversao_pct": taxa_conversao})
     return out
 
 
 def match_produto(conector, campanha, produtos_cfg):
-    key = {"google_ads": "campanhas_google_ads", "facebook": "campanhas_meta_ads"}.get(conector)
-    if not key:
-        return None
+    """GA4 tenta casar tanto contra campanhas_google_ads quanto campanhas_meta_ads —
+    a sessão chega com o nome de campanha de qualquer canal pago que a originou."""
+    chaves = {
+        "google_ads": ["campanhas_google_ads"],
+        "facebook": ["campanhas_meta_ads"],
+        GA4_CONNECTOR: ["campanhas_google_ads", "campanhas_meta_ads"],
+    }.get(conector, [])
     c = norm(campanha)
     for p in produtos_cfg:
-        for termo in p.get(key, []):
-            if norm(termo) in c:
-                return p["nome"]
+        for chave in chaves:
+            for termo in p.get(chave, []):
+                if norm(termo) in c:
+                    return p["nome"]
     return None
 
 
 def aggregate_by_produto(campanhas_agg, config):
     produtos_cfg = config.get("produtos_monitorados", [])
-    por_produto = defaultdict(lambda: {"impressions": 0.0, "clicks": 0.0, "spend": 0.0,
-                                        "conversions": 0.0, "conversions_value": 0.0,
-                                        "campanhas": []})
+    por_produto = defaultdict(lambda: {
+        "impressions": 0.0, "clicks": 0.0, "spend": 0.0, "conversions": 0.0, "conversions_value": 0.0,
+        "ga4_sessions": 0.0, "ga4_engaged_sessions": 0.0, "ga4_conversions": 0.0, "ga4_transactions": 0.0,
+        "campanhas": [],
+    })
     nao_mapeadas = []
     for c in campanhas_agg:
         produto = match_produto(c["conector"], c["campanha"], produtos_cfg)
@@ -87,11 +123,17 @@ def aggregate_by_produto(campanhas_agg, config):
             nao_mapeadas.append(c)
             continue
         d = por_produto[produto]
-        d["impressions"] += c["impressions"]
-        d["clicks"] += c["clicks"]
-        d["spend"] += c["spend"]
-        d["conversions"] += c["conversions"]
-        d["conversions_value"] += c["conversions_value"]
+        if c["conector"] == GA4_CONNECTOR:
+            d["ga4_sessions"] += c["sessions"]
+            d["ga4_engaged_sessions"] += c["engaged_sessions"]
+            d["ga4_conversions"] += c["conversions"]
+            d["ga4_transactions"] += c["transactions"]
+        else:
+            d["impressions"] += c["impressions"]
+            d["clicks"] += c["clicks"]
+            d["spend"] += c["spend"]
+            d["conversions"] += c["conversions"]
+            d["conversions_value"] += c["conversions_value"]
         d["campanhas"].append(f"{c['conector']}:{c['campanha']}")
 
     resultado = {}
@@ -100,7 +142,10 @@ def aggregate_by_produto(campanhas_agg, config):
         cpc = v["spend"] / v["clicks"] if v["clicks"] else 0
         cpa = v["spend"] / v["conversions"] if v["conversions"] else None
         roas = v["conversions_value"] / v["spend"] if v["spend"] else None
-        resultado[produto] = {**v, "ctr_pct": ctr, "cpc": cpc, "cpa": cpa, "roas": roas}
+        ga4_engajamento = v["ga4_engaged_sessions"] / v["ga4_sessions"] * 100 if v["ga4_sessions"] else None
+        ga4_conversao = v["ga4_conversions"] / v["ga4_sessions"] * 100 if v["ga4_sessions"] else None
+        resultado[produto] = {**v, "ctr_pct": ctr, "cpc": cpc, "cpa": cpa, "roas": roas,
+                               "ga4_engajamento_pct": ga4_engajamento, "ga4_conversao_pct": ga4_conversao}
     return resultado, nao_mapeadas
 
 

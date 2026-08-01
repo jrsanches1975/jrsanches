@@ -528,19 +528,21 @@ def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, 
             ws.column_dimensions[get_column_letter(i)].width = w
         ws.freeze_panes = "A2"
 
-    # -- Desempenho Próprio (Google Ads / Meta Ads, via Windsor.ai)
+    # -- Desempenho Próprio (Google Ads / Meta Ads / GA4, via Windsor.ai)
     if own_perf:
         ws = wb.create_sheet("Desempenho Próprio")
         cols4 = ["produto", "spend", "impressions", "clicks", "ctr_pct", "cpc",
-                 "conversions", "conversions_value", "cpa", "roas", "campanhas"]
+                 "conversions", "conversions_value", "cpa", "roas",
+                 "ga4_sessions", "ga4_engajamento_pct", "ga4_conversao_pct", "campanhas"]
         ws.append([c.upper() for c in cols4])
         style_header(ws, len(cols4))
         for produto, v in own_perf.items():
             ws.append([produto, v.get("spend"), v.get("impressions"), v.get("clicks"),
                        v.get("ctr_pct"), v.get("cpc"), v.get("conversions"),
                        v.get("conversions_value"), v.get("cpa"), v.get("roas"),
+                       v.get("ga4_sessions"), v.get("ga4_engajamento_pct"), v.get("ga4_conversao_pct"),
                        "; ".join(v.get("campanhas", []))])
-        for i, w in enumerate([22, 12, 13, 10, 10, 10, 12, 16, 10, 8, 55], 1):
+        for i, w in enumerate([22, 12, 13, 10, 10, 10, 12, 16, 10, 8, 12, 15, 14, 55], 1):
             ws.column_dimensions[get_column_letter(i)].width = w
         ws.freeze_panes = "A2"
 
@@ -654,6 +656,16 @@ def render_own_kpi(produto, v):
     roas = f"{v['roas']:.2f}×" if v.get("roas") is not None else "—"
     ctr = v.get("ctr_pct", 0)
     barra = max(2, min(100, ctr * 10))
+    ga4_html = ""
+    if v.get("ga4_sessions"):
+        eng = v.get("ga4_engajamento_pct")
+        conv = v.get("ga4_conversao_pct")
+        ga4_html = f"""
+      <div class="gauge-ga4">
+        <div class="gauge-row"><span>GA4 SESSÕES</span><strong>{v['ga4_sessions']:,.0f}</strong></div>
+        <div class="gauge-row"><span>ENGAJAMENTO</span><strong>{eng:.1f}%</strong></div>
+        <div class="gauge-row"><span>CONVERSÃO</span><strong>{conv:.1f}%</strong></div>
+      </div>"""
     return f"""
     <div class="gauge">
       <div class="gauge-produto">{produto}</div>
@@ -664,6 +676,7 @@ def render_own_kpi(produto, v):
       <div class="gauge-row"><span>INVEST.</span><strong>R$ {v.get('spend', 0):,.0f}</strong></div>
       <div class="gauge-row"><span>CTR</span><strong>{ctr:.2f}%</strong></div>
       <div class="signal-bar"><span style="width:{barra}%"></span></div>
+      {ga4_html}
     </div>"""
 
 
@@ -813,6 +826,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None):
   .gauge-row strong {{ color: var(--text); }}
   .signal-bar {{ margin-top: 10px; height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; }}
   .signal-bar span {{ display: block; height: 100%; background: var(--hud); box-shadow: 0 0 6px var(--hud-soft); }}
+  .gauge-ga4 {{ margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }}
   .grid {{
     display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 16px; padding: 24px 32px; position: relative; z-index: 1;
