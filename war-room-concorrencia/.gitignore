@@ -7,6 +7,10 @@ scripts/*-ads-raw.json
 scripts/meta-ads-novos.json
 scripts/google-ads-transparency-novos.json
 scripts/trends-alertas.json
+scripts/keywords-*.json
+scripts/auction-*.json
+scripts/quedas-keyword.json
+scripts/creative-analysis*.json
 outputs/
 __pycache__/
 *.pyc

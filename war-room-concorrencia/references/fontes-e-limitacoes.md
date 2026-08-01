@@ -124,6 +124,35 @@ print/link ao usuário, do mesmo jeito que `brand-bidding-monitor` já faz para 
 manuais. Um anúncio que cita a marca/produto próprio no texto vira caso de brand
 bidding — encaminhe para aquela skill, não trate só como "criativo interessante".
 
+## Leilão por palavra-chave (Google Ads Auction Insight, via Windsor.ai) — VERIFICADO
+
+Diferente de tudo que é marcado "beta" acima, isto foi **testado com dado real** da
+conta Google Ads da Joie (connector `google_ads` no Windsor.ai). Dois achados técnicos
+confirmados ao vivo:
+
+1. `auction_insight_domain` (o campo que lista quem está no leilão) **não pode ser
+   combinado** com métricas de performance (`impressions`, `search_impression_share`
+   etc.) na mesma chamada `get_data` — o Google Ads recusa com
+   `"unsupported metrics: impressions, search_impression_share, ..."`. Por isso
+   `keyword_auction.py` exige dois arquivos de entrada separados
+   (`--keywords-json` e `--auction-json`) e cruza os dois pela campanha.
+2. `first_page_cpc` e `position_estimates_top_of_page_cpc_micros` (as estimativas de
+   CPC do próprio Google para aparecer na 1a página/topo) **vieram `null` para todas
+   as palavras-chave testadas** — comum em termos de baixo volume. O script nunca
+   inventa um valor aqui: relata "não disponível para este termo/período" e usa o
+   CPC médio que a própria conta pagou como referência.
+
+O que SAI real e confiável desse monitor: impression share, rank lost impression
+share e Quality Score por palavra-chave (todos medidos, não estimados), e a lista de
+domínios que aparecem competindo na mesma campanha (Auction Insight), ordenada por
+frequência no período. Achado real ao testar (conta Joie, últimos 7 dias): termos
+genéricos (`whey protein`, `omega 3`, `suplementos alimentares`, `polivitamínico`)
+com Quality Score 1-3 e impression share no piso (~10%, 33-50% perdido por rank);
+termos de marca (`Joie`, `Joie suplementos`) com Quality Score 9-10 e impression
+share quase 100%. Domínios mais frequentes disputando essas campanhas:
+`mercadolivre.com.br`, `shopee.com.br`, `vitafor.com.br`, `gsuplementos.com.br`,
+`puravida.com.br`, `sanavita.com.br`, `maxtitanium.com.br`, `oficialfarma.com.br`.
+
 ## Desempenho PRÓPRIO (Google Ads / Meta Ads / GA4) — isto sim é dado real
 
 Tudo que foi dito acima sobre "gasto não é público" vale para o **concorrente**. Para a

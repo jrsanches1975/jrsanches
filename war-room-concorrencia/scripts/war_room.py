@@ -37,7 +37,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_HISTORY_DIR = os.path.join(SCRIPT_DIR, "history")
 
 SEVERIDADE_POR_NIVEL = {
-    "agressiva": "alta", "forte": "alta",
+    "agressiva": "alta", "forte": "alta", "critica": "alta",
     "moderada": "media", "moderado": "media",
     "leve": "baixa", "default": "media",
 }
@@ -317,18 +317,55 @@ def build_manual_links(config):
     return links
 
 
-def ingest_novos_criativos(path, canal_label, playbook):
+def ingest_novos_criativos(path, canal_label, playbook, analises=None):
     """Lê a saída de meta_ads.py ou google_ads_transparency.py (novos_anuncios) e
-    converte cada anúncio novo num alerta com o pacote completo do playbook."""
+    converte cada anúncio novo num alerta com o pacote completo do playbook.
+
+    `analises` (opcional) é um dict {ad_id: {"gancho":..., "oferta":..., "formato":...,
+    "cta":..., "observacao":...}} escrito pelo AGENTE depois de olhar a evidência
+    (imagem/vídeo) de um criativo que está impactando o rendimento — nunca inventado
+    sem a evidência em mãos. Ver SKILL.md, passo 6."""
+    analises = analises or {}
     data = load_json(path, {})
     alertas = []
     for n in data.get("novos_anuncios", []):
         texto = (n.get("titulo") or n.get("corpo") or n.get("descricao") or "(sem texto capturado)")
         resumo = f"{n['concorrente']} lançou novo anúncio ativo em {canal_label}: \"{texto[:90]}\""
         detalhes = {k: v for k, v in n.items() if k != "concorrente"}
+        analise = analises.get(n.get("ad_id"))
+        if analise:
+            detalhes["analise"] = analise
+            resumo += " — ANÁLISE DE CRIATIVO ANEXADA (ver battlecard)"
         evidencia = n.get("url_anuncio") or n.get("imagem_url") or n.get("video_url")
         alertas.append(make_alert("novo_criativo_concorrente", "default", "(todos os produtos)",
                                    n["concorrente"], resumo, detalhes, evidencia, playbook))
+    return alertas
+
+
+def fmt_pct(v):
+    return f"{v * 100:.1f}%" if v is not None else "n/d"
+
+
+def ingest_quedas_keyword(path, playbook):
+    """Lê a saída de keyword_auction.py (quedas) e converte cada queda de keyword
+    num alerta com os pontos de interferência (leilão), CPC e estratégia de combate."""
+    data = load_json(path, {})
+    alertas = []
+    for q in data.get("quedas", []):
+        doms = q.get("pontos_de_interferencia") or []
+        doms_txt = ", ".join(f"{d['dominio']} ({d['aparicoes_no_periodo']}x)" for d in doms) or "nenhum domínio capturado no período"
+        cpc_txt = f"R$ {q['cpc_medio']:.2f}" if q.get("cpc_medio") is not None else "n/d"
+        topo_txt = (f"R$ {q['top_of_page_cpc']:.2f} (estimativa do Google)"
+                    if q.get("top_of_page_cpc") is not None else "não disponível para este termo/período")
+        resumo = (f"'{q['keyword']}' ({q['campanha']}) perdeu impression share: "
+                  f"{fmt_pct(q.get('impression_share_antes'))} → {fmt_pct(q.get('impression_share_agora'))} "
+                  f"(rank lost {fmt_pct(q.get('rank_lost_antes'))} → {fmt_pct(q.get('rank_lost_agora'))}). "
+                  f"Pontos de interferência no leilão: {doms_txt}. "
+                  f"CPC atual pago: {cpc_txt}. CPC de topo de página: {topo_txt}.")
+        detalhes = {k: v for k, v in q.items() if k != "keyword"}
+        alertas.append(make_alert("queda_performance_keyword", q.get("nivel", "moderada"),
+                                   q["keyword"], "(leilão — ver pontos de interferência)",
+                                   resumo, detalhes, None, playbook))
     return alertas
 
 
@@ -548,12 +585,50 @@ SEV_LABEL = {"alta": "CRÍTICO", "media": "ATENÇÃO", "baixa": "NOMINAL"}
 SEV_ICON = {"alta": "▲", "media": "◆", "baixa": "●"}
 
 
+def render_creative(detalhes):
+    """Embute a imagem/vídeo do criativo (Meta/Google) quando a evidência trouxer isso."""
+    img = detalhes.get("imagem_url")
+    vid = detalhes.get("video_url")
+    if not img and not vid:
+        return ""
+    imagem_html = f'<img src="{img}" alt="Criativo do concorrente" loading="lazy">' if img else ""
+    video_html = (f'<a class="video-link" href="{vid}" target="_blank" rel="noopener">▶ ver vídeo do anúncio</a>'
+                  if vid else "")
+    return f'<div class="creative">{imagem_html}{video_html}</div>'
+
+
+def render_analise_criativo(detalhes):
+    analise = detalhes.get("analise")
+    if not analise:
+        return ""
+    linhas = "".join(
+        f'<div class="analise-row"><span>{campo}</span><p>{valor}</p></div>'
+        for campo, valor in (
+            ("Gancho", analise.get("gancho")), ("Oferta", analise.get("oferta")),
+            ("Formato", analise.get("formato")), ("CTA", analise.get("cta")),
+            ("Observação", analise.get("observacao")),
+        ) if valor
+    )
+    return f'<p class="label">// análise do criativo</p><div class="analise-criativo">{linhas}</div>'
+
+
+def render_pontos_interferencia(detalhes):
+    pontos = detalhes.get("pontos_de_interferencia")
+    if not pontos:
+        return ""
+    chips = "".join(f'<span class="kpi">{p["dominio"]} · {p["aparicoes_no_periodo"]}x</span>' for p in pontos)
+    return f'<p class="label">// concorrentes no leilão (pontos de interferência)</p><div class="kpis">{chips}</div>'
+
+
 def render_card(a, idx):
     estrategia_html = "".join(f"<li>{s}</li>" for s in a["estrategia"])
     kpis_html = "".join(f'<span class="kpi">{k}</span>' for k in a["kpis"])
     link = (f'<a href="{a["evidencia_url"]}" target="_blank" rel="noopener">◈ ver evidência</a>'
             if a.get("evidencia_url") else "<span></span>")
     delay = f"{min(idx, 10) * 0.05:.2f}s"
+    creative_html = render_creative(a.get("detalhes") or {})
+    analise_html = render_analise_criativo(a.get("detalhes") or {})
+    interferencia_html = render_pontos_interferencia(a.get("detalhes") or {})
     return f"""
     <article class="card sev-{a['severidade']}" style="--d:{delay}">
       <div class="card-head">
@@ -562,6 +637,9 @@ def render_card(a, idx):
       </div>
       <h3><span class="crosshair" aria-hidden="true"></span>{a['produto']} <span class="vs">vs</span> {a['concorrente']}</h3>
       <p class="resumo">{a['resumo']}</p>
+      {creative_html}
+      {analise_html}
+      {interferencia_html}
       <p><span class="label">// impacto na concorrência</span>{a['impacto_concorrencia']}</p>
       <p><span class="label">// impacto estimado no volume</span>{a['impacto_volume']}</p>
       <p class="label">// estratégia imediata</p>
@@ -790,6 +868,26 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None):
     font-size: .68rem; background: var(--panel-2); border: 1px solid var(--line);
     padding: 2px 8px; border-radius: 3px; color: var(--text-dim);
   }}
+  .creative {{
+    margin: 10px 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
+    background: var(--panel-2);
+  }}
+  .creative img {{ display: block; width: 100%; max-height: 260px; object-fit: cover; }}
+  .video-link {{
+    display: block; padding: 10px 12px; font-size: .8rem; text-decoration: none;
+    color: var(--hud); text-align: center;
+  }}
+  .analise-criativo {{
+    margin: 6px 0 10px; padding: 10px 12px; border-left: 2px solid var(--hud-soft);
+    background: var(--panel-2); border-radius: 0 4px 4px 0;
+  }}
+  .analise-row {{ display: flex; gap: 8px; font-size: .82rem; margin-bottom: 4px; }}
+  .analise-row:last-child {{ margin-bottom: 0; }}
+  .analise-row span {{
+    flex: none; width: 84px; color: var(--hud); font-size: .68rem; text-transform: uppercase;
+    letter-spacing: .04em; padding-top: 2px;
+  }}
+  .analise-row p {{ margin: 0; font-size: .82rem; }}
   .foot {{
     margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line);
     display: flex; justify-content: space-between; font-size: .7rem; color: var(--text-dim);
@@ -864,6 +962,12 @@ def main():
                      help="saída de google_ads_transparency.py (novos_anuncios) — idem, canal Google")
     ap.add_argument("--trends-json", default=None,
                      help="saída de google_trends.py (picos) — vira alertas 'pico_interesse_busca'")
+    ap.add_argument("--keyword-auction-json", default=None,
+                     help="saída de keyword_auction.py (quedas) — vira alertas 'queda_performance_keyword' "
+                          "com pontos de interferência (leilão), CPC e estratégia de combate")
+    ap.add_argument("--creative-analysis-json", default=None,
+                     help="JSON {ad_id: {gancho, oferta, formato, cta, observacao}} escrito pelo agente "
+                          "depois de olhar a evidência de um criativo novo que está impactando o rendimento")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -918,12 +1022,16 @@ def main():
         alertas += alertas_ads
         save_json(ads_hist_path, ads_history)
 
+    analises_criativo = load_json(args.creative_analysis_json, {}) if args.creative_analysis_json else {}
     if args.meta_ads_json:
-        alertas += ingest_novos_criativos(args.meta_ads_json, "Meta Ad Library", playbook)
+        alertas += ingest_novos_criativos(args.meta_ads_json, "Meta Ad Library", playbook, analises_criativo)
     if args.google_ads_transparency_json:
-        alertas += ingest_novos_criativos(args.google_ads_transparency_json, "Google Ads Transparency Center", playbook)
+        alertas += ingest_novos_criativos(args.google_ads_transparency_json, "Google Ads Transparency Center",
+                                           playbook, analises_criativo)
     if args.trends_json:
         alertas += ingest_picos_trends(args.trends_json, playbook)
+    if args.keyword_auction_json:
+        alertas += ingest_quedas_keyword(args.keyword_auction_json, playbook)
 
     alertas_log = load_json(log_path, [])
     alertas_log += alertas

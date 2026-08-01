@@ -252,15 +252,71 @@ arquivado desde abril/2025 (sem manutenção) e sofre rate-limit imprevisível; 
 oficial do Google Trends segue em alfa fechado (allowlist). Preferimos manter tudo
 no mesmo provedor/token já usado no resto da skill.
 
-**Análise de criativo do concorrente que está impactando:** os três scripts trazem
-`imagem_url`/`video_url`/texto do anúncio quando o actor retorna isso. Quando um
-alerta `novo_criativo_concorrente` (ou um preço/desconto de severidade alta) tiver
-essa evidência, é você (o agente) quem faz a leitura — busque a imagem/página (Read
-ou WebFetch, se o host não estiver bloqueado) e resuma: gancho usado, oferta,
-formato, CTA, e se cita a marca/produto próprio no texto (o que viraria caso de
-`brand-bidding-monitor`). Não invente a leitura do criativo sem ter a evidência na
-mão — se a captura falhar, diga isso e peça print/link ao usuário, do mesmo jeito que
-`brand-bidding-monitor` já faz para achados manuais.
+**Criativo novo que está impactando o rendimento — apresente a peça, não só o texto:**
+os três scripts trazem `imagem_url`/`video_url`/texto do anúncio quando o actor
+retorna isso, e o dashboard HTML já embute a imagem direto no card (`<img>`, ver
+`render_creative()`) sempre que ela vier na evidência. O que fica por sua conta (o
+agente) é a **análise** — o script não tem visão para isso:
+
+1. Quando um `novo_criativo_concorrente` estiver associado a queda de rendimento
+   (seu próprio CTR/ROAS caindo no produto equivalente, ou o alerta vier junto de um
+   preço/desconto de severidade alta), busque a imagem/página (Read ou WebFetch, se o
+   host não estiver bloqueado) e escreva um JSON `{ad_id: {"gancho":..., "oferta":...,
+   "formato":..., "cta":..., "observacao":...}}` — o `ad_id` é o mesmo campo que sai
+   em `novos_anuncios` no JSON do `meta_ads.py`/`google_ads_transparency.py`.
+2. Rode `war_room.py` de novo passando `--creative-analysis-json
+   essa-analise.json`: o card daquele criativo específico ganha um bloco "// análise
+   do criativo" logo abaixo da imagem, com gancho/oferta/formato/CTA lado a lado.
+3. **Nunca invente a leitura sem a evidência em mãos** — se a imagem não veio (actor
+   não trouxe, ou host bloqueado), diga isso e peça print/link ao usuário, do mesmo
+   jeito que `brand-bidding-monitor` já faz. Se o criativo citar a marca/produto
+   próprio no texto, é caso de `brand-bidding-monitor`, não só "criativo
+   interessante".
+
+### 7. Monitor de leilão por palavra-chave (Google Ads, via Windsor.ai) — VERIFICADO
+
+Diferente do passo 6 (beta), este pedaço **foi testado com dado real** da conta
+Google Ads da Joie via Windsor.ai — não é suposição. Quando o rendimento de uma
+palavra-chave cai, `keyword_auction.py` traz os **pontos de interferência** (quem
+está no leilão), o **CPC envolvido**, e a **estratégia de combate** — exatamente o
+que foi pedido.
+
+1. Puxe os dois conjuntos de dados via MCP do Windsor.ai (são chamadas SEPARADAS —
+   testei e confirmei que o Google Ads recusa misturar `auction_insight_domain` com
+   métricas de performance na mesma query, erro "unsupported metrics"):
+   ```
+   get_data(connector="google_ads", fields=["date","campaign","keyword_text",
+     "impressions","clicks","ctr","cpc","quality_score","search_impression_share",
+     "search_rank_lost_impression_share","first_page_cpc",
+     "position_estimates_top_of_page_cpc_micros"], date_preset="last_7d")
+
+   get_data(connector="google_ads", fields=["date","campaign",
+     "auction_insight_domain"], date_preset="last_7d")
+   ```
+   Grave cada retorno num JSON `{"connector": "google_ads", "registros": [...]}`.
+2. Rode:
+   ```bash
+   python keyword_auction.py --config config.json --keywords-json keywords-7d.json \
+     --auction-json auction-7d.json --history-dir ../outputs/demo-history \
+     --out ../outputs/quedas-keyword.json
+   python war_room.py --config config.json --keyword-auction-json ../outputs/quedas-keyword.json \
+     --out ../outputs/war-room.xlsx --html ../outputs/war-room.html
+   ```
+3. Cada queda vem com: impression share antes/depois, rank lost antes/depois,
+   Quality Score antes/depois, CPC médio pago, CPC de topo de página estimado pelo
+   Google **quando disponível** (na conta testada veio `null` para termos de baixo
+   volume — o script reporta isso honestamente, nunca inventa um valor), e os
+   domínios do Auction Insight da mesma campanha ordenados por frequência no
+   período — são os "pontos de interferência" pedidos.
+4. Achado real ao testar (conta Joie, últimos 7 dias): palavras-chave genéricas
+   (`whey protein`, `omega 3`, `suplementos alimentares`) com Quality Score 1-3 e
+   impression share no piso (~10%, com 33-50% perdido por rank), contra
+   `Joie`/`Joie suplementos` (marca) com Quality Score 9-10 e impression share
+   quase 100%. Os domínios que mais aparecem disputando essas campanhas:
+   `mercadolivre.com.br`, `shopee.com.br`, `vitafor.com.br`, `gsuplementos.com.br`,
+   `puravida.com.br`, `sanavita.com.br`, `maxtitanium.com.br`, `oficialfarma.com.br`.
+   Isso não é genérico — é o padrão real desta conta: termos de marca são fortes,
+   termos genéricos perdem o leilão para marketplaces e concorrentes diretos.
 
 ## O playbook de resposta (o que muda por tipo de mudança)
 
@@ -276,8 +332,10 @@ aumento de preço do concorrente (oportunidade), salto de posição/visibilidade
 Livre, aumento de anúncios ativos (Meta/Google/ML Ads — via captura manual ou via os
 scripts beta do passo 6), concorrente saiu da busca (possível ruptura de estoque), novo
 entrante (concorrente novo pescando o mesmo termo), novo criativo de concorrente detectado
-no Meta Ad Library/Google Ads Transparency Center, e pico de interesse de busca (Google
-Trends) na marca, num produto ou num concorrente.
+no Meta Ad Library/Google Ads Transparency Center (com a peça embutida e análise, quando
+fornecida), pico de interesse de busca (Google Trends) na marca, num produto ou num
+concorrente, e queda de performance de palavra-chave no leilão do Google Ads (moderada/
+crítica — com pontos de interferência, CPC e estratégia de combate, passo 7, verificado).
 
 ## Princípios
 

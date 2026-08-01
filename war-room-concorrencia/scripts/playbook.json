@@ -1,6 +1,30 @@
 {
   "_comentario": "Versão legível e detalhada em references/playbook-resposta.md. Mantenha os dois em sincronia ao editar.",
 
+  "queda_performance_keyword": {
+    "moderada": {
+      "impacto_concorrencia": "Concorrentes listados no Auction Insight desta campanha estão ganhando mais impression share nessa palavra-chave — sinal de lance mais agressivo, melhor Quality Score, ou orçamento maior do lado deles.",
+      "impacto_volume": "Perda MEDIDA (não estimada) de impression share — cada ponto percentual perdido é impressão que foi para um dos domínios listados como ponto de interferência.",
+      "estrategia": [
+        "Revisar os componentes do Quality Score (relevância do anúncio ao termo, CTR esperado, experiência da landing page) — é a alavanca mais barata para recuperar posição sem só subir lance",
+        "Se o Google forneceu first_page_cpc/top_of_page_cpc para o termo, avaliar subir o lance até essa faixa dentro da margem; se não forneceu, subir em incrementos pequenos e monitorar o rank lost na próxima rodada",
+        "Auditar os domínios do Auction Insight desta campanha: marketplaces competem por catálogo, não por marca — avalie se vale disputar CPC ali ou realocar budget para termos de marca/cauda longa onde o Quality Score já é alto"
+      ],
+      "kpis": ["Search impression share", "Search rank lost impression share", "Quality Score", "CPC", "CTR"]
+    },
+    "critica": {
+      "impacto_concorrencia": "Queda forte e sustentada de impression share/rank nesta palavra-chave — a pressão competitiva no leilão aumentou de forma relevante, não é ruído de uma rodada.",
+      "impacto_volume": "Perda MEDIDA (não estimada) de impression share, de magnitude alta — tratar como prioridade na próxima revisão de conta.",
+      "estrategia": [
+        "Ação imediata no Quality Score (relevância/CTR esperado/landing page) — prioridade sobre qualquer outra keyword nesta rodada",
+        "Reavaliar o lance da palavra-chave com urgência; se o CPC de topo de página não veio do Google, considerar teste controlado de lance mais agressivo com teto de gasto",
+        "Se o termo é genérico e os domínios de interferência forem majoritariamente marketplaces, considerar reduzir investimento nele e realocar para termos de marca/produto onde a conta já performa bem",
+        "Verificar se o termo perdeu relevância por mudança na própria página de destino ou no catálogo antes de assumir que é só concorrência"
+      ],
+      "kpis": ["Search impression share", "Search rank lost impression share", "Quality Score", "CPC", "CTR", "CPA"]
+    }
+  },
+
   "queda_preco": {
     "leve": {
       "impacto_concorrencia": "Ajuste normal de mercado; baixo risco de migração de demanda relevante.",

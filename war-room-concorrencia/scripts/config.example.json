@@ -49,6 +49,9 @@
     }
   ],
 
+  "_comentario_official_domains": "Domínio(s) da PRÓPRIA marca — usado por keyword_auction.py para tirar a própria marca da lista de 'pontos de interferência' no leilão (senão apareceria competindo consigo mesma). joie-suplementos.com é o domínio confirmado ao vivo no Auction Insight da campanha 'Brand' via Windsor.ai — confira o seu antes de usar.",
+  "official_domains": ["joie-suplementos.com"],
+
   "_comentario_limiares": "Cortes que definem a severidade de cada tipo de alerta. Calibre com o usuário na 1a rodada.",
   "limiares": {
     "queda_preco_leve_pct": 5,
