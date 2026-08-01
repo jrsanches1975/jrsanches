@@ -90,6 +90,52 @@ Livre: `JOIE`.
     (`examples/keywords-simulado.json`) e sinalizado com `--simulado` (adiciona
     aba `⚠ AVISO` na frente do arquivo). Documentado no `SKILL.md` como passo
     "7b".
+21. Pedido grande e consolidado (com referência visual anexada — mockup dark
+    "fintech" com cards arredondados e gráficos coloridos): (a) o relatório de
+    keywords tem que ser uma ABA do war room, não arquivo separado; (b) idem
+    para o relatório de concorrentes e para o acompanhamento de produtos
+    concorrentes no Google Shopping E no Mercado Livre; (c) a seleção/inclusão
+    manual de produtos E concorrentes também tem que ser uma aba; (d) pedido de
+    um gráfico NOVO — preço do concorrente × se está rodando ads no mesmo
+    momento, marcando quando ele está "disputando direto" (posição à nossa
+    frente) e a correlação com queda de KPI nosso; (e) "use python para
+    economizar créditos"; (f) adotar aquele visual de referência.
+    **Executado nesta mesma sessão** (ver seção "12" do SKILL.md):
+    - Consolidação: `war_room.py` ganhou `--descoberta-json`,
+      `--keywords-relatorio-json`, `--simulate-google-shopping(-proprio)` e
+      passou a gerar um `war-room.html`/`war-room.xlsx` com TABS (Visão Geral,
+      Marketplaces, Concorrentes, Keywords & Leilão, Histórico Preço×Ads,
+      Seleção Manual) — nada mais fica só em arquivo avulso.
+      `descoberta_concorrentes.py` e `gerar_relatorio_keywords.py` ganharam
+      `--export-json` pra alimentar essas abas sem duplicar a lógica de
+      agregação/score.
+    - Google Shopping: sem conector/actor real ainda — estrutura pronta
+      (`montar_radar_marketplaces`), alimentada por fixtures simuladas
+      (`examples/gshopping-simulado*.json`); sem dado fornecido, a aba mostra
+      "ainda não coletado", nunca inventa.
+    - Gráfico novo: `atualizar_historico_preco_ads()` + `render_historico_chart()`
+      — acumula sozinho a cada rodada real (deriva do Radar de Marketplaces +
+      alertas já calculados, sem coleta nova) em
+      `<history-dir>/<marca>-historico-preco-ads.json`; SVG com linha de preço,
+      marcador cheio/vazio de ads, faixa sombreada de "disputa direta" e traço
+      vermelho nos momentos de queda de KPI. Fixture rica de demonstração em
+      `examples/historico-preco-ads-simulado.json` (`--simulate-historico-preco-ads`).
+    - Seleção manual: embutida como aba (`render_selecao_manual_tab`), cobrindo
+      produtos E concorrentes juntos (o painel avulso `gerar_painel_produtos.py`
+      segue existindo, só com produtos).
+    - Redesign visual completo: saiu o tema cockpit sci-fi (Orbitron/Share Tech
+      Mono, scanline, boot sequence) SÓ do `war_room.py` — entrou tema "fintech
+      escuro" (fonte Sora variável, embutida em `_fonts.py` como
+      `FONT_SORA_B64`; paleta categórica validada pela skill `dataviz`: azul
+      `#3987e5`, laranja `#d95926`, verde-água `#199e70` etc.; cards
+      arredondados 16px, sombra suave). `gerar_demo_live.py` e
+      `gerar_simulador.py` **não foram redesenhados** — continuam com o visual
+      cockpit original (não foi pedido).
+    - Testado ponta a ponta: sintaxe Python, JS (`node --check`), openpyxl
+      (todas as abas), Playwright (as 6 abas navegando, toggle/adicionar/
+      remover/exportar da Seleção Manual, fallback gracioso quando
+      Descoberta/Keywords/Google Shopping não são fornecidos, acumulação REAL
+      do histórico em 2 rodadas seguidas sem flag de simulação).
 
 ## Princípios que NUNCA devem ser quebrados
 
@@ -115,39 +161,41 @@ Livre: `JOIE`.
 
 ```
 war-room-concorrencia/
-├── SKILL.md                     # manual operacional completo (11 fluxos + 1b + 7b)
+├── SKILL.md                     # manual operacional completo (11 fluxos + 1b + 7b + 12)
 ├── contexto-e-apoio/
 │   ├── MEMORIA-DO-PROJETO.md    # ESTE arquivo — memória/histórico do projeto
 │   └── arquivos-finais/         # cópias VERSIONADAS (não gitignored) dos entregáveis
-│       ├── war-room.html            # dashboard de produção
-│       ├── war-room.xlsx            # mesmo conteúdo em planilha
-│       ├── war-room-live-demo.html  # demo de replay fixo
-│       ├── war-room-simulador.html  # simulador interativo
-│       ├── painel-produtos.html     # painel de seleção de produtos
-│       ├── descoberta.xlsx          # relatório de descoberta/composição de concorrentes
-│       └── relatorio-keywords.xlsx  # SIMULADO — relação completa de keywords + leilão
+│       ├── war-room.html            # dashboard CONSOLIDADO por abas (visual fintech)
+│       ├── war-room.xlsx            # mesmo conteúdo em planilha (mais abas)
+│       ├── war-room-live-demo.html  # demo de replay fixo (visual cockpit, não redesenhado)
+│       ├── war-room-simulador.html  # simulador interativo (visual cockpit, não redesenhado)
+│       ├── painel-produtos.html     # painel avulso de seleção de produtos (só produtos)
+│       ├── descoberta.xlsx          # relatório avulso de descoberta (dado igual à aba Concorrentes)
+│       └── relatorio-keywords.xlsx  # SIMULADO — relatório avulso (dado igual à aba Keywords & Leilão)
 ├── references/
 │   ├── fontes-e-limitacoes.md   # honestidade por fonte de dado
 │   ├── protocolo-diagnostico.md # protocolo de 8 passos p/ queda de KPI
 │   └── playbook-resposta.md     # playbook legível por humano
 ├── scripts/
-│   ├── war_room.py              # motor central (diff, alertas, xlsx, html)
-│   ├── _effects.py              # efeitos visuais compartilhados (starfield, boot, glitch)
-│   ├── _fonts.py                # fontes embutidas em base64 (Orbitron, Share Tech Mono)
+│   ├── war_room.py              # motor central — agora com tabs (Marketplaces, Concorrentes,
+│   │                             # Keywords & Leilão, Histórico Preço×Ads, Seleção Manual)
+│   ├── _effects.py              # efeitos visuais do tema cockpit (usado só por demo/simulador agora)
+│   ├── _fonts.py                # fontes base64: Orbitron/Share Tech Mono (cockpit) + Sora (fintech)
 │   ├── apify_common.py          # helpers compartilhados de scraping
 │   ├── own_performance.py       # Google Ads + GA4 via Windsor.ai (dado real)
 │   ├── meta_ads.py              # BETA — Meta Ad Library (Apify, nunca testado ao vivo)
 │   ├── google_ads_transparency.py # BETA — idem, Google Ads Transparency Center
 │   ├── google_trends.py         # BETA — idem, Google Trends
-│   ├── keyword_auction.py       # VERIFICADO — leilão de keyword via Windsor.ai
-│   ├── descoberta_concorrentes.py # motor de descoberta/composição + score de relevância
-│   ├── gerar_painel_produtos.py  # painel de seleção de produtos monitorados
+│   ├── keyword_auction.py       # VERIFICADO — leilão de keyword via Windsor.ai (só quedas)
+│   ├── gerar_relatorio_keywords.py # TODAS as keywords + leilão; --export-json alimenta a aba
+│   ├── descoberta_concorrentes.py # motor de descoberta/composição + score; --export-json alimenta a aba
+│   ├── gerar_painel_produtos.py  # painel AVULSO de seleção de produtos (a aba embutida cobre + concorrentes)
 │   ├── agentes.json             # taxonomia de agentes de combate
 │   ├── playbook.json            # definição de todos os tipos de alerta
 │   ├── config.example.json      # config de exemplo (produtos, concorrentes, pesos etc.)
-│   ├── gerar_demo_live.py        # demo de replay fixo (10 eventos)
-│   ├── gerar_simulador.py        # simulador interativo (dispara evento a evento)
-│   └── examples/                 # fixtures para rodar tudo em modo --simulate-*
+│   ├── gerar_demo_live.py        # demo de replay fixo (10 eventos) — visual cockpit original
+│   ├── gerar_simulador.py        # simulador interativo — visual cockpit original
+│   └── examples/                 # fixtures para rodar tudo em modo --simulate-*/--simulado
 └── outputs/                      # gerado localmente (gitignored) — a cada rodada nova;
                                    # a versão de referência fica em contexto-e-apoio/arquivos-finais/
 ```
@@ -155,14 +203,14 @@ war-room-concorrencia/
 Os 4 artifacts publicados (URLs — republicar com o mesmo `file_path`/`url` para
 atualizar, nunca criar um novo):
 
-- **War Room — Joie** (dashboard "de produção", `outputs/war-room.html`):
-  `https://claude.ai/code/artifact/ef0d6339-6093-4a74-9e32-0b65f5357a69`
-- **War Room — Joie · DEMO AO VIVO** (`outputs/war-room-live-demo.html`):
-  `https://claude.ai/code/artifact/b45e96ac-b503-4463-a390-aa1e8a8eb778`
-- **War Room — Joie · SIMULADOR** (`outputs/war-room-simulador.html`):
-  `https://claude.ai/code/artifact/ce0e31b4-0f11-4bb8-9f79-59c5a71074e2`
-- **War Room — Joie · Painel de Produtos** (`outputs/painel-produtos.html`):
-  `https://claude.ai/code/artifact/cbab392a-cf2e-42bf-8f2f-bef7bcdeb495`
+- **War Room — Joie** (dashboard consolidado por abas, visual fintech,
+  `outputs/war-room.html`): `https://claude.ai/code/artifact/ef0d6339-6093-4a74-9e32-0b65f5357a69`
+- **War Room — Joie · DEMO AO VIVO** (`outputs/war-room-live-demo.html`,
+  visual cockpit original): `https://claude.ai/code/artifact/b45e96ac-b503-4463-a390-aa1e8a8eb778`
+- **War Room — Joie · SIMULADOR** (`outputs/war-room-simulador.html`,
+  visual cockpit original): `https://claude.ai/code/artifact/ce0e31b4-0f11-4bb8-9f79-59c5a71074e2`
+- **War Room — Joie · Painel de Produtos** (avulso, só produtos,
+  `outputs/painel-produtos.html`): `https://claude.ai/code/artifact/cbab392a-cf2e-42bf-8f2f-bef7bcdeb495`
 
 Branch de trabalho: `claude/competitor-monitoring-war-room-pkhhlo`.
 

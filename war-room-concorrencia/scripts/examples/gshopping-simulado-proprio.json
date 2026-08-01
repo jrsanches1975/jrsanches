@@ -1,0 +1,23 @@
+{
+  "Faciderm": {
+    "seller": "Joie Suplementos", "title": "Faciderm Sérum Facial Vitamina C 30ml",
+    "price": 149.90, "original_price": 149.90, "discount_pct": 0,
+    "position": 4, "reviews": 95, "rating": 4.7, "frete_gratis": true,
+    "patrocinado": "sim", "url": "https://shopping.google.com/simulado/joie-faciderm",
+    "total_listagens": 1
+  },
+  "Amaze": {
+    "seller": "Joie Suplementos", "title": "Amaze Polivitamínico Feminino 60 cápsulas",
+    "price": 99.90, "original_price": 99.90, "discount_pct": 0,
+    "position": 1, "reviews": 150, "rating": 4.8, "frete_gratis": true,
+    "patrocinado": "sim", "url": "https://shopping.google.com/simulado/joie-amaze",
+    "total_listagens": 1
+  },
+  "Linha Joie Fit": {
+    "seller": "Joie Suplementos", "title": "Whey Protein Isolado Joie Fit 900g",
+    "price": 129.90, "original_price": 129.90, "discount_pct": 0,
+    "position": 3, "reviews": 210, "rating": 4.6, "frete_gratis": false,
+    "patrocinado": "nao", "url": "https://shopping.google.com/simulado/joie-fit-whey",
+    "total_listagens": 1
+  }
+}

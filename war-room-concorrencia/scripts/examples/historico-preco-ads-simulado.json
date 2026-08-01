@@ -1,0 +1,26 @@
+{
+  "Faciderm": {
+    "Black Skull": [
+      {"data": "2026-07-10", "preco": 89.90, "tem_ads": false, "nossa_posicao": 2, "concorrente_posicao": 4, "disputando_direto": false, "kpi_queda": false},
+      {"data": "2026-07-13", "preco": 89.90, "tem_ads": false, "nossa_posicao": 2, "concorrente_posicao": 3, "disputando_direto": false, "kpi_queda": false},
+      {"data": "2026-07-16", "preco": 89.90, "tem_ads": true,  "nossa_posicao": 2, "concorrente_posicao": 3, "disputando_direto": false, "kpi_queda": false},
+      {"data": "2026-07-19", "preco": 89.90, "tem_ads": true,  "nossa_posicao": 2, "concorrente_posicao": 2, "disputando_direto": false, "kpi_queda": false},
+      {"data": "2026-07-22", "preco": 71.90, "tem_ads": true,  "nossa_posicao": 3, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": false},
+      {"data": "2026-07-25", "preco": 71.90, "tem_ads": true,  "nossa_posicao": 3, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": true},
+      {"data": "2026-07-28", "preco": 71.90, "tem_ads": true,  "nossa_posicao": 4, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": true},
+      {"data": "2026-07-31", "preco": 74.90, "tem_ads": true,  "nossa_posicao": 3, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": false}
+    ]
+  },
+  "Linha Joie Fit": {
+    "Black Skull": [
+      {"data": "2026-07-10", "preco": 119.90, "tem_ads": false, "nossa_posicao": 4, "concorrente_posicao": 2, "disputando_direto": false, "kpi_queda": false},
+      {"data": "2026-07-13", "preco": 119.90, "tem_ads": false, "nossa_posicao": 4, "concorrente_posicao": 2, "disputando_direto": false, "kpi_queda": false},
+      {"data": "2026-07-16", "preco": 119.90, "tem_ads": null,  "nossa_posicao": 5, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": false},
+      {"data": "2026-07-19", "preco": 129.90, "tem_ads": null,  "nossa_posicao": 5, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": false},
+      {"data": "2026-07-22", "preco": 129.90, "tem_ads": true,  "nossa_posicao": 5, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": false},
+      {"data": "2026-07-25", "preco": 129.90, "tem_ads": true,  "nossa_posicao": 5, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": false},
+      {"data": "2026-07-28", "preco": 129.90, "tem_ads": true,  "nossa_posicao": 5, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": false},
+      {"data": "2026-07-31", "preco": 129.90, "tem_ads": true,  "nossa_posicao": 5, "concorrente_posicao": 1, "disputando_direto": true,  "kpi_queda": false}
+    ]
+  }
+}

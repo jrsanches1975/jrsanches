@@ -298,6 +298,9 @@ def main():
     ap.add_argument("--simulate-raw", default=None,
                      help="JSON {produto: [item_bruto, ...]} pra testar sem coleta real (ver scripts/examples/)")
     ap.add_argument("--token", default=None)
+    ap.add_argument("--export-json", default=None,
+                     help="grava {por_produto, globais} em JSON (mesmos dados da xlsx) para o war_room.py "
+                          "ingerir como aba 'Concorrentes Descobertos' — ver war_room.py --descoberta-json")
     args = ap.parse_args()
 
     config = load_json(args.config, {})
@@ -339,6 +342,14 @@ def main():
     globais_pontuado = [(c, pontuar(c, None, ativos_ads, pesos)) for c in candidatos_globais]
 
     write_xlsx(por_produto_pontuado, globais_pontuado, args.out)
+
+    if args.export_json:
+        from apify_common import save_json
+        save_json(args.export_json, {
+            "por_produto": {p: [[c, pt] for c, pt in lst] for p, lst in por_produto_pontuado.items()},
+            "globais": [[c, pt] for c, pt in globais_pontuado],
+        })
+        print(f"OK -> {args.export_json} (JSON p/ war_room.py)", file=sys.stderr)
 
     print(f"\nOK -> {args.out}", file=sys.stderr)
     for produto, pontuados in por_produto_pontuado.items():

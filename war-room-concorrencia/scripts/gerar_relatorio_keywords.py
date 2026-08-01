@@ -163,6 +163,9 @@ def main():
     ap.add_argument("--simulado", action="store_true",
                      help="marca o relatório como dado simulado (adiciona aba de aviso) — use sempre que "
                           "os JSONs de entrada não vieram de uma coleta real via Windsor.ai")
+    ap.add_argument("--export-json", default=None,
+                     help="grava {keywords, dominios_por_campanha, simulado} em JSON para o war_room.py "
+                          "ingerir como aba 'Keywords & Leilão' — ver war_room.py --keywords-relatorio-json")
     args = ap.parse_args()
 
     config = load_json(args.config, {})
@@ -177,6 +180,16 @@ def main():
     dominios_por_campanha = ka.agregar_dominios_por_campanha(auction_regs, dominios_proprios)
 
     write_xlsx(keywords_agg, dominios_por_campanha, args.simulado, args.out)
+
+    if args.export_json:
+        from apify_common import save_json
+        save_json(args.export_json, {
+            "keywords": keywords_agg,
+            "dominios_por_campanha": {k: [list(t) for t in v] for k, v in dominios_por_campanha.items()},
+            "simulado": args.simulado,
+        })
+        print(f"OK -> {args.export_json} (JSON p/ war_room.py)")
+
     print(f"OK -> {args.out} ({len(keywords_agg)} keyword(s), "
           f"{sum(len(v) for v in dominios_por_campanha.values())} registro(s) de leilão)"
           + (" [SIMULADO]" if args.simulado else " [DADO REAL]"))

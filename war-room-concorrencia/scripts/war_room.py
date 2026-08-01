@@ -28,7 +28,7 @@ import sys
 import urllib.parse
 from datetime import datetime, timezone
 
-from _fonts import FONT_ORBITRON_B64, FONT_SHARETECH_B64
+from _fonts import FONT_ORBITRON_B64, FONT_SHARETECH_B64, FONT_SORA_B64
 from _effects import EFFECTS_CSS, EFFECTS_BODY_HTML, EFFECTS_JS
 from apify_common import apify_run, get_token, load_json, norm, save_json
 
@@ -529,7 +529,8 @@ def print_console(alertas):
 
 # --------------------------------------------------------------------------- xlsx
 def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, config, meta, path,
-               own_perf=None, radar_ml=None):
+               own_perf=None, radar_ml=None, descoberta=None, keywords_data=None, marketplaces=None,
+               historico=None):
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils import get_column_letter
@@ -703,6 +704,116 @@ def write_xlsx(alertas_rodada, alertas_log, snapshot, ads_entries, ads_history, 
         for i, w in enumerate([22, 12, 13, 10, 10, 10, 12, 16, 10, 8, 12, 15, 14, 55], 1):
             ws.column_dimensions[get_column_letter(i)].width = w
         ws.freeze_panes = "A2"
+
+    # -- Google Shopping (quando fornecido, ver montar_radar_marketplaces)
+    gshopping = (marketplaces or {}).get("Google Shopping")
+    if gshopping:
+        ws = wb.create_sheet("Google Shopping")
+        cols_gs = ["produto", "quem", "position", "price", "discount_pct", "reviews",
+                   "rating", "frete_gratis", "patrocinado"]
+        ws.append([c.upper() for c in cols_gs])
+        style_header(ws, len(cols_gs))
+        for produto, entradas in gshopping.items():
+            for e in entradas:
+                quem = "NÓS" if e["proprio"] else e["concorrente"]
+                ws.append([produto, quem, e.get("position"), e.get("price"), e.get("discount_pct"),
+                           e.get("reviews"), e.get("rating"), e.get("frete_gratis"), e.get("patrocinado")])
+                if e["proprio"]:
+                    for c in range(1, len(cols_gs) + 1):
+                        ws.cell(row=ws.max_row, column=c).font = Font(bold=True)
+        for i, w in enumerate([24, 22, 10, 10, 13, 10, 8, 12, 16], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
+
+    # -- Keywords & Leilão (JSON exportado por gerar_relatorio_keywords.py)
+    if keywords_data and keywords_data.get("keywords"):
+        ws = wb.create_sheet("Keywords & Leilão")
+        dominios_por_campanha = keywords_data.get("dominios_por_campanha", {})
+        cols_kw = ["campanha", "keyword", "impressions", "clicks", "cpc_medio", "quality_score",
+                   "impression_share", "rank_lost", "dominios_no_leilao"]
+        ws.append([c.upper() for c in cols_kw])
+        style_header(ws, len(cols_kw))
+        linhas_kw = sorted(keywords_data["keywords"].values(), key=lambda a: -(a.get("impressions") or 0))
+        for a in linhas_kw:
+            doms = dominios_por_campanha.get(a["campanha"], [])
+            doms_txt = ", ".join(f"{d} ({n}x)" for d, n in doms[:5]) or "—"
+            ws.append([
+                a["campanha"], a["keyword"], a.get("impressions"), a.get("clicks"),
+                round(a["cpc_medio"], 2) if a.get("cpc_medio") is not None else "N/D",
+                round(a["quality_score_medio"], 1) if a.get("quality_score_medio") is not None else "N/D",
+                round(a["impression_share_medio"] * 100, 1) if a.get("impression_share_medio") is not None else "N/D",
+                round(a["rank_lost_medio"] * 100, 1) if a.get("rank_lost_medio") is not None else "N/D",
+                doms_txt,
+            ])
+        for i, w in enumerate([22, 26, 12, 10, 11, 13, 15, 12, 46], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+        ws.freeze_panes = "A2"
+        if keywords_data.get("simulado"):
+            ws_aviso = wb.create_sheet("⚠ Keywords é simulado", 0)
+            ws_aviso.append(["Este relatório de keywords usa DADO SIMULADO — o Google Ads ainda não está "
+                              "conectado no Windsor.ai desta integração. Ver references/fontes-e-limitacoes.md."])
+            ws_aviso.column_dimensions["A"].width = 110
+            ws_aviso.cell(row=1, column=1).font = Font(bold=True, color="B00020", size=12)
+            ws_aviso["A1"].alignment = Alignment(wrap_text=True, vertical="top")
+
+    # -- Concorrentes Descobertos (JSON exportado por descoberta_concorrentes.py)
+    if descoberta and (descoberta.get("por_produto") or descoberta.get("globais")):
+        ws = wb.create_sheet("Concorrentes Descobertos")
+        cols_desc = ["produto", "candidato", "score", "origem", "titulo_variante", "componentes_sem_dado"]
+        ws.append([c.upper() for c in cols_desc])
+        style_header(ws, len(cols_desc))
+        for produto, candidatos in (descoberta.get("por_produto") or {}).items():
+            for cand, pont in sorted(candidatos, key=lambda t: -(t[1].get("score_final") or -1)):
+                score = round(pont["score_final"], 3) if pont.get("score_final") is not None else "N/D"
+                ws.append([produto, cand.get("nome") or cand.get("seller"), score,
+                           ", ".join(cand.get("origem", [])), cand.get("title") or cand.get("dominio_site") or "",
+                           ", ".join(pont.get("componentes_indisponiveis", []))])
+        for cand, pont in sorted(descoberta.get("globais") or [], key=lambda t: -(t[1].get("score_final") or -1)):
+            score = round(pont["score_final"], 3) if pont.get("score_final") is not None else "N/D"
+            ws.append(["(global — leilão)", cand.get("nome"), score, ", ".join(cand.get("origem", [])),
+                       cand.get("dominio_site", ""), ", ".join(pont.get("componentes_indisponiveis", []))])
+        for i, w in enumerate([20, 26, 9, 26, 30, 34], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+        ws.freeze_panes = "A2"
+
+    # -- Histórico Preço x Ads
+    if historico:
+        ws = wb.create_sheet("Histórico Preço x Ads")
+        cols_h = ["produto", "concorrente", "data", "preco", "tem_ads", "nossa_posicao",
+                  "concorrente_posicao", "disputando_direto", "kpi_queda"]
+        ws.append([c.upper() for c in cols_h])
+        style_header(ws, len(cols_h))
+        for produto, por_conc in historico.items():
+            for concorrente, pontos in por_conc.items():
+                for p in pontos:
+                    ws.append([produto, concorrente, p.get("data"), p.get("preco"),
+                               p.get("tem_ads"), p.get("nossa_posicao"), p.get("concorrente_posicao"),
+                               p.get("disputando_direto"), p.get("kpi_queda")])
+                    if p.get("disputando_direto"):
+                        for c in range(1, len(cols_h) + 1):
+                            ws.cell(row=ws.max_row, column=c).fill = PatternFill("solid", fgColor="FCE4E4")
+        for i, w in enumerate([20, 22, 12, 10, 10, 12, 16, 16, 12], 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+        ws.freeze_panes = "A2"
+
+    # -- Catálogo (Produtos + Concorrentes) — inclui os candidatos manuais
+    ws = wb.create_sheet("Catálogo")
+    ws.append(["TIPO", "NOME", "MONITORANDO?", "DETALHE"])
+    style_header(ws, 4)
+    for p in montar_catalogo_produtos(config):
+        ws.append(["Produto", p.get("nome"), "sim" if p["monitorando"] else "candidato", p.get("termo_busca_ml", "")])
+    for c in montar_catalogo_concorrentes(config):
+        detalhe = c.get("dominio_site") or ", ".join(c.get("sellers_ml", []))
+        ws.append(["Concorrente", c.get("nome"), "sim" if c["monitorando"] else "candidato", detalhe])
+    for i, w in enumerate([14, 26, 16, 40], 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    ws.freeze_panes = "A2"
 
     # -- Limitacoes
     ws = wb.create_sheet("Limitações")
@@ -925,325 +1036,905 @@ def render_ml_radar(radar_ml):
 </section>"""
 
 
-def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None):
+# ------------------------------------------------------------- marketplaces (ML + Google Shopping)
+def montar_radar_marketplaces(radar_ml, snapshot_gs_concorrentes=None, snapshot_gs_proprio=None):
+    """Generaliza montar_radar_ml() para incluir também o Google Shopping (quando
+    fornecido) — {canal: {produto: [entradas...]}}. Não recalcula nada do Mercado
+    Livre (recebe radar_ml pronto); só monta o Google Shopping do mesmo jeito e
+    junta os dois canais. É a fonte da aba 'Marketplaces'."""
+    marketplaces = {"Mercado Livre": radar_ml or {}}
+    if snapshot_gs_concorrentes is not None or snapshot_gs_proprio is not None:
+        marketplaces["Google Shopping"] = montar_radar_ml(snapshot_gs_concorrentes or {}, snapshot_gs_proprio or {})
+    return marketplaces
+
+
+# ------------------------------------------------------------- histórico preço × ads (por concorrente)
+def atualizar_historico_preco_ads(hist_path, radar_ml, alertas_rodada, data_rodada):
+    """Acumula, por produto×concorrente, um ponto de histórico a cada execução
+    real: preço do concorrente, se está rodando ads (best-effort, via o mesmo
+    campo 'patrocinado' do Radar ML), a posição de cada lado, se o concorrente
+    está DISPUTANDO DIRETO (posição dele à nossa frente no mesmo produto) e se
+    nosso KPI caiu nesta mesma rodada (queda_kpi_proprio). É a fonte do gráfico
+    'Histórico Preço × Atividade de Ads' — não pede nenhuma coleta nova, só
+    persiste o que o Radar ML e os alertas já calculam a cada rodada."""
+    historico = load_json(hist_path, {})
+    produtos_com_queda_kpi = {a["produto"] for a in alertas_rodada if a["tipo"] == "queda_kpi_proprio"}
+    for produto, entradas in (radar_ml or {}).items():
+        proprio = next((e for e in entradas if e.get("proprio")), None)
+        nossa_posicao = proprio.get("position") if proprio else None
+        for e in entradas:
+            if e.get("proprio") or e.get("price") is None:
+                continue
+            concorrente = e["concorrente"]
+            ads_flag = {"sim": True, "nao": False}.get(e.get("patrocinado"))  # None = "desconhecido"
+            conc_posicao = e.get("position")
+            disputando = (nossa_posicao is not None and conc_posicao is not None and conc_posicao < nossa_posicao)
+            ponto = {
+                "data": data_rodada, "preco": e.get("price"), "tem_ads": ads_flag,
+                "nossa_posicao": nossa_posicao, "concorrente_posicao": conc_posicao,
+                "disputando_direto": disputando, "kpi_queda": produto in produtos_com_queda_kpi,
+            }
+            historico.setdefault(produto, {}).setdefault(concorrente, []).append(ponto)
+    save_json(hist_path, historico)
+    return historico
+
+
+def render_historico_chart(historico):
+    """Gráfico(s) 'Histórico Preço × Atividade de Ads' — SVG, um por par
+    produto×concorrente com pelo menos 2 pontos acumulados. Sombreia o período em
+    que o concorrente disputa direto (posição dele à nossa frente) e marca com um
+    traço vermelho os pontos em que nosso KPI caiu na mesma janela — a correlação
+    que embasa o protocolo de diagnóstico (references/protocolo-diagnostico.md)."""
+    if not historico:
+        return ('<p class="hist-empty">Ainda sem histórico acumulado — acumula automaticamente a cada '
+                'execução real do war_room.py (ou carregue um de demonstração via '
+                '--simulate-historico-preco-ads).</p>')
+    W, H = 720, 210
+    PAD_L, PAD_R, PAD_T, PAD_B = 50, 16, 18, 34
+    plot_w, plot_h = W - PAD_L - PAD_R, H - PAD_T - PAD_B
+
+    blocos = []
+    for produto, por_concorrente in historico.items():
+        for concorrente, pontos in por_concorrente.items():
+            pontos = [p for p in pontos if p.get("preco") is not None]
+            n = len(pontos)
+            if n < 2:
+                continue
+            precos = [p["preco"] for p in pontos]
+            lo, hi = min(precos), max(precos)
+            if lo == hi:
+                lo, hi = lo * 0.95, hi * 1.05
+            span = hi - lo
+
+            def x_de(i, _n=n):
+                return PAD_L + (i / (_n - 1)) * plot_w
+
+            def y_de(preco, _lo=lo, _span=span):
+                return PAD_T + (1 - (preco - _lo) / _span) * plot_h
+
+            faixas, ini = [], None
+            for i, p in enumerate(pontos):
+                if p.get("disputando_direto") and ini is None:
+                    ini = i
+                elif not p.get("disputando_direto") and ini is not None:
+                    faixas.append((ini, i - 1)); ini = None
+            if ini is not None:
+                faixas.append((ini, n - 1))
+            faixas_svg = "".join(
+                f'<rect x="{max(x_de(a) - 8, PAD_L):.1f}" y="{PAD_T}" '
+                f'width="{min(x_de(b) + 8, PAD_L + plot_w) - max(x_de(a) - 8, PAD_L):.1f}" '
+                f'height="{plot_h}" class="faixa-disputa" />'
+                for a, b in faixas
+            )
+
+            pos = [(x_de(i), y_de(p["preco"])) for i, p in enumerate(pontos)]
+            linha = " ".join(f"{x:.1f},{y:.1f}" for x, y in pos)
+
+            marcas = []
+            for i, (p, (x, y)) in enumerate(zip(pontos, pos)):
+                ads = p.get("tem_ads")
+                classe = "marca-ads-on" if ads is True else ("marca-ads-off" if ads is False else "marca-ads-nd")
+                ads_txt = "com ads" if ads is True else ("sem ads" if ads is False else "ads: n/d")
+                titulo = (f"{p['data']} — R$ {p['preco']:.2f} — {ads_txt}"
+                          + (" — DISPUTANDO DIRETO (posição à nossa frente)" if p.get("disputando_direto") else "")
+                          + (" — nosso KPI caiu nesta janela" if p.get("kpi_queda") else ""))
+                marcas.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4.5" class="{classe}"><title>{titulo}</title></circle>')
+                if p.get("kpi_queda"):
+                    marcas.append(f'<circle cx="{x:.1f}" cy="{PAD_T - 7:.1f}" r="3" class="marca-kpi"><title>{titulo}</title></circle>')
+
+            labels_x = "".join(
+                f'<text x="{x_de(i):.1f}" y="{H - 10}" class="eixo-label" text-anchor="middle">{p["data"][5:]}</text>'
+                for i, p in enumerate(pontos) if i in (0, n - 1, n // 2)
+            )
+            blocos.append(f"""
+    <div class="hist-chart-card">
+      <div class="hist-chart-head">
+        <span class="hist-chart-title">{produto} <span class="vs">×</span> {concorrente}</span>
+        <span class="hist-chart-legend">
+          <span class="leg-item"><span class="leg-swatch swatch-ads-on"></span>com ads</span>
+          <span class="leg-item"><span class="leg-swatch swatch-ads-off"></span>sem ads</span>
+          <span class="leg-item"><span class="leg-swatch swatch-disputa"></span>disputando direto</span>
+          <span class="leg-item"><span class="leg-swatch swatch-kpi"></span>nosso KPI caiu</span>
+        </span>
+      </div>
+      <svg viewBox="0 0 {W} {H}" class="hist-chart-svg" role="img"
+           aria-label="Histórico de preço de {concorrente} em {produto}, com atividade de ads e disputa direta">
+        {faixas_svg}
+        <polyline points="{linha}" class="hist-linha" />
+        {''.join(marcas)}
+        <text x="{PAD_L - 8}" y="{PAD_T + 4}" class="eixo-label" text-anchor="end">R$ {hi:.0f}</text>
+        <text x="{PAD_L - 8}" y="{PAD_T + plot_h}" class="eixo-label" text-anchor="end">R$ {lo:.0f}</text>
+        {labels_x}
+      </svg>
+    </div>""")
+
+    if not blocos:
+        return ('<p class="hist-empty">Histórico ainda insuficiente (menos de 2 rodadas acumuladas por '
+                'concorrente) — acumula automaticamente a cada execução real do war_room.py.</p>')
+    return f'<div class="hist-chart-grid">{"".join(blocos)}</div>'
+
+
+# ------------------------------------------------------------- keywords & leilão (aba)
+def render_keywords_tab(data):
+    """Aba 'Keywords & Leilão' a partir do JSON exportado por
+    gerar_relatorio_keywords.py (--export-json) — não recalcula nada, só tabula."""
+    if not data or not data.get("keywords"):
+        return ('<p class="hist-empty">Nenhum relatório de keywords carregado — rode '
+                'gerar_relatorio_keywords.py --export-json e passe o caminho em '
+                '--keywords-relatorio-json.</p>')
+    aviso = ""
+    if data.get("simulado"):
+        aviso = ('<div class="tab-aviso">⚠ Dado SIMULADO — o Google Ads ainda não está conectado no '
+                  'Windsor.ai desta integração. Ver references/fontes-e-limitacoes.md.</div>')
+    dominios_por_campanha = data.get("dominios_por_campanha", {})
+    linhas = sorted(data["keywords"].values(), key=lambda a: -(a.get("impressions") or 0))
+    rows = []
+    for a in linhas:
+        doms = dominios_por_campanha.get(a["campanha"], [])
+        doms_txt = ", ".join(f"{d} ({n}×)" for d, n in doms[:4]) or "—"
+        is_pct = f"{a['impression_share_medio'] * 100:.1f}%" if a.get("impression_share_medio") is not None else "N/D"
+        rl_pct = f"{a['rank_lost_medio'] * 100:.1f}%" if a.get("rank_lost_medio") is not None else "N/D"
+        qs = f"{a['quality_score_medio']:.1f}" if a.get("quality_score_medio") is not None else "N/D"
+        cpc = f"R$ {a['cpc_medio']:.2f}" if a.get("cpc_medio") is not None else "N/D"
+        rows.append(f"""
+        <tr>
+          <td>{a['campanha']}</td><td class="quem">{a['keyword']}</td>
+          <td>{a.get('impressions', 0):,}</td><td>{a.get('clicks', 0):,}</td>
+          <td>{cpc}</td><td>{qs}</td><td>{is_pct}</td><td>{rl_pct}</td>
+          <td>{doms_txt}</td>
+        </tr>""")
+    return f"""
+{aviso}
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr>
+      <th>Campanha</th><th>Keyword</th><th>Impressões</th><th>Cliques</th><th>CPC médio</th>
+      <th>Quality Score</th><th>Impression share</th><th>Rank lost</th><th>Domínios no leilão</th>
+    </tr></thead>
+    <tbody>{''.join(rows)}</tbody>
+  </table>
+</div>
+<p class="tab-note">CPC de topo de página/1ª página fica N/D quando o Google não estima (comum em termos de
+baixo volume) — nunca é inventado. "Domínios no leilão" vem do Auction Insight, coletado em chamada separada
+das métricas de performance (o Google Ads recusa combinar os dois na mesma consulta).</p>"""
+
+
+# ------------------------------------------------------------- concorrentes descobertos (aba)
+def render_descoberta_tab(data):
+    """Aba 'Concorrentes Descobertos' a partir do JSON exportado por
+    descoberta_concorrentes.py (--export-json) — não recalcula nada, só tabula."""
+    if not data or (not data.get("por_produto") and not data.get("globais")):
+        return ('<p class="hist-empty">Nenhuma descoberta carregada — rode descoberta_concorrentes.py '
+                '--export-json e passe o caminho em --descoberta-json.</p>')
+
+    def linha_candidato(cand, pont, extra=""):
+        score = f"{pont['score_final']:.2f}" if pont.get("score_final") is not None else "N/D"
+        comp = pont.get("componentes", {})
+        nd = ", ".join(pont.get("componentes_indisponiveis", [])) or "—"
+        return f"""
+        <tr>
+          <td class="quem">{cand.get('nome') or cand.get('seller')}</td><td>{score}</td>
+          <td>{extra}</td>
+          <td>{', '.join(cand.get('origem', [])) or '—'}</td>
+          <td>{cand.get('title') or cand.get('dominio_site') or '—'}</td>
+          <td class="tab-note-cell">{nd}</td>
+        </tr>"""
+
+    blocos = []
+    for produto, candidatos in (data.get("por_produto") or {}).items():
+        candidatos = sorted(candidatos, key=lambda t: -(t[1].get("score_final") or -1))
+        linhas = "".join(linha_candidato(c, p) for c, p in candidatos)
+        blocos.append(f"""
+    <div class="descoberta-bloco">
+      <h3 class="descoberta-produto">{produto}</h3>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Candidato</th><th>Score</th><th></th><th>Origem</th><th>Variante/Título</th><th>Sem dado</th></tr></thead>
+          <tbody>{linhas}</tbody>
+        </table>
+      </div>
+    </div>""")
+
+    globais = sorted(data.get("globais") or [], key=lambda t: -(t[1].get("score_final") or -1))
+    globais_html = ""
+    if globais:
+        linhas_g = "".join(linha_candidato(c, p, extra=f"{c.get('aparicoes_leilao', '—')}× no leilão") for c, p in globais)
+        globais_html = f"""
+    <div class="descoberta-bloco">
+      <h3 class="descoberta-produto">Candidatos globais (Auction Insight — não ligados a um produto específico)</h3>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Candidato</th><th>Score</th><th>Aparições</th><th>Origem</th><th>Domínio</th><th>Sem dado</th></tr></thead>
+          <tbody>{linhas_g}</tbody>
+        </table>
+      </div>
+    </div>"""
+
+    return f"""{''.join(blocos)}{globais_html}
+<p class="tab-note">Score renormalizado entre os componentes DISPONÍVEIS nesta rodada — um componente sem
+dado sai do somatório em vez de virar 0 (ver metodologia completa em descoberta.xlsx / SKILL.md, passo 11).</p>"""
+
+
+# ------------------------------------------------------------- marketplaces (aba, ML + Google Shopping)
+def render_marketplaces_tab(marketplaces):
+    """Aba 'Marketplaces' — Mercado Livre + Google Shopping (quando fornecido),
+    lado a lado por canal. marketplaces vem de montar_radar_marketplaces()."""
+    if not marketplaces or not any(marketplaces.values()):
+        return ""
+    blocos = []
+    for canal, radar in marketplaces.items():
+        if not radar:
+            blocos.append(f"""
+    <div class="marketplace-bloco">
+      <h3 class="descoberta-produto">{canal}</h3>
+      <p class="hist-empty">Ainda não coletado neste canal.</p>
+    </div>""")
+            continue
+        linhas = []
+        for produto, entradas in radar.items():
+            for e in entradas:
+                quem = "NÓS" if e["proprio"] else e["concorrente"]
+                classe = "radar-proprio" if e["proprio"] else "radar-concorrente"
+                preco = f"R$ {e['price']:.2f}" if e.get("price") is not None else "—"
+                desconto = f"{e['discount_pct']:.0f}%" if e.get("discount_pct") else "—"
+                ads = {"sim": "SIM", "nao": "não", "desconhecido": "n/d"}.get(e.get("patrocinado", "desconhecido"), "n/d")
+                linhas.append(f"""
+            <tr class="{classe}">
+              <td>{produto}</td><td class="quem">{quem}</td><td>#{e.get('position', '—')}</td>
+              <td>{preco}</td><td>{desconto}</td><td>{e.get('reviews', '—')}</td>
+              <td>{e.get('rating', '—')}</td><td>{'sim' if e.get('frete_gratis') else 'não'}</td>
+              <td class="ads-flag">{ads}</td>
+            </tr>""")
+        blocos.append(f"""
+    <div class="marketplace-bloco">
+      <h3 class="descoberta-produto">{canal}</h3>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Produto</th><th>Quem</th><th>Posição</th><th>Preço</th><th>Desconto</th>
+            <th>Reviews</th><th>Rating</th><th>Frete grátis</th><th>Anúncio patrocinado?</th>
+          </tr></thead>
+          <tbody>{''.join(linhas)}</tbody>
+        </table>
+      </div>
+    </div>""")
+    return f"""{''.join(blocos)}
+<p class="tab-note">"Anúncio patrocinado?" é best-effort (ver references/fontes-e-limitacoes.md). Google
+Shopping aparece só quando uma coleta para esse canal foi fornecida — sem isso, a aba mostra "ainda não
+coletado" em vez de inventar posição/preço.</p>"""
+
+
+# ------------------------------------------------------------- seleção manual (aba, produtos + concorrentes)
+def montar_catalogo_produtos(config):
+    catalogo = []
+    for p in config.get("produtos_monitorados", []):
+        item = dict(p); item["monitorando"] = True
+        catalogo.append(item)
+    for p in config.get("produtos_candidatos_manual", []):
+        item = dict(p); item["monitorando"] = False
+        catalogo.append(item)
+    return catalogo
+
+
+def montar_catalogo_concorrentes(config):
+    catalogo = []
+    for c in config.get("concorrentes", []):
+        item = dict(c); item["monitorando"] = True
+        catalogo.append(item)
+    for c in config.get("candidatos_concorrentes_manual", []):
+        item = dict(c); item["monitorando"] = False
+        catalogo.append(item)
+    return catalogo
+
+
+def render_selecao_manual_tab(config):
+    """Aba 'Seleção Manual' embutida no próprio war-room.html — liga/desliga
+    produtos e concorrentes monitorados, adiciona/remove, e exporta o config.json
+    atualizado. Sem backend: nada se grava sozinho, o botão baixa o arquivo."""
+    catalogo_produtos = montar_catalogo_produtos(config)
+    catalogo_concorrentes = montar_catalogo_concorrentes(config)
+    return f"""
+<div class="selecao-grid">
+  <div class="selecao-coluna">
+    <div class="selecao-head">
+      <h3 class="descoberta-produto">Produtos monitorados</h3>
+      <span class="selecao-stat"><strong id="sel-prod-on">0</strong> / <span id="sel-prod-total">0</span></span>
+    </div>
+    <div class="toolbar-mini">
+      <button class="btn-mini" id="btn-add-produto-toggle" type="button">+ produto</button>
+    </div>
+    <div class="add-form-mini" id="add-produto-form" style="display:none">
+      <input type="text" id="new-produto-nome" placeholder="nome">
+      <input type="text" id="new-produto-termo" placeholder="termo de busca (ML)">
+      <input type="number" step="0.01" id="new-produto-preco" placeholder="preço (opcional)">
+      <button class="btn-mini primary" id="btn-add-produto-confirm" type="button">adicionar</button>
+    </div>
+    <div class="selecao-lista" id="lista-produtos"></div>
+  </div>
+  <div class="selecao-coluna">
+    <div class="selecao-head">
+      <h3 class="descoberta-produto">Concorrentes monitorados</h3>
+      <span class="selecao-stat"><strong id="sel-conc-on">0</strong> / <span id="sel-conc-total">0</span></span>
+    </div>
+    <div class="toolbar-mini">
+      <button class="btn-mini" id="btn-add-concorrente-toggle" type="button">+ concorrente</button>
+    </div>
+    <div class="add-form-mini" id="add-concorrente-form" style="display:none">
+      <input type="text" id="new-concorrente-nome" placeholder="nome">
+      <input type="text" id="new-concorrente-dominio" placeholder="domínio do site (opcional)">
+      <input type="text" id="new-concorrente-seller" placeholder="seller(s) no ML, separados por vírgula">
+      <button class="btn-mini primary" id="btn-add-concorrente-confirm" type="button">adicionar</button>
+    </div>
+    <div class="selecao-lista" id="lista-concorrentes"></div>
+  </div>
+</div>
+<div class="toolbar" style="margin-top:16px">
+  <button class="btn primary" id="btn-export-config" type="button">⭳ Exportar config.json atualizado</button>
+  <button class="btn" id="btn-copy-config" type="button">⧉ Copiar JSON</button>
+</div>
+<p class="tab-note">Sem backend: nada se grava sozinho. Ao terminar, exporte e salve o arquivo por cima do
+seu <code>scripts/config.json</code> antes da próxima rodada.</p>
+<textarea id="config-json-preview" class="json-preview" readonly></textarea>
+<script id="selecao-manual-data" type="application/json">{json.dumps({
+        "produtos": catalogo_produtos, "concorrentes": catalogo_concorrentes,
+    }, ensure_ascii=False)}</script>"""
+
+
+def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
+               descoberta=None, keywords_data=None, marketplaces=None, historico=None):
     ordem = {"alta": 0, "media": 1, "baixa": 2}
     ordenados = sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]])
     cards = "".join(render_card(a, i) for i, a in enumerate(ordenados))
     if not cards:
-        cards = ('<div class="empty">❖ NENHUM ALVO NO RADAR NESTA VARREDURA<br>'
+        cards = ('<div class="empty">Nenhum alvo nesta varredura<br>'
                   '<span>(sem mudanças em relação à última rodada, ou é a linha de base)</span></div>')
 
     n_alta = sum(1 for a in alertas_rodada if a["severidade"] == "alta")
     n_media = sum(1 for a in alertas_rodada if a["severidade"] == "media")
     if n_alta:
-        mc_level, mc_text = "alta", f"MASTER WARNING — {n_alta} ALERTA(S) CRÍTICO(S) — AÇÃO IMEDIATA"
+        mc_level, mc_text = "alta", f"{n_alta} alerta(s) crítico(s) — ação imediata recomendada"
     elif n_media:
-        mc_level, mc_text = "media", f"CAUTION — {n_media} ALERTA(S) EM ATENÇÃO — REVISAR"
+        mc_level, mc_text = "media", f"{n_media} alerta(s) em atenção — revisar"
     else:
-        mc_level, mc_text = "ok", "TODOS OS SISTEMAS NOMINAIS — NENHUMA AMEAÇA DETECTADA"
+        mc_level, mc_text = "ok", "Todos os sinais nominais — nenhuma ameaça detectada"
 
     own_kpi_section = ""
     if own_perf:
         own_cards = "".join(render_own_kpi(p, v) for p, v in own_perf.items())
         own_kpi_section = f"""
 <section class="gauge-strip">
-  <h2>// desempenho próprio — google/meta ads (últimos dados importados)</h2>
+  <h2>Desempenho próprio — Google/Meta Ads + GA4</h2>
   <div class="gauge-grid">{own_cards}</div>
 </section>"""
 
     esquadrao_section = render_esquadrao(alertas_rodada)
-    ml_radar_section = render_ml_radar(radar_ml)
+    marketplaces_html = render_marketplaces_tab(marketplaces or {"Mercado Livre": radar_ml or {}})
+    descoberta_html = render_descoberta_tab(descoberta)
+    keywords_html = render_keywords_tab(keywords_data)
+    historico_html = render_historico_chart(historico)
+    selecao_html = render_selecao_manual_tab(config)
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>War Room — {config.get('marca', '')}</title>
 <style>
   @font-face {{
-    font-family: 'Orbitron'; font-weight: 400 900; font-style: normal; font-display: swap;
-    src: url(data:font/woff2;base64,{FONT_ORBITRON_B64}) format('woff2');
-  }}
-  @font-face {{
-    font-family: 'Share Tech Mono'; font-weight: 400; font-style: normal; font-display: swap;
-    src: url(data:font/woff2;base64,{FONT_SHARETECH_B64}) format('woff2');
+    font-family: 'Sora'; font-weight: 100 800; font-style: normal; font-display: swap;
+    src: url(data:font/woff2;base64,{FONT_SORA_B64}) format('woff2');
   }}
   :root {{
-    --void: #05070a; --panel: #0b121a; --panel-2: #0f1922; --line: rgba(70,255,224,.18);
-    --hud: #29ffe0; --hud-soft: rgba(41,255,224,.45); --hud-dim: rgba(41,255,224,.08);
-    --text: #d8f7f0; --text-dim: #6f8f97;
-    --alta: #ff3b52; --alta-bg: rgba(255,59,82,.1);
-    --media: #ffb02e; --media-bg: rgba(255,176,46,.1);
-    --baixa: #39ff9d; --baixa-bg: rgba(57,255,157,.08);
+    --bg: #0c0d11; --surface: #16171d; --surface-2: #1d1f27; --surface-3: #24262f;
+    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.16);
+    --text: #f2f2f2; --text-dim: #a6a6ad; --text-mute: #6f6f78;
+    --accent: #3987e5; --accent-soft: rgba(57,135,229,.16); --accent-strong: #63a4ec;
+    --good: #0ca30c; --good-bg: rgba(12,163,12,.14);
+    --warning: #fab219; --warning-bg: rgba(250,178,25,.14);
+    --critical: #d03b3b; --critical-bg: rgba(208,59,59,.14);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #29a329; --s7: #9085e9; --s8: #e66767;
     color-scheme: dark;
   }}
   * {{ box-sizing: border-box; }}
-  html, body {{ background: var(--void); }}
+  html, body {{ background: var(--bg); }}
   body {{
-    margin: 0; color: var(--text); position: relative; min-height: 100vh; overflow-x: hidden;
-    font-family: 'Share Tech Mono', ui-monospace, "Roboto Mono", monospace;
-    background-image:
-      linear-gradient(var(--hud-dim) 1px, transparent 1px),
-      linear-gradient(90deg, var(--hud-dim) 1px, transparent 1px);
-    background-size: 36px 36px;
+    margin: 0; color: var(--text); min-height: 100vh;
+    font-family: 'Sora', ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "ss01" 1;
   }}
-  body::before {{
-    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 5;
-    background: radial-gradient(ellipse at 50% 0%, transparent 45%, rgba(0,0,0,.6) 100%);
+  a {{ color: var(--accent-strong); }}
+  h1, h2, h3, .gauge-value, .stat-value, .brand-mark {{ font-family: 'Sora', ui-sans-serif, sans-serif; }}
+  .shell {{ max-width: 1240px; margin: 0 auto; padding: 0 28px 56px; }}
+  header.top {{
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 26px 28px 20px; max-width: 1240px; margin: 0 auto;
   }}
-  body::after {{
-    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 6; opacity: .5;
-    background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
-                 rgba(0,0,0,.18) 3px, rgba(0,0,0,0) 4px);
+  .brand {{ display: flex; align-items: center; gap: 12px; }}
+  .brand-mark {{
+    width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), var(--s7)); font-weight: 800; font-size: 1.05rem; color: #fff;
+    flex: none;
   }}
-  .scan-band {{
-    position: fixed; left: 0; right: 0; top: -30vh; height: 30vh; z-index: 4; pointer-events: none;
-    background: linear-gradient(to bottom, transparent, rgba(41,255,224,.06), transparent);
-    animation: scan 9s linear infinite;
+  .brand-text .eyebrow {{
+    display: block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-mute);
+    font-weight: 600; margin-bottom: 2px;
   }}
-  @keyframes scan {{ 0% {{ transform: translateY(0); }} 100% {{ transform: translateY(430vh); }} }}
-  a {{ color: var(--hud); }}
-  h1, h2, .gauge-value {{ font-family: 'Orbitron', sans-serif; }}
-  .frame {{ position: relative; z-index: 1; }}
-  header.frame {{
-    display: flex; flex-direction: column; gap: 8px; padding: 20px 32px;
-    border-bottom: 1px solid var(--line); background: linear-gradient(180deg, var(--panel), transparent);
+  h1 {{ margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; }}
+  .top-stats {{ display: flex; flex-wrap: wrap; gap: 22px; }}
+  .top-stat {{ text-align: right; }}
+  .top-stat-label {{ display: block; font-size: .66rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-mute); }}
+  .top-stat-value {{ font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }}
+  .status-banner {{
+    display: flex; align-items: center; gap: 10px; margin: 0 auto 22px; max-width: 1240px; padding: 0 28px;
   }}
-  .hud-top-row {{ display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }}
-  .eyebrow {{
-    font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: var(--hud);
-    font-weight: 600; opacity: .9;
+  .status-pill {{
+    display: inline-flex; align-items: center; gap: 9px; padding: 8px 16px; border-radius: 999px;
+    font-size: .82rem; font-weight: 600; border: 1px solid;
   }}
-  .radar-badge {{
-    display: inline-flex; align-items: center; gap: 8px; font-size: .7rem; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--text-dim);
+  .status-pill .dot {{ width: 8px; height: 8px; border-radius: 50%; flex: none; }}
+  .status-pill.alta {{ color: #ff9c96; border-color: rgba(208,59,59,.5); background: var(--critical-bg); }}
+  .status-pill.alta .dot {{ background: var(--critical); box-shadow: 0 0 0 4px rgba(208,59,59,.18); }}
+  .status-pill.media {{ color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }}
+  .status-pill.media .dot {{ background: var(--warning); box-shadow: 0 0 0 4px rgba(250,178,25,.18); }}
+  .status-pill.ok {{ color: #8fe38f; border-color: rgba(12,163,12,.5); background: var(--good-bg); }}
+  .status-pill.ok .dot {{ background: var(--good); box-shadow: 0 0 0 4px rgba(12,163,12,.18); }}
+
+  .tabs {{
+    display: flex; gap: 6px; flex-wrap: wrap; padding: 6px; margin: 0 auto 24px; max-width: 1240px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; position: sticky; top: 12px; z-index: 20;
   }}
-  .radar {{
-    width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--hud-soft); position: relative;
-    background: radial-gradient(circle, rgba(41,255,224,.18), transparent 70%);
+  .tab-btn {{
+    font-family: inherit; font-size: .82rem; font-weight: 600; color: var(--text-dim); background: transparent;
+    border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; transition: background .15s, color .15s;
   }}
-  .radar::before {{
-    content: ""; position: absolute; inset: 0; border-radius: 50%;
-    background: conic-gradient(from 0deg, var(--hud), transparent 35%);
-    animation: spin 2.2s linear infinite;
+  .tab-btn:hover {{ color: var(--text); background: var(--surface-2); }}
+  .tab-btn.active {{ color: #fff; background: var(--accent); }}
+  .tab-panel {{ display: none; }}
+  .tab-panel.active {{ display: block; animation: fade-in .25s ease; }}
+  @keyframes fade-in {{ from {{ opacity: 0; transform: translateY(4px); }} to {{ opacity: 1; transform: none; }} }}
+
+  section {{ margin-bottom: 28px; }}
+  h2 {{ font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); font-weight: 700; margin: 0 0 14px; }}
+  h3.descoberta-produto {{ font-size: .95rem; font-weight: 700; margin: 0 0 10px; color: var(--text); }}
+
+  .gauge-grid, .squadron-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
+  .gauge, .squadron-card {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
+    min-width: 190px; box-shadow: 0 8px 24px -14px rgba(0,0,0,.6);
   }}
-  @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-  h1 {{
-    margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: .02em;
-    text-transform: uppercase; color: var(--hud); text-shadow: 0 0 10px var(--hud-soft), 0 0 30px rgba(41,255,224,.2);
-    text-wrap: balance;
-  }}
-  .hud-meta {{ display: flex; flex-wrap: wrap; gap: 18px; font-size: .78rem; color: var(--text-dim);
-               font-variant-numeric: tabular-nums; }}
-  .hud-meta strong {{ color: var(--text); }}
-  .master-caution {{
-    margin: 10px 32px 0; padding: 9px 16px; border-radius: 4px; font-size: .78rem; font-weight: 700;
-    letter-spacing: .05em; text-transform: uppercase; display: flex; align-items: center; gap: 10px;
-    border: 1px solid; z-index: 1; position: relative;
-  }}
-  .master-caution .mc-dot {{ width: 8px; height: 8px; border-radius: 50%; flex: none; }}
-  .master-caution.alta {{
-    color: var(--alta); border-color: var(--alta); background: var(--alta-bg);
-    animation: warn-pulse 1.4s ease-in-out infinite;
-  }}
-  .master-caution.alta .mc-dot {{ background: var(--alta); box-shadow: 0 0 8px var(--alta); }}
-  .master-caution.media {{ color: var(--media); border-color: var(--media); background: var(--media-bg); }}
-  .master-caution.media .mc-dot {{ background: var(--media); box-shadow: 0 0 8px var(--media); }}
-  .master-caution.ok {{ color: var(--baixa); border-color: rgba(57,255,157,.3); background: var(--baixa-bg); }}
-  .master-caution.ok .mc-dot {{ background: var(--baixa); box-shadow: 0 0 8px var(--baixa); }}
-  @keyframes warn-pulse {{
-    0%, 100% {{ box-shadow: 0 0 0 rgba(255,59,82,0); }} 50% {{ box-shadow: 0 0 22px -4px var(--alta); }}
-  }}
-  .gauge-strip {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
-  .gauge-strip h2 {{
-    font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
-    letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400;
-  }}
-  .gauge-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
-  .gauge {{
-    position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
-    padding: 12px 16px; min-width: 168px;
-  }}
-  .gauge::before, .gauge::after {{ content: ""; position: absolute; width: 10px; height: 10px; }}
-  .gauge::before {{ top: -1px; left: -1px; border-top: 2px solid var(--hud-soft); border-left: 2px solid var(--hud-soft); }}
-  .gauge::after {{ bottom: -1px; right: -1px; border-bottom: 2px solid var(--hud-soft); border-right: 2px solid var(--hud-soft); }}
-  .gauge-produto {{ font-size: .74rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }}
-  .gauge-main {{ display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px; }}
-  .gauge-value {{ font-size: 1.7rem; font-weight: 700; color: var(--hud); text-shadow: 0 0 12px var(--hud-soft); }}
-  .gauge-tag {{ font-size: .66rem; color: var(--text-dim); letter-spacing: .08em; }}
-  .gauge-row {{ display: flex; justify-content: space-between; gap: 12px; font-size: .76rem;
-                color: var(--text-dim); font-variant-numeric: tabular-nums; margin-top: 2px; }}
-  .gauge-row strong {{ color: var(--text); }}
-  .signal-bar {{ margin-top: 10px; height: 3px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; }}
-  .signal-bar span {{ display: block; height: 100%; background: var(--hud); box-shadow: 0 0 6px var(--hud-soft); }}
-  .gauge-ga4 {{ margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }}
-  .squadron-strip {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
-  .squadron-strip h2 {{
-    font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
-    letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400;
-  }}
-  .squadron-grid {{ display: flex; flex-wrap: wrap; gap: 14px; }}
-  .squadron-card {{
-    position: relative; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--line);
-    border-radius: 4px; padding: 12px 16px; min-width: 220px; max-width: 300px;
-  }}
-  .squadron-card.sev-alta {{ border-left-color: var(--alta); }}
-  .squadron-card.sev-media {{ border-left-color: var(--media); }}
-  .squadron-card.sev-baixa {{ border-left-color: var(--baixa); }}
-  .squadron-head {{ display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }}
-  .squadron-emblema {{ font-size: 1rem; color: var(--hud); }}
-  .squadron-nome {{ font-size: .82rem; font-weight: 700; }}
+  .gauge {{ min-width: 178px; }}
+  .gauge-produto {{ font-size: .72rem; letter-spacing: .03em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 10px; }}
+  .gauge-main {{ display: flex; align-items: baseline; gap: 6px; margin-bottom: 10px; }}
+  .gauge-value {{ font-size: 1.7rem; font-weight: 700; color: var(--text); }}
+  .gauge-tag {{ font-size: .66rem; color: var(--text-mute); letter-spacing: .06em; }}
+  .gauge-row {{ display: flex; justify-content: space-between; gap: 12px; font-size: .78rem;
+                color: var(--text-dim); font-variant-numeric: tabular-nums; margin-top: 4px; }}
+  .gauge-row strong {{ color: var(--text); font-weight: 600; }}
+  .signal-bar {{ margin-top: 12px; height: 5px; background: var(--surface-3); border-radius: 3px; overflow: hidden; }}
+  .signal-bar span {{ display: block; height: 100%; background: var(--accent); border-radius: 3px; }}
+  .gauge-ga4 {{ margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }}
+
+  .squadron-card {{ border-left: 3px solid var(--border-strong); min-width: 230px; max-width: 320px; }}
+  .squadron-card.sev-alta {{ border-left-color: var(--critical); }}
+  .squadron-card.sev-media {{ border-left-color: var(--warning); }}
+  .squadron-card.sev-baixa {{ border-left-color: var(--good); }}
+  .squadron-head {{ display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }}
+  .squadron-emblema {{ font-size: 1.15rem; }}
+  .squadron-nome {{ font-size: .86rem; font-weight: 700; }}
   .squadron-status {{
-    display: inline-block; font-size: .64rem; letter-spacing: .05em; text-transform: uppercase;
-    padding: 2px 7px; border-radius: 3px; background: var(--panel-2); color: var(--text-dim);
-    border: 1px solid var(--line); margin-bottom: 6px;
+    display: inline-block; font-size: .64rem; letter-spacing: .04em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim);
+    border: 1px solid var(--border); margin-bottom: 8px; font-weight: 600;
   }}
-  .sev-alta .squadron-status {{ color: var(--alta); border-color: var(--alta); }}
-  .sev-media .squadron-status {{ color: var(--media); border-color: var(--media); }}
-  .squadron-count {{ font-size: .72rem; color: var(--text-dim); margin-bottom: 6px; }}
-  .squadron-list {{ list-style: none; margin: 0; padding: 0; font-size: .74rem; color: var(--text-dim); }}
-  .squadron-list li {{ padding: 2px 0; border-top: 1px dashed var(--line); }}
-  .squadron-list li:first-child {{ border-top: none; }}
-  .ml-radar {{ padding: 18px 32px; border-bottom: 1px solid var(--line); position: relative; z-index: 1; }}
-  .ml-radar h2 {{
-    font-family: 'Share Tech Mono', monospace; font-size: .72rem; text-transform: uppercase;
-    letter-spacing: .08em; color: var(--text-dim); margin: 0 0 14px; font-weight: 400;
+  .sev-alta .squadron-status {{ color: #ff9c96; border-color: rgba(208,59,59,.5); background: var(--critical-bg); }}
+  .sev-media .squadron-status {{ color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }}
+  .squadron-count {{ font-size: .74rem; color: var(--text-mute); margin-bottom: 8px; }}
+  .squadron-list {{ list-style: none; margin: 0; padding: 0; font-size: .78rem; color: var(--text-dim); }}
+  .squadron-list li {{ padding: 5px 0; border-top: 1px solid var(--border); }}
+  .squadron-list li:first-child {{ border-top: none; padding-top: 0; }}
+
+  .data-table-wrap, .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }}
+  table.data-table, table.ml-radar-table {{ width: 100%; border-collapse: collapse; font-size: .82rem; white-space: nowrap; }}
+  .data-table th, .ml-radar-table th {{
+    text-align: left; padding: 11px 14px; background: var(--surface-2); color: var(--text-dim);
+    font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0;
   }}
-  .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }}
-  .ml-radar-table {{ width: 100%; border-collapse: collapse; font-size: .78rem; white-space: nowrap; }}
-  .ml-radar-table th {{
-    text-align: left; padding: 8px 12px; background: var(--panel-2); color: var(--hud);
-    font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;
-    border-bottom: 1px solid var(--line);
+  .data-table td, .ml-radar-table td {{
+    padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-dim);
+    font-variant-numeric: tabular-nums; background: var(--surface);
   }}
-  .ml-radar-table td {{ padding: 7px 12px; border-bottom: 1px dashed var(--line); color: var(--text-dim);
-                         font-variant-numeric: tabular-nums; }}
-  .ml-radar-table tr.radar-proprio {{ background: var(--hud-dim); }}
-  .ml-radar-table tr.radar-proprio td.quem {{ color: var(--hud); font-weight: 700; }}
-  .ml-radar-table td.quem {{ color: var(--text); }}
-  .ml-radar-table td.ads-flag {{ text-transform: uppercase; font-size: .7rem; }}
-  .ml-radar-note {{ margin: 10px 0 0; font-size: .72rem; color: var(--text-dim); line-height: 1.5; }}
-  .grid {{
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 16px; padding: 24px 32px; position: relative; z-index: 1;
+  .data-table tr:last-child td, .ml-radar-table tr:last-child td {{ border-bottom: none; }}
+  tr.radar-proprio td {{ background: var(--accent-soft); }}
+  tr.radar-proprio td.quem {{ color: var(--accent-strong); font-weight: 700; }}
+  td.quem {{ color: var(--text); font-weight: 600; }}
+  td.ads-flag {{ text-transform: uppercase; font-size: .72rem; }}
+  td.tab-note-cell {{ color: var(--text-mute); font-size: .74rem; white-space: normal; }}
+  .marketplace-bloco, .descoberta-bloco {{ margin-bottom: 24px; }}
+  .marketplace-bloco:last-child, .descoberta-bloco:last-child {{ margin-bottom: 0; }}
+
+  .tab-aviso {{
+    background: var(--warning-bg); border: 1px solid rgba(250,178,25,.4); color: #ffd68a;
+    border-radius: 12px; padding: 12px 16px; font-size: .82rem; font-weight: 600; margin-bottom: 16px;
   }}
+  .tab-note {{ margin-top: 14px; font-size: .78rem; color: var(--text-mute); line-height: 1.6; max-width: 860px; }}
+  .hist-empty {{ color: var(--text-mute); font-size: .86rem; padding: 30px; text-align: center;
+                 border: 1px dashed var(--border); border-radius: 14px; }}
+
+  .hist-chart-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; }}
+  .hist-chart-card {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px 6px;
+    box-shadow: 0 8px 24px -14px rgba(0,0,0,.6);
+  }}
+  .hist-chart-head {{ display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }}
+  .hist-chart-title {{ font-size: .88rem; font-weight: 700; }}
+  .hist-chart-title .vs {{ color: var(--text-mute); font-weight: 400; }}
+  .hist-chart-legend {{ display: flex; flex-wrap: wrap; gap: 12px; font-size: .68rem; color: var(--text-mute); }}
+  .leg-item {{ display: inline-flex; align-items: center; gap: 5px; }}
+  .leg-swatch {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }}
+  .swatch-ads-on {{ background: var(--accent); }}
+  .swatch-ads-off {{ background: transparent; border: 1.5px solid var(--text-mute); }}
+  .swatch-disputa {{ background: var(--critical-bg); border: 1px solid var(--critical); border-radius: 3px; }}
+  .swatch-kpi {{ background: var(--critical); }}
+  .hist-chart-svg {{ width: 100%; height: auto; display: block; }}
+  .faixa-disputa {{ fill: var(--critical); opacity: .1; }}
+  .hist-linha {{ fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }}
+  .marca-ads-on {{ fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }}
+  .marca-ads-off {{ fill: var(--surface); stroke: var(--text-mute); stroke-width: 1.5; }}
+  .marca-ads-nd {{ fill: var(--text-mute); opacity: .5; stroke: none; }}
+  .marca-kpi {{ fill: var(--critical); }}
+  .eixo-label {{ fill: var(--text-mute); font-size: 9px; font-family: 'Sora', sans-serif; }}
+
+  .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }}
   .card {{
-    position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
-    padding: 16px 18px; animation: rise .5s ease backwards; animation-delay: var(--d, 0s);
+    position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px 20px; animation: rise .4s ease backwards; animation-delay: var(--d, 0s);
+    box-shadow: 0 10px 28px -16px rgba(0,0,0,.65); transition: transform .2s ease, box-shadow .2s ease;
   }}
-  .card::before, .card::after {{ content: ""; position: absolute; width: 14px; height: 14px; }}
-  .card::before {{ top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }}
-  .card::after {{ bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }}
-  .card.sev-alta::before, .card.sev-alta::after {{ border-color: var(--alta); }}
-  .card.sev-media::before, .card.sev-media::after {{ border-color: var(--media); }}
-  .card.sev-baixa::before, .card.sev-baixa::after {{ border-color: var(--baixa); }}
-  .card.sev-alta {{ animation: rise .5s ease backwards, pulse-alta 2.4s ease-in-out .5s infinite; }}
-  @keyframes pulse-alta {{
-    0%, 100% {{ box-shadow: 0 0 0 rgba(255,59,82,0); }} 50% {{ box-shadow: 0 0 18px -3px var(--alta); }}
-  }}
+  .card:hover {{ transform: translateY(-3px); box-shadow: 0 16px 34px -16px rgba(0,0,0,.75); }}
+  .card.sev-alta {{ border-color: rgba(208,59,59,.4); }}
+  .card.sev-media {{ border-color: rgba(250,178,25,.35); }}
   @keyframes rise {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: none; }} }}
   .card-head {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
   .badge {{
     display: inline-flex; align-items: center; gap: 5px; font-size: .68rem; font-weight: 700;
-    padding: 3px 9px; border-radius: 3px; letter-spacing: .08em; border: 1px solid;
+    padding: 4px 10px; border-radius: 999px; letter-spacing: .04em; border: 1px solid;
   }}
-  .badge-ico {{ font-size: .6rem; }}
-  .sev-alta .badge {{ background: var(--alta-bg); color: var(--alta); border-color: var(--alta); }}
-  .sev-media .badge {{ background: var(--media-bg); color: var(--media); border-color: var(--media); }}
-  .sev-baixa .badge {{ background: var(--baixa-bg); color: var(--baixa); border-color: var(--baixa); }}
-  .tipo {{ font-size: .74rem; color: var(--text-dim); text-transform: capitalize; }}
+  .badge-ico {{ font-size: .62rem; }}
+  .sev-alta .badge {{ background: var(--critical-bg); color: #ff9c96; border-color: rgba(208,59,59,.5); }}
+  .sev-media .badge {{ background: var(--warning-bg); color: #ffd68a; border-color: rgba(250,178,25,.5); }}
+  .sev-baixa .badge {{ background: var(--good-bg); color: #8fe38f; border-color: rgba(12,163,12,.5); }}
+  .tipo {{ font-size: .74rem; color: var(--text-mute); text-transform: capitalize; }}
   .card h3 {{
-    margin: 12px 0 6px; font-size: 1.02rem; text-wrap: balance; font-weight: 400;
-    display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace;
+    margin: 14px 0 6px; font-size: 1.04rem; text-wrap: balance; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
   }}
-  .crosshair {{
-    width: 12px; height: 12px; flex: none; position: relative; opacity: .7;
-    border: 1px solid var(--hud-soft); border-radius: 50%;
-  }}
-  .crosshair::before, .crosshair::after {{ content: ""; position: absolute; background: var(--hud-soft); }}
-  .crosshair::before {{ left: 50%; top: -3px; width: 1px; height: 4px; transform: translateX(-50%); }}
-  .crosshair::after {{ left: 50%; bottom: -3px; width: 1px; height: 4px; transform: translateX(-50%); }}
-  .card .vs {{ color: var(--text-dim); font-size: .8rem; }}
+  .crosshair {{ display: none; }}
+  .card .vs {{ color: var(--text-mute); font-size: .82rem; font-weight: 400; }}
   .resumo {{ opacity: .92; }}
-  .card p {{ line-height: 1.5; font-size: .87rem; }}
+  .card p {{ line-height: 1.55; font-size: .87rem; color: var(--text-dim); }}
   .label {{
     display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em;
-    color: var(--hud); opacity: .75; margin-bottom: 3px;
+    color: var(--accent-strong); margin-bottom: 4px; font-weight: 700;
   }}
-  .card ul {{ list-style: none; margin: 6px 0 10px; padding: 0; font-size: .86rem; }}
-  .card li {{ margin-bottom: 5px; padding-left: 16px; position: relative; }}
-  .card li::before {{ content: "▸"; position: absolute; left: 0; color: var(--hud); }}
-  .kpis {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }}
+  .card ul {{ list-style: none; margin: 6px 0 10px; padding: 0; font-size: .86rem; color: var(--text-dim); }}
+  .card li {{ margin-bottom: 6px; padding-left: 16px; position: relative; }}
+  .card li::before {{ content: "→"; position: absolute; left: 0; color: var(--accent-strong); }}
+  .kpis {{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }}
   .kpi {{
-    font-size: .68rem; background: var(--panel-2); border: 1px solid var(--line);
-    padding: 2px 8px; border-radius: 3px; color: var(--text-dim);
+    font-size: .68rem; background: var(--surface-2); border: 1px solid var(--border);
+    padding: 3px 10px; border-radius: 999px; color: var(--text-dim);
   }}
-  .creative {{
-    margin: 10px 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
-    background: var(--panel-2);
-  }}
+  .creative {{ margin: 12px 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface-2); }}
   .creative img {{ display: block; width: 100%; max-height: 260px; object-fit: cover; }}
-  .video-link {{
-    display: block; padding: 10px 12px; font-size: .8rem; text-decoration: none;
-    color: var(--hud); text-align: center;
-  }}
+  .video-link {{ display: block; padding: 10px 12px; font-size: .8rem; text-decoration: none; color: var(--accent-strong); text-align: center; }}
   .analise-criativo {{
-    margin: 6px 0 10px; padding: 10px 12px; border-left: 2px solid var(--hud-soft);
-    background: var(--panel-2); border-radius: 0 4px 4px 0;
+    margin: 8px 0 10px; padding: 12px 14px; border-left: 2px solid var(--accent); background: var(--surface-2);
+    border-radius: 0 12px 12px 0;
   }}
-  .analise-row {{ display: flex; gap: 8px; font-size: .82rem; margin-bottom: 4px; }}
+  .analise-row {{ display: flex; gap: 8px; font-size: .82rem; margin-bottom: 5px; }}
   .analise-row:last-child {{ margin-bottom: 0; }}
-  .analise-row span {{
-    flex: none; width: 84px; color: var(--hud); font-size: .68rem; text-transform: uppercase;
-    letter-spacing: .04em; padding-top: 2px;
-  }}
-  .analise-row p {{ margin: 0; font-size: .82rem; }}
+  .analise-row span {{ flex: none; width: 84px; color: var(--accent-strong); font-size: .68rem; text-transform: uppercase;
+                        letter-spacing: .03em; padding-top: 2px; font-weight: 700; }}
+  .analise-row p {{ margin: 0; font-size: .82rem; color: var(--text-dim); }}
   .foot {{
-    margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line);
-    display: flex; justify-content: space-between; font-size: .7rem; color: var(--text-dim);
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-mute);
     font-variant-numeric: tabular-nums;
   }}
   .foot a {{ text-decoration: none; }}
   .foot a:hover {{ text-decoration: underline; }}
-  .empty {{
-    padding: 60px 20px; color: var(--text-dim); grid-column: 1 / -1; text-align: center;
-    font-size: 1rem; letter-spacing: .04em;
+  .empty {{ padding: 60px 20px; color: var(--text-mute); grid-column: 1 / -1; text-align: center; font-size: 1rem; }}
+  .empty span {{ display: block; margin-top: 8px; font-size: .78rem; opacity: .8; }}
+  .caveat {{ font-size: .78rem; color: var(--text-mute); max-width: 860px; line-height: 1.6; }}
+
+  .toolbar, .toolbar-mini {{ display: flex; flex-wrap: wrap; gap: 10px; }}
+  .toolbar-mini {{ margin: 10px 0; }}
+  .btn, .btn-mini {{
+    font-family: inherit; font-weight: 600; cursor: pointer; background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; letter-spacing: .01em;
   }}
-  .empty span {{ display: block; margin-top: 8px; font-size: .78rem; opacity: .7; }}
-  .caveat {{
-    padding: 0 32px 30px; font-size: .76rem; color: var(--text-dim); max-width: 860px;
-    line-height: 1.6; position: relative; z-index: 1;
+  .btn {{ font-size: .84rem; padding: 10px 16px; }}
+  .btn-mini {{ font-size: .76rem; padding: 6px 12px; }}
+  .btn:hover, .btn-mini:hover {{ border-color: var(--border-strong); }}
+  .btn.primary, .btn-mini.primary {{ background: var(--accent); border-color: var(--accent); color: #fff; }}
+  .selecao-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }}
+  .selecao-coluna {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px;
   }}
-  a:focus-visible, button:focus-visible {{ outline: 2px solid var(--hud); outline-offset: 2px; }}
-  @media (prefers-reduced-motion: reduce) {{
-    .scan-band {{ display: none; }}
-    * {{ animation: none !important; transition: none !important; }}
+  .selecao-head {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }}
+  .selecao-stat {{ font-size: .78rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }}
+  .add-form-mini {{
+    display: flex; flex-wrap: wrap; gap: 8px; background: var(--surface-2); border: 1px dashed var(--border-strong);
+    border-radius: 10px; padding: 10px; margin-bottom: 10px;
   }}
-{EFFECTS_CSS}
+  .add-form-mini input {{
+    flex: 1 1 120px; font-family: inherit; font-size: .8rem; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
+  }}
+  .selecao-lista {{ display: flex; flex-direction: column; gap: 8px; }}
+  .selecao-item {{
+    display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
+  }}
+  .selecao-item.off {{ opacity: .6; }}
+  .selecao-toggle {{
+    position: relative; width: 36px; height: 20px; flex: none; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface-3); cursor: pointer; appearance: none; -webkit-appearance: none;
+  }}
+  .selecao-toggle::after {{
+    content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-mute); transition: transform .15s ease, background .15s ease;
+  }}
+  .selecao-toggle:checked {{ border-color: var(--accent); background: var(--accent-soft); }}
+  .selecao-toggle:checked::after {{ transform: translateX(16px); background: var(--accent); }}
+  .selecao-nome {{ font-size: .84rem; font-weight: 600; }}
+  .selecao-sub {{ display: block; font-size: .7rem; color: var(--text-mute); font-weight: 400; }}
+  .selecao-tag {{
+    font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; padding: 3px 8px; border-radius: 999px;
+    background: var(--surface-3); color: var(--text-dim); white-space: nowrap;
+  }}
+  .selecao-item.on .selecao-tag {{ color: var(--accent-strong); background: var(--accent-soft); }}
+  .selecao-remove {{ background: transparent; border: none; color: var(--text-mute); cursor: pointer; font-size: .9rem; padding: 2px 4px; }}
+  .selecao-remove:hover {{ color: #ff9c96; }}
+  .json-preview {{
+    display: none; width: 100%; height: 220px; margin-top: 12px; font-family: ui-monospace, "SF Mono", monospace;
+    font-size: .74rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; resize: vertical;
+  }}
+
+  a:focus-visible, button:focus-visible, input:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+  @media (prefers-reduced-motion: reduce) {{ * {{ animation: none !important; transition: none !important; }} }}
 </style></head>
 <body>
-{EFFECTS_BODY_HTML}
-<div class="scan-band"></div>
-<header class="frame">
-  <div class="hud-top-row">
-    <span class="eyebrow">◈ sistema de guerra competitiva</span>
-    <span class="radar-badge"><span class="radar"></span> monitorando</span>
+<header class="top">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">{(config.get('marca') or '?')[:1].upper()}</span>
+    <div class="brand-text">
+      <span class="eyebrow">War room de inteligência competitiva</span>
+      <h1>{config.get('marca', '')}</h1>
+    </div>
   </div>
-  <h1>{config.get('marca', '')}</h1>
-  <div class="hud-meta">
-    <span>ÚLTIMA VARREDURA <strong>{meta['data']}</strong></span>
-    <span>CADÊNCIA <strong>{config.get('cadencia_sugerida_horas')}h</strong></span>
-    <span>ALERTAS NESTA RODADA <strong>{len(alertas_rodada)}</strong></span>
+  <div class="top-stats">
+    <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">{meta['data']}</span></div>
+    <div class="top-stat"><span class="top-stat-label">Cadência</span><span class="top-stat-value">{config.get('cadencia_sugerida_horas')}h</span></div>
+    <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value">{len(alertas_rodada)}</span></div>
   </div>
 </header>
-<div class="master-caution {mc_level}"><span class="mc-dot"></span>{mc_text}</div>
-{esquadrao_section}
-{own_kpi_section}
-{ml_radar_section}
-<div class="grid">{cards}</div>
-<p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os
-sinais de atividade em ads (Meta Ad Library / Google Ads Transparency Center) refletem
-contagem de anúncios ativos capturada manualmente, não valor gasto. Ver
-references/fontes-e-limitacoes.md.</p>
-{EFFECTS_JS}
+<div class="status-banner"><span class="status-pill {mc_level}"><span class="dot"></span>{mc_text}</span></div>
+
+<nav class="tabs" role="tablist" aria-label="Seções da war room">
+  <button class="tab-btn active" data-tab="visao-geral" role="tab" aria-selected="true">Visão Geral</button>
+  <button class="tab-btn" data-tab="marketplaces" role="tab" aria-selected="false">Marketplaces</button>
+  <button class="tab-btn" data-tab="concorrentes" role="tab" aria-selected="false">Concorrentes</button>
+  <button class="tab-btn" data-tab="keywords" role="tab" aria-selected="false">Keywords &amp; Leilão</button>
+  <button class="tab-btn" data-tab="historico" role="tab" aria-selected="false">Histórico Preço × Ads</button>
+  <button class="tab-btn" data-tab="selecao" role="tab" aria-selected="false">Seleção Manual</button>
+</nav>
+
+<div class="shell">
+  <div class="tab-panel active" data-tab="visao-geral">
+    {esquadrao_section}
+    {own_kpi_section}
+    <section>
+      <h2>Battlecards — mudanças detectadas nesta rodada</h2>
+      <div class="grid">{cards}</div>
+    </section>
+    <p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os sinais de
+    atividade em ads (Meta Ad Library / Google Ads Transparency Center) refletem contagem de anúncios ativos
+    capturada manualmente, não valor gasto. Ver references/fontes-e-limitacoes.md.</p>
+  </div>
+
+  <div class="tab-panel" data-tab="marketplaces">
+    <section><h2>Radar de posição — Mercado Livre + Google Shopping (nós vs. concorrência)</h2>{marketplaces_html}</section>
+  </div>
+
+  <div class="tab-panel" data-tab="concorrentes">
+    <section><h2>Motor de descoberta e composição de concorrentes</h2>{descoberta_html}</section>
+  </div>
+
+  <div class="tab-panel" data-tab="keywords">
+    <section><h2>Relação completa de keywords das campanhas + valor do leilão</h2>{keywords_html}</section>
+  </div>
+
+  <div class="tab-panel" data-tab="historico">
+    <section>
+      <h2>Histórico preço × atividade de ads (marca disputa direta e correlação com queda de KPI)</h2>
+      {historico_html}
+      <p class="tab-note">Acumula automaticamente a cada rodada real (Radar de Marketplaces + alertas) — sem
+      coleta nova. "Disputando direto" = o concorrente está em posição melhor que a nossa no mesmo produto,
+      no mesmo momento. Ver references/protocolo-diagnostico.md para a análise completa quando isso coincide
+      com queda de KPI.</p>
+    </section>
+  </div>
+
+  <div class="tab-panel" data-tab="selecao">
+    <section>
+      <h2>Seleção manual — produtos e concorrentes monitorados</h2>
+      {selecao_html}
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {{
+  var btns = document.querySelectorAll('.tab-btn');
+  var panels = document.querySelectorAll('.tab-panel');
+  btns.forEach(function (btn) {{
+    btn.addEventListener('click', function () {{
+      btns.forEach(function (b) {{ b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); }});
+      panels.forEach(function (p) {{ p.classList.remove('active'); }});
+      btn.classList.add('active'); btn.setAttribute('aria-selected', 'true');
+      document.querySelector('.tab-panel[data-tab="' + btn.dataset.tab + '"]').classList.add('active');
+    }});
+  }});
+}})();
+
+(function () {{
+  var dataEl = document.getElementById('selecao-manual-data');
+  if (!dataEl) return;
+  var seed = JSON.parse(dataEl.textContent);
+  var produtos = seed.produtos;
+  var concorrentes = seed.concorrentes;
+
+  function renderLista(container, itens, tipo) {{
+    if (!itens.length) {{
+      container.innerHTML = '<p class="tab-note">Nenhum item ainda — adicione acima.</p>';
+      return;
+    }}
+    container.innerHTML = itens.map(function (item, i) {{
+      var nome = item.nome;
+      var sub = tipo === 'produto' ? (item.termo_busca_ml || '') : (item.dominio_site || (item.sellers_ml || []).join(', '));
+      return '<div class="selecao-item ' + (item.monitorando ? 'on' : 'off') + '">' +
+        '<input type="checkbox" class="selecao-toggle" data-idx="' + i + '" data-tipo="' + tipo + '" ' + (item.monitorando ? 'checked' : '') + ' aria-label="Monitorar ' + nome + '">' +
+        '<span class="selecao-nome">' + nome + (sub ? '<span class="selecao-sub">' + sub + '</span>' : '') + '</span>' +
+        '<span class="selecao-tag">' + (item.monitorando ? 'monitorando' : 'candidato') + '</span>' +
+        '<button class="selecao-remove" data-remove="' + i + '" data-tipo="' + tipo + '" title="Remover" aria-label="Remover ' + nome + '">✕</button>' +
+        '</div>';
+    }}).join('');
+  }}
+
+  function atualizarStats() {{
+    document.getElementById('sel-prod-on').textContent = produtos.filter(function (p) {{ return p.monitorando; }}).length;
+    document.getElementById('sel-prod-total').textContent = produtos.length;
+    document.getElementById('sel-conc-on').textContent = concorrentes.filter(function (c) {{ return c.monitorando; }}).length;
+    document.getElementById('sel-conc-total').textContent = concorrentes.length;
+  }}
+
+  function render() {{
+    renderLista(document.getElementById('lista-produtos'), produtos, 'produto');
+    renderLista(document.getElementById('lista-concorrentes'), concorrentes, 'concorrente');
+    atualizarStats();
+  }}
+
+  document.addEventListener('change', function (e) {{
+    if (!e.target.classList.contains('selecao-toggle')) return;
+    var idx = parseInt(e.target.dataset.idx, 10);
+    var lista = e.target.dataset.tipo === 'produto' ? produtos : concorrentes;
+    lista[idx].monitorando = e.target.checked;
+    render();
+  }});
+
+  document.addEventListener('click', function (e) {{
+    if (e.target.dataset.remove !== undefined) {{
+      var idx = parseInt(e.target.dataset.remove, 10);
+      var lista = e.target.dataset.tipo === 'produto' ? produtos : concorrentes;
+      var nome = lista[idx].nome;
+      if (confirm('Remover "' + nome + '" do catálogo?')) {{ lista.splice(idx, 1); render(); }}
+    }}
+  }});
+
+  var addProdutoForm = document.getElementById('add-produto-form');
+  document.getElementById('btn-add-produto-toggle').addEventListener('click', function () {{
+    addProdutoForm.style.display = addProdutoForm.style.display === 'none' ? 'flex' : 'none';
+  }});
+  document.getElementById('btn-add-produto-confirm').addEventListener('click', function () {{
+    var nome = document.getElementById('new-produto-nome').value.trim();
+    var termo = document.getElementById('new-produto-termo').value.trim();
+    var preco = document.getElementById('new-produto-preco').value;
+    if (!nome || !termo) return;
+    produtos.push({{nome: nome, termo_busca_ml: termo, preco_proprio: preco ? parseFloat(preco) : null,
+                    ticket_medio: preco ? parseFloat(preco) : null, monitorando: true}});
+    document.getElementById('new-produto-nome').value = '';
+    document.getElementById('new-produto-termo').value = '';
+    document.getElementById('new-produto-preco').value = '';
+    addProdutoForm.style.display = 'none';
+    render();
+  }});
+
+  var addConcForm = document.getElementById('add-concorrente-form');
+  document.getElementById('btn-add-concorrente-toggle').addEventListener('click', function () {{
+    addConcForm.style.display = addConcForm.style.display === 'none' ? 'flex' : 'none';
+  }});
+  document.getElementById('btn-add-concorrente-confirm').addEventListener('click', function () {{
+    var nome = document.getElementById('new-concorrente-nome').value.trim();
+    var dominio = document.getElementById('new-concorrente-dominio').value.trim();
+    var sellers = document.getElementById('new-concorrente-seller').value.trim();
+    if (!nome) return;
+    concorrentes.push({{nome: nome, dominio_site: dominio || undefined,
+                        sellers_ml: sellers ? sellers.split(',').map(function (s) {{ return s.trim(); }}) : [],
+                        monitorando: true}});
+    document.getElementById('new-concorrente-nome').value = '';
+    document.getElementById('new-concorrente-dominio').value = '';
+    document.getElementById('new-concorrente-seller').value = '';
+    addConcForm.style.display = 'none';
+    render();
+  }});
+
+  function limpo(item) {{
+    var c = Object.assign({{}}, item);
+    delete c.monitorando;
+    Object.keys(c).forEach(function (k) {{ if (c[k] === null || c[k] === '' || c[k] === undefined) delete c[k]; }});
+    return c;
+  }}
+
+  function montarConfigAtualizado() {{
+    var novo = {json.dumps({k: v for k, v in config.items() if not k.startswith("_comentario")}, ensure_ascii=False)};
+    novo.produtos_monitorados = produtos.filter(function (p) {{ return p.monitorando; }}).map(limpo);
+    novo.produtos_candidatos_manual = produtos.filter(function (p) {{ return !p.monitorando; }}).map(limpo);
+    novo.concorrentes = concorrentes.filter(function (c) {{ return c.monitorando; }}).map(limpo);
+    novo.candidatos_concorrentes_manual = concorrentes.filter(function (c) {{ return !c.monitorando; }}).map(limpo);
+    return novo;
+  }}
+
+  document.getElementById('btn-export-config').addEventListener('click', function () {{
+    var texto = JSON.stringify(montarConfigAtualizado(), null, 2);
+    var blob = new Blob([texto], {{type: 'application/json'}});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'config.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }});
+  document.getElementById('btn-copy-config').addEventListener('click', async function () {{
+    var texto = JSON.stringify(montarConfigAtualizado(), null, 2);
+    var preview = document.getElementById('config-json-preview');
+    preview.value = texto; preview.style.display = 'block';
+    try {{ await navigator.clipboard.writeText(texto); }} catch (err) {{ preview.select(); }}
+  }});
+
+  render();
+}})();
+</script>
 </body></html>"""
 
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -1288,6 +1979,21 @@ def main():
                      help="JSON {produto: {...}} com o NOSSO anúncio simulado (mesmo formato que "
                           "collect_snapshot produz em snapshot_proprio), para testar o Radar de "
                           "Posição sem coleta real. Só usado junto com --simulate-ml.")
+    ap.add_argument("--descoberta-json", default=None,
+                     help="saída de descoberta_concorrentes.py --export-json — vira a aba 'Concorrentes' "
+                          "(Concorrentes Descobertos, na xlsx)")
+    ap.add_argument("--keywords-relatorio-json", default=None,
+                     help="saída de gerar_relatorio_keywords.py --export-json — vira a aba 'Keywords & Leilão'")
+    ap.add_argument("--simulate-google-shopping", default=None,
+                     help="JSON com snapshot de concorrentes no Google Shopping (mesmo formato de "
+                          "--simulate-ml) — vira o canal 'Google Shopping' na aba Marketplaces")
+    ap.add_argument("--simulate-google-shopping-proprio", default=None,
+                     help="JSON com o NOSSO anúncio simulado no Google Shopping (mesmo formato de "
+                          "--simulate-ml-proprio). Só usado junto com --simulate-google-shopping.")
+    ap.add_argument("--simulate-historico-preco-ads", default=None,
+                     help="JSON {produto: {concorrente: [pontos...]}} pronto para semear/sobrescrever o "
+                          "histórico acumulado de preço×ads (demonstração — em produção ele acumula "
+                          "sozinho a cada rodada real via Radar de Marketplaces + alertas)")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -1366,10 +2072,29 @@ def main():
     save_json(log_path, alertas_log)
     save_json(current_run_path, alertas)
 
+    snapshot_gs = load_json(args.simulate_google_shopping, {}) if args.simulate_google_shopping else None
+    snapshot_gs_proprio = (load_json(args.simulate_google_shopping_proprio, {})
+                           if args.simulate_google_shopping_proprio else None)
+    marketplaces = montar_radar_marketplaces(radar_ml, snapshot_gs, snapshot_gs_proprio)
+
     meta = {"data": now_iso()}
+
+    hist_preco_ads_path = os.path.join(hist_dir, f"{marca}-historico-preco-ads.json")
+    if args.simulate_historico_preco_ads:
+        historico = load_json(args.simulate_historico_preco_ads, {})
+        print(f"[SIMULAÇÃO] histórico preço×ads carregado de {args.simulate_historico_preco_ads} "
+              "(não acumulado a partir desta rodada)", file=sys.stderr)
+    else:
+        historico = atualizar_historico_preco_ads(hist_preco_ads_path, radar_ml, alertas, meta["data"])
+
+    descoberta = load_json(args.descoberta_json, {}) if args.descoberta_json else {}
+    keywords_data = load_json(args.keywords_relatorio_json, {}) if args.keywords_relatorio_json else {}
+
     write_xlsx(alertas, alertas_log, snapshot_novo, ads_entries, load_json(ads_hist_path, {}), config, meta, args.out,
-               own_perf=own_perf, radar_ml=radar_ml)
-    write_html(alertas, config, meta, args.html, own_perf=own_perf, radar_ml=radar_ml)
+               own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta, keywords_data=keywords_data,
+               marketplaces=marketplaces, historico=historico)
+    write_html(alertas, config, meta, args.html, own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta,
+               keywords_data=keywords_data, marketplaces=marketplaces, historico=historico)
     print_console(alertas)
 
     if not args.ads_manual:

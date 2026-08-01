@@ -1,0 +1,32 @@
+{
+  "Faciderm": {
+    "Black Skull": {
+      "seller": "Black Skull Oficial", "title": "Sérum Facial Vitamina C Black Skull 30ml",
+      "price": 74.90, "original_price": 89.90, "discount_pct": 17, "position": 1,
+      "reviews": 210, "rating": 4.5, "frete_gratis": true, "patrocinado": "sim",
+      "url": "https://shopping.google.com/simulado/black-skull-faciderm", "total_listagens": 1
+    }
+  },
+  "Amaze": {
+    "Growth Supplements": {
+      "seller": "Growth Supplements", "title": "Polivitamínico Feminino Growth 60 cápsulas",
+      "price": 76.90, "original_price": 79.90, "discount_pct": 4, "position": 2,
+      "reviews": 88, "rating": 4.6, "frete_gratis": true, "patrocinado": "sim",
+      "url": "https://shopping.google.com/simulado/growth-amaze", "total_listagens": 1
+    }
+  },
+  "Linha Joie Fit": {
+    "Black Skull": {
+      "seller": "Black Skull Oficial", "title": "Whey Protein Isolado Black Skull 900g",
+      "price": 124.90, "original_price": 129.90, "discount_pct": 4, "position": 1,
+      "reviews": 640, "rating": 4.7, "frete_gratis": true, "patrocinado": "sim",
+      "url": "https://shopping.google.com/simulado/black-skull-whey", "total_listagens": 1
+    },
+    "Max Titanium": {
+      "seller": "Max Titanium", "title": "Whey Protein Concentrado Max Titanium 900g",
+      "price": 89.90, "original_price": 89.90, "discount_pct": 0, "position": 2,
+      "reviews": 310, "rating": 4.4, "frete_gratis": false, "patrocinado": "nao",
+      "url": "https://shopping.google.com/simulado/max-titanium-whey", "total_listagens": 1
+    }
+  }
+}

@@ -503,6 +503,81 @@ Saída: `outputs/descoberta.xlsx` com **Candidatos por Produto** (ranqueados),
 componente do score. Depois de revisar, é você quem decide promover um candidato
 para `concorrentes[]` — o motor nunca promove sozinho.
 
+### 12. War room consolidado — abas + redesign fintech
+
+`war_room.py` deixou de ser só o monitor de preço/desconto: `war-room.html`
+(e `war-room.xlsx`) agora reúnem **tudo num único artefato, por abas** — nada
+mais fica espalhado em arquivos separados. Visual também mudou: saiu o cockpit
+sci-fi (Orbitron/Share Tech Mono, scanline, boot sequence), entrou um tema
+"fintech escuro" (tipografia Sora, cards arredondados, paleta categórica
+validada para gráficos) — ver `scripts/_fonts.py` (fonte `FONT_SORA_B64`). Os
+outros dois artefatos (`gerar_demo_live.py`, `gerar_simulador.py`) continuam
+com o visual cockpit original — não foram redesenhados.
+
+As abas do `war-room.html`, e de onde vem cada uma:
+
+- **Visão Geral** — o que já existia: Esquadrão de Combate, Desempenho Próprio,
+  Battlecards.
+- **Marketplaces** — Radar de Posição do passo 10, agora com um segundo canal:
+  **Google Shopping**, quando fornecido. `montar_radar_marketplaces(radar_ml,
+  snapshot_gs_concorrentes, snapshot_gs_proprio)` reaproveita `montar_radar_ml()`
+  para o Shopping (mesmo formato de item) — sem coleta real de Google Shopping
+  ainda (nenhum actor/conector configurado), use
+  `--simulate-google-shopping`/`--simulate-google-shopping-proprio` (mesmo
+  formato de `--simulate-ml`/`--simulate-ml-proprio`, ver
+  `scripts/examples/gshopping-simulado*.json`) para já deixar a estrutura
+  demonstrável. Sem dado fornecido, a aba mostra "ainda não coletado" — nunca
+  inventa posição/preço.
+- **Concorrentes** — saída de `descoberta_concorrentes.py` (passo 11), agora
+  embutida via `--descoberta-json` (aponte para o `--export-json` que o script
+  gera) em vez de só existir na xlsx separada.
+- **Keywords & Leilão** — a relação **completa** de keywords (não só as que
+  caíram), via `gerar_relatorio_keywords.py` (passo 7b) + `--keywords-relatorio-json`
+  (idem, `--export-json`). Mostra o aviso "⚠ SIMULADO" quando o arquivo de
+  origem foi gerado com `--simulado`.
+- **Histórico Preço × Ads** — gráfico novo: preço do concorrente ao longo do
+  tempo, com marcador cheio/vazio conforme ele está ou não rodando ads
+  (best-effort, campo `patrocinado` do próprio Radar de Marketplaces) e uma
+  faixa sombreada nos períodos em que ele está **disputando direto** — posição
+  dele à nossa frente no mesmo produto, no mesmo momento — mais um traço
+  vermelho quando nosso KPI caiu naquela mesma janela (correlação que embasa o
+  protocolo de diagnóstico do passo 8). Acumula **sozinho**, a cada rodada real
+  — `atualizar_historico_preco_ads()` deriva tudo do Radar de Marketplaces +
+  dos alertas já calculados, sem pedir nenhuma coleta nova; persiste em
+  `<history-dir>/<marca>-historico-preco-ads.json`. Para demonstrar sem esperar
+  várias rodadas reais, use `--simulate-historico-preco-ads
+  examples/historico-preco-ads-simulado.json` (sobrescreve o acumulador só
+  naquela execução).
+- **Seleção Manual** — o mesmo mecanismo do painel do passo 1b (toggle
+  monitorando/candidato, adicionar, remover, exportar `config.json`), só que
+  embutido como aba do próprio `war-room.html`, e cobrindo **produtos E
+  concorrentes** juntos (o painel avulso de `gerar_painel_produtos.py` continua
+  existindo, só com produtos).
+
+Comando completo (todas as fontes ligadas):
+
+```bash
+python descoberta_concorrentes.py --config config.json --auction-json auction.json \
+  --ativos-ads-json ativos-ads.json --out ../outputs/descoberta.xlsx \
+  --export-json ../outputs/descoberta.json
+
+python gerar_relatorio_keywords.py --config config.json --keywords-json keywords.json \
+  --auction-json auction.json --out ../outputs/relatorio-keywords.xlsx \
+  --export-json ../outputs/keywords-relatorio.json   # + --simulado se não for dado real
+
+python war_room.py --config config.json \
+  --descoberta-json ../outputs/descoberta.json \
+  --keywords-relatorio-json ../outputs/keywords-relatorio.json \
+  --simulate-google-shopping gshopping.json --simulate-google-shopping-proprio gshopping-proprio.json \
+  --own-performance ../outputs/own-performance-por-produto.json \
+  --out ../outputs/war-room.xlsx --html ../outputs/war-room.html
+```
+
+Todas as três flags (`--descoberta-json`, `--keywords-relatorio-json`,
+`--simulate-google-shopping*`) são opcionais e independentes — rode
+`war_room.py` sozinho (como no passo 2) que as abas correspondentes mostram a
+mensagem de "nada carregado ainda" em vez de quebrar.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —
