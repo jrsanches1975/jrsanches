@@ -9,6 +9,31 @@
 > `../references/fontes-e-limitacoes.md`. Este arquivo aqui é a **memória**, não
 > o manual.
 
+## COMECE AQUI — como retomar este projeto numa sessão nova
+
+O container onde este projeto foi construído é **temporário**; o repositório
+não. Tudo está no GitHub em `jrsanches1975/jrsanches`, branch
+`claude/competitor-monitoring-war-room-pkhhlo`.
+
+Para retomar, na prática:
+
+1. Peça: *"continue o war room — leia
+   `war-room-concorrencia/contexto-e-apoio/MEMORIA-DO-PROJETO.md`"*.
+2. Leia **este arquivo até o fim** (sobretudo a última entrada da lista
+   cronológica e a seção "PENDÊNCIA ATIVA") — a última entrada é sempre o ponto
+   onde o trabalho parou.
+3. Leia `../SKILL.md` para o passo a passo operacional de cada script.
+4. Leia `../references/fontes-e-limitacoes.md` antes de prometer qualquer dado:
+   ele diz, fonte por fonte, o que é medido, o que é proxy e o que não existe.
+5. Os entregáveis prontos (HTML/XLSX) estão versionados em
+   `arquivos-finais/` — não precisa regerar para consultar.
+6. Para regerar tudo, os comandos completos estão no `SKILL.md`; as fixtures de
+   `../scripts/examples/` permitem rodar sem token nem conector conectado.
+
+**O que NÃO está no repositório (por design):** `scripts/config.json` (é
+gitignored — cada ambiente tem o seu, copie de `config.example.json`), a pasta
+`outputs/` (regenerável) e qualquer token/credencial.
+
 ## O que é isto
 
 Um "war room" de inteligência competitiva para a Joie Suplementos (e-commerce
@@ -275,6 +300,49 @@ Livre: `JOIE`.
     GA4, reduced-motion (barras com largura final, linhas visíveis, contadores
     formatados), build sem `--ga4-json` mostrando como carregar em vez de
     quebrar, 18 abas no xlsx, zero erro de JS, sem scroll horizontal.
+
+26. **PEDIDO EM ANDAMENTO — NÃO CONCLUÍDO.** O usuário mandou uma referência
+    visual nova (landing page "DOMAIN Premium Internet": cosmos/nebulosa com
+    buraco negro, gradientes violeta→magenta→ciano, cards de plano em vidro com
+    o do meio destacado em neon, faixa de ícones+label, footer com newsletter) e
+    pediu, de uma vez:
+    a) aperfeiçoar o layout com base nessa imagem e **inserir imagem futurista**
+       desse tipo (nebulosa/cosmos) no dashboard;
+    b) na aba GA4, **desempenho das campanhas com imagens dos criativos**;
+    c) **nova aba Meta Ads** com a mesma função da GA4, mas com dados e
+       mecanismos do Meta;
+    d) em GA4 **e** Meta: uma seção de **medidas a serem tomadas** para melhorar
+       performance;
+    e) **quadro de metas** (faturamento, unidades vendidas por produto, ticket
+       médio) para que todo o racional das ações aponte para bater as metas;
+    f) **quadro evolutivo de planejamento e evolução** — gráfico que se
+       **auto-atualiza conforme as variáveis mudam**, mostrando em tempo real
+       evolução × metas.
+    **O que já foi feito antes de parar:** coletei o desempenho de campanhas
+    REAL da GA4 (`get_data` em `googleanalytics4`, last_30d, sessions>=50) e
+    salvei em `scripts/examples/ga4-real/ga4-campanhas.json` (30 campanhas, com
+    campaign/source/medium + sessões/engajamento/carrinho/checkout/compras/
+    receita). Nada de código novo foi escrito para os itens a-f.
+    **Observações importantes já levantadas para quem retomar:**
+    - As campanhas do Meta APARECEM na GA4 via UTM (source "Facebook") e o dado
+      é revelador: `🟩 - [[Tráfego]] - [Padrão] - Catálogo` com 616 sessões e
+      engajamento de 10,6%; várias campanhas Meta com 0 compra. Isso permite
+      montar o desempenho de campanha Meta pelo lado da GA4 mesmo **sem** o
+      conector do Meta ligado — mas sem gasto/impressão/clique/criativo.
+    - **Imagens de criativo NÃO vêm da GA4.** Vêm do Meta (Ad Library / API).
+      O conector `facebook` do Windsor segue **desconectado** nesta integração
+      (ver pendência da seção acima), então a aba Meta Ads precisa nascer como
+      ESTRUTURA + fixture claramente marcada como simulada (mesmo padrão já
+      usado em Keywords e Google Shopping), nunca com número inventado passando
+      por real.
+    - A "imagem futurista" deve ser **gerada proceduralmente** (SVG/Canvas, tipo
+      nebulosa/starfield/disco de acreção), não baixada: a rede está bloqueada
+      neste ambiente e imagem de terceiro traria problema de direito de uso.
+    - O "gráfico que se auto-atualiza conforme as variáveis mudam" pede
+      controles (sliders/inputs) de premissa — tráfego, taxa de conversão,
+      ticket — recalculando projeção × meta ao vivo no navegador. Deixar
+      explícito na tela o que é **realizado (medido)** e o que é **projeção
+      sob premissa do usuário** — nunca desenhar projeção como se fosse dado.
 
 ## Princípios que NUNCA devem ser quebrados
 
