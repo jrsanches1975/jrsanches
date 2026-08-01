@@ -349,6 +349,33 @@ que foi pedido.
    Isso não é genérico — é o padrão real desta conta: termos de marca são fortes,
    termos genéricos perdem o leilão para marketplaces e concorrentes diretos.
 
+### 7b. Relatório completo de keywords + leilão (`gerar_relatorio_keywords.py`)
+
+O passo 7 só aponta **quedas** de performance (o que virou alerta). Para ver a
+relação **completa** de todas as palavras-chave das campanhas — CTR, CPC médio,
+Quality Score, impression share, rank lost e os domínios concorrentes disputando
+cada campanha, mesmo quem não caiu — use este gerador em vez de (ou além de)
+`keyword_auction.py`. Reaproveita as mesmas funções de agregação (`agregar_keywords`,
+`agregar_dominios_por_campanha`), só troca "detectar queda e alertar" por "listar
+tudo":
+
+```bash
+python gerar_relatorio_keywords.py --config config.json \
+  --keywords-json keywords-7d.json --auction-json auction-7d.json \
+  --out ../outputs/relatorio-keywords.xlsx
+```
+
+Os dois JSONs de entrada são os mesmos do passo 7 (coletados via MCP do
+Windsor.ai, `get_data` no connector `google_ads` — ver passo 7 para os campos
+exatos e por que `auction_insight_domain` exige uma chamada separada). Gera 3
+abas: **Keywords** (todas, com métricas + os domínios do leilão da campanha),
+**Leilão por Campanha** (todos os domínios concorrentes, não só o top 5) e
+**Metodologia**. Sempre que os dois JSONs de entrada não vierem de uma coleta
+real (por exemplo, para mostrar o formato do relatório num ambiente sem acesso
+ao Windsor.ai), passe `--simulado` — isso adiciona uma aba `⚠ AVISO` como
+primeira aba, deixando explícito que os números são só ilustrativos e não dado
+medido da conta.
+
 ### 8. Diagnóstico completo quando um KPI próprio cai — nunca reagir sem investigar
 
 Rode `own_performance.py` com `--history-dir` (mesmo diretório do resto da war room)

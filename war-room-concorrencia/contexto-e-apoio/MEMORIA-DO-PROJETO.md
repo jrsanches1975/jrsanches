@@ -77,6 +77,19 @@ Livre: `JOIE`.
     existente (`descoberta_concorrentes.py` → `descoberta.xlsx`), não um painel
     novo. Regerado com dado atual e entregue; adicionado também a
     `arquivos-finais/`.
+19. Pergunta sobre onde salvar o `config.json` exportado do painel de produtos
+    para o sistema ler — resposta: `scripts/config.json` (mesmo caminho que
+    `--config config.json` já espera; é gitignored de propósito).
+20. Pedido da "relação de palavras-chave usadas nas campanhas + valor dos
+    leilões" — não existia (o `keyword_auction.py` só lista **quedas**, não o
+    catálogo completo). Criado `gerar_relatorio_keywords.py` (reaproveita
+    `agregar_keywords`/`agregar_dominios_por_campanha` de `keyword_auction.py`)
+    que gera `relatorio-keywords.xlsx` com TODAS as keywords + métricas de
+    leilão + domínios concorrentes por campanha. Como o Google Ads ainda não
+    está conectado (pendência da seção acima), rodado com fixture simulada
+    (`examples/keywords-simulado.json`) e sinalizado com `--simulado` (adiciona
+    aba `⚠ AVISO` na frente do arquivo). Documentado no `SKILL.md` como passo
+    "7b".
 
 ## Princípios que NUNCA devem ser quebrados
 
@@ -102,7 +115,7 @@ Livre: `JOIE`.
 
 ```
 war-room-concorrencia/
-├── SKILL.md                     # manual operacional completo (11 fluxos + 1b)
+├── SKILL.md                     # manual operacional completo (11 fluxos + 1b + 7b)
 ├── contexto-e-apoio/
 │   ├── MEMORIA-DO-PROJETO.md    # ESTE arquivo — memória/histórico do projeto
 │   └── arquivos-finais/         # cópias VERSIONADAS (não gitignored) dos entregáveis
@@ -111,7 +124,8 @@ war-room-concorrencia/
 │       ├── war-room-live-demo.html  # demo de replay fixo
 │       ├── war-room-simulador.html  # simulador interativo
 │       ├── painel-produtos.html     # painel de seleção de produtos
-│       └── descoberta.xlsx          # relatório de descoberta/composição de concorrentes
+│       ├── descoberta.xlsx          # relatório de descoberta/composição de concorrentes
+│       └── relatorio-keywords.xlsx  # SIMULADO — relação completa de keywords + leilão
 ├── references/
 │   ├── fontes-e-limitacoes.md   # honestidade por fonte de dado
 │   ├── protocolo-diagnostico.md # protocolo de 8 passos p/ queda de KPI
