@@ -578,6 +578,49 @@ Livre: `JOIE`.
     com refresh token + consultas GAQL), e existe a opção de usar `urllib` contra a
     REST da Google Ads API em vez do SDK pesado.
 
+33. **Coletor do Google Ads pronto (2026-08-02).** `scripts/google_ads_api.py`
+    (campanhas + keywords) e `scripts/google_ads_oauth.py` (gera o refresh token na
+    máquina do usuário). Guia em `references/google-ads-api-setup.md`, passo 22 do
+    `SKILL.md`. Saem com os nomes de campo planos que `keyword_auction.py` já
+    consome, então plugam sem adaptador.
+    **Descobertas verificadas ao vivo (não repetir a sondagem):**
+    - Versões da Google Ads API: **v15 a v19 devolvem 404** (retiradas), **v20, v21,
+      v22, v23 e v24 respondem 401** (existem, exigem auth). Padrão adotado: `v22`.
+    - **`business.facebook.com`, `developers.facebook.com` e `ads.google.com` estão
+      BLOQUEADOS** neste ambiente; **`accounts.google.com` (302) e
+      `googleads.googleapis.com` (404 na raiz) RESPONDEM.** Ou seja: as telas de
+      criar credencial não abrem daqui, mas as APIs do Google sim — e por isso a
+      camada HTTP do coletor do Google pôde ser testada, ao contrário da Meta.
+    - **Auction Insights NÃO está na API pública do Google Ads** — só contas em
+      allowlist, liberadas por representante do Google
+      (groups.google.com/g/adwords-api/c/30s21wGZkOU). **Não prometer automatizar
+      aquela tabela de domínios.** O caminho é exportar da interface e importar com
+      `sheets_import.py --tipo leilao`. Parcela de impressões, por outro lado, vem
+      pela API normalmente.
+    **Bugs meus achados nos testes:**
+    - A dica de erro do OAuth falava de `invalid_grant` quando o Google respondia
+      `invalid_client` — orientação que manda procurar no lugar errado. Agora a
+      dica é escolhida pelo código real do erro.
+    - No `google_ads_oauth.py` eu chamava `handle_request()` **duas vezes** (uma em
+      thread, uma no fluxo principal): a thread engolia o retorno do Google e o
+      principal esperava para sempre um segundo retorno. A thread era desnecessária
+      — o socket já escuta desde o construtor do `HTTPServer`.
+    - A fixture do Google Ads estava internamente inconsistente (`costMicros` com
+      três zeros a menos que `clicks × averageCpc`), o que confundiria quem
+      calibrasse por ela. Corrigida.
+    **Posição registrada sobre credenciais:** o usuário ofereceu autorizar acesso
+    pelo navegador ("acesse tudo que precisa... que vou autorizando"). Foi
+    respondido que isso não destrava, por três motivos: as telas de credencial
+    estão bloqueadas na rede, não há acesso ao navegador logado dele, e **token não
+    deve trafegar por chat** (fica em log; um token de sistema da Meta que "nunca
+    expira" viraria credencial permanente exposta). **Não pedir nem aceitar
+    credencial pelo chat em nenhuma sessão futura** — as credenciais vivem em
+    variável de ambiente na máquina dele.
+    **Pendente do lado do usuário:** (a) token de usuário de sistema da Meta;
+    (b) developer token do Google Ads, que passa por análise de dias/semanas e
+    exige conta MCC — foi pedido que ele inicie isso o quanto antes, porque é o
+    único item com prazo externo.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

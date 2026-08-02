@@ -997,6 +997,55 @@ Gerenciador antes de apresentar a alguém.
 declara `"origem": "ARQUIVO DE TESTE..."` e `"simulado": true`, para uma fixture
 não passar por coleta real mais adiante no pipeline.
 
+### 22. Coletor próprio do Google Ads (`google_ads_api.py` + `google_ads_oauth.py`)
+
+Fala direto com a API oficial e produz os MESMOS nomes de campo planos que
+`keyword_auction.py` e `gerar_relatorio_keywords.py` já consomem (`keyword_text`,
+`campaign`, `impressions`, `clicks`, `cpc`, `first_page_cpc`, `quality_score`,
+`search_impression_share`, `search_rank_lost_impression_share`) — entra sem
+adaptador. Passo a passo das credenciais em `references/google-ads-api-setup.md`.
+
+```bash
+python google_ads_oauth.py                 # gera o refresh token (roda na máquina do usuário)
+python google_ads_api.py --dias 30 --debug-raw \
+    --keywords-out ../outputs/gads-keywords.json \
+    --campanhas-out ../outputs/gads-campanhas.json
+```
+
+**O gargalo é assíncrono: peça o developer token PRIMEIRO.** O Centro de API só
+existe em conta **MCC**, e o Acesso Básico passa por análise do Google que leva
+dias ou semanas. Até sair, a API responde 403. Diga isso ao usuário na primeira
+menção ao Google Ads, para não virar surpresa.
+
+**O que a API NÃO entrega:** o **Auction Insights por domínio** é restrito a contas
+em allowlist (liberação por representante do Google). Não prometa automatizar
+aquela tabela de concorrentes — o caminho é exportar da interface e importar com
+`sheets_import.py --tipo leilao`. Já a **parcela de impressões**
+(`search_impression_share`, perdida por orçamento e por classificação) **vem** pela
+API normalmente.
+
+**Cuidados embutidos:**
+
+1. **proto3-JSON usa camelCase** (`costMicros`, não `cost_micros`) e serializa
+   int64 como **string**. Dinheiro vem em **micros** (÷ 1.000.000).
+2. **Consulta tolerante a campo:** os campos opcionais (índice de qualidade,
+   estimativas de CPC, parcela de impressões) podem ser recusados dependendo da
+   conta e da versão. Em vez de perder a coleta toda, o script remove o campo
+   culpado, repete e **reporta quais caíram** — que saem como n/d, nunca zero.
+3. **Erro traduzido e casado com o código real:** `invalid_client` recebe a dica do
+   client_id/secret, `invalid_grant` a do refresh token e do modo Teste. Dica que
+   não casa com o erro manda a pessoa procurar no lugar errado.
+4. **`--versao-api`** porque o Google retira versões a cada ~12 meses. Sondado ao
+   vivo em 2026-08-02: v15–v19 dão 404, v20+ respondem; padrão `v22`.
+5. **Modo 'Teste' do app OAuth expira o refresh token em 7 dias** — o utilitário
+   avisa isso ao imprimir o token.
+
+**Estado de teste:** aqui a camada **HTTP pôde ser testada** (ao contrário da
+Meta): `googleads.googleapis.com` e `accounts.google.com` respondem, e foi
+verificado com credencial inválida contra a API real que o erro chega traduzido. A
+conversão foi testada com `examples/gads-api-keywords-bruto.json`. Falta a
+primeira execução com credencial válida.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

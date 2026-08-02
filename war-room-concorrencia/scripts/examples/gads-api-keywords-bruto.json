@@ -1,0 +1,58 @@
+{
+  "_comentario": "AMOSTRA DE FORMATO da resposta de googleAds:search sobre keyword_view. Serve para testar o parser de google_ads_api.py sem credencial. Valores INVENTADOS — o que importa é a FORMA: proto3-JSON usa camelCase (costMicros, não cost_micros), int64 vem como string, dinheiro vem em micros, e campos ausentes simplesmente não aparecem no objeto.",
+  "results": [
+    {
+      "campaign": {"resourceName": "customers/1234567890/campaigns/111", "name": "Brand."},
+      "adGroup": {"resourceName": "customers/1234567890/adGroups/222", "name": "Marca - exata"},
+      "adGroupCriterion": {
+        "resourceName": "customers/1234567890/adGroupCriteria/222~333",
+        "keyword": {"text": "joie suplementos", "matchType": "EXACT"},
+        "qualityInfo": {"qualityScore": 9},
+        "positionEstimates": {"firstPageCpcMicros": "410000", "topOfPageCpcMicros": "980000"}
+      },
+      "metrics": {
+        "impressions": "18422",
+        "clicks": "2140",
+        "costMicros": "1284530000",
+        "averageCpc": "600248",
+        "conversions": 41.0,
+        "conversionsValue": 22140.5,
+        "searchImpressionShare": 0.7412,
+        "searchRankLostImpressionShare": 0.0841,
+        "searchTopImpressionShare": 0.6603,
+        "searchAbsoluteTopImpressionShare": 0.4128
+      }
+    },
+    {
+      "campaign": {"name": "Generico - Colageno"},
+      "adGroup": {"name": "Colageno - frase"},
+      "adGroupCriterion": {
+        "keyword": {"text": "colageno verisol", "matchType": "PHRASE"},
+        "qualityInfo": {"qualityScore": 6},
+        "positionEstimates": {"firstPageCpcMicros": "1250000", "topOfPageCpcMicros": "3100000"}
+      },
+      "metrics": {
+        "impressions": "96117",
+        "clicks": "1508",
+        "costMicros": "4742100000",
+        "averageCpc": "3145000",
+        "conversions": 12.0,
+        "conversionsValue": 5388.0,
+        "searchImpressionShare": 0.1256,
+        "searchRankLostImpressionShare": 0.6021
+      }
+    },
+    {
+      "campaign": {"name": "Generico - Creatina"},
+      "adGroup": {"name": "Creatina - ampla"},
+      "adGroupCriterion": {
+        "keyword": {"text": "creatina monohidratada", "matchType": "BROAD"}
+      },
+      "metrics": {
+        "impressions": "204553",
+        "clicks": "0",
+        "costMicros": "0"
+      }
+    }
+  ]
+}
