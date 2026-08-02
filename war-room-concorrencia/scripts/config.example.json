@@ -34,12 +34,19 @@
     }
   ],
 
-  "_comentario_produtos_candidatos_manual": "Produtos/variantes que você quer PASSAR A observar mas ainda não configurou por completo em produtos_monitorados (ex.: um lançamento em avaliação, ou uma categoria nova). descoberta_concorrentes.py roda a mesma busca de variantes/concorrentes para estes também; depois de revisar o achado, promova o item pra produtos_monitorados.",
+  "_comentario_produtos_candidatos_manual": "Produtos/variantes que você quer PASSAR A observar mas ainda não configurou por completo em produtos_monitorados (ex.: um lançamento em avaliação, ou uma categoria nova). descoberta_concorrentes.py roda a mesma busca de variantes/concorrentes para estes também; depois de revisar o achado, promova o item pra produtos_monitorados. 'Colágeno' foi adicionado em 2026-08-02 por achado de descoberta_produtos_shopping.py: tem campanha REAL 'Shopping - Colageno' rodando (R$ 422,78 de gasto, 1.230 cliques) e aparece em várias campanhas Meta ('[Colágeno]'), mas não estava cadastrado como produto nenhum — falta você revisar preco_proprio/ticket_medio (deixei em branco, não fabriquei) antes de promover.",
   "produtos_candidatos_manual": [
     {
       "nome": "Creatina Joie",
       "termo_busca_ml": "creatina monohidratada 300g",
       "atributos": {"categoria": "creatina", "formato": "pó", "tamanho": "300g"}
+    },
+    {
+      "nome": "Colágeno",
+      "termo_busca_ml": "colágeno hidrolisado verisol",
+      "campanhas_google_ads": ["Shopping - Colageno"],
+      "campanhas_meta_ads": ["Colágeno"],
+      "atributos": {"categoria": "colágeno"}
     }
   ],
 

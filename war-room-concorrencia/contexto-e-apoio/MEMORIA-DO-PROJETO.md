@@ -881,6 +881,43 @@ Livre: `JOIE`.
     exposto, a chamada foi tecnicamente impossível (host bloqueado), então a
     questão de "usar ou não" nem chegou a se colocar de fato.
 
+42. **Bug de import quebrado corrigido + primeiro "agente" de descoberta de
+    produtos, provado contra dado real (2026-08-02, mesmo dia).** Ao revisar o
+    pedido do usuário sobre trazer o título do produto concorrente na aba
+    Descoberta, achado que `descoberta_concorrentes.py` estava com **import
+    quebrado** (`from war_room import ML_ACTOR` — eu tinha renomeado a
+    constante para `ML_ACTOR_PADRAO` na entrada 39 e não atualizei quem
+    importava). Corrigido, e aproveitado pra unificar: `buscar_raw()`/
+    `descobrir_por_produto()` agora usam o mesmo ator/payload/formato
+    configurado (via `montar_payload_ml`/`_campos_listagem`, reaproveitados de
+    `war_room.py`) em vez de ficarem presos no `viralanalyzer` com nomes de
+    campo fixos — sem isso a coluna "titulo/variante" ficaria vazia contra
+    qualquer ator diferente do original (bug que só apareceria na próxima vez
+    que alguém rodasse `descoberta_concorrentes.py` de verdade, sem eu ter
+    percebido no calor da troca de ator).
+    Usuário pediu, na sequência: um "agente" que determina quais produtos
+    monitorar no Google Shopping, com base nos anúncios do site e nos
+    anúncios nos marketplaces. Criado `descoberta_produtos_shopping.py`:
+    detecta campanhas Google Ads reais com o padrão `"Shopping - X"` (achado
+    real e imediato: a campanha `"Shopping - Colageno"`, R$ 422,78 de gasto,
+    1.230 cliques, já rodava sem "Colágeno" estar cadastrado como produto em
+    lugar nenhum do config), cruza com `produtos_monitorados`/
+    `produtos_candidatos_manual` e (opcionalmente) com o `snapshot_proprio` do
+    Radar de ML, e classifica cada produto: já monitorado no Shopping /
+    candidato (vende no ML, sem Shopping) / achado fora do config / sem
+    evidência. Testado de ponta a ponta contra `outputs/own-performance-por-
+    produto.json` (real) — achou exatamente o caso do Colágeno na primeira
+    rodada. Adicionado "Colágeno" a `produtos_candidatos_manual` em
+    `config.example.json` (sem `preco_proprio`/`ticket_medio`, que não tenho —
+    fica para o usuário revisar antes de promover).
+    **Escopo deliberadamente limitado:** este agente só determina QUAIS
+    produtos vigiar — não coleta concorrentes no Google Shopping (precisa de
+    um ator do Apify pra isso, nenhum testado ao vivo ainda, mesmo status
+    BETA de `meta_ads.py`/`google_ads_transparency.py`). Decisão registrada:
+    construir agentes um de cada vez, cada um provado contra dado real antes
+    do próximo, e só desenhar a aba de orquestração (perguntada pelo usuário)
+    depois de ter mais de um agente rodando de verdade.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

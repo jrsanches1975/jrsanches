@@ -1222,6 +1222,50 @@ do seu computador. Mas ela só reabastece o dataset do Apify — **não** chama
 os alertas e regera o HTML/XLSX é este script. Útil como complemento (dado
 sempre fresco esperando), não como substituto da tarefa acima.
 
+### 26. Agente: quais produtos monitorar no Google Shopping (`descoberta_produtos_shopping.py`)
+
+Decide QUAIS produtos merecem monitoramento no Google Shopping — por evidência
+real, não por achismo, de dois canais:
+
+1. **Anúncios do site (Google Ads):** campanha com o padrão de nome
+   `"Shopping - <produto>"` é confirmação direta de Shopping Ads ativo. Achado
+   real que motivou este script: a campanha `"Shopping - Colageno"` (R$ 422,78
+   de gasto, 1.230 cliques) já rodava, mas "Colágeno" **não estava cadastrado
+   como produto nenhum** em `produtos_monitorados`/`produtos_candidatos_manual`
+   — o agente achou isso sozinho na primeira rodada de teste. Já adicionado
+   como candidato em `config.example.json`.
+2. **Anúncios nos marketplaces:** o NOSSO anúncio no Mercado Livre
+   (`snapshot_proprio`, o mesmo que alimenta o Radar de Posição) aparecendo de
+   fato na busca é sinal de catálogo ativo — candidato a ganhar Shopping mesmo
+   sem campanha dedicada ainda.
+
+```bash
+cd scripts
+python descoberta_produtos_shopping.py --config config.json \
+    --own-performance-json ../outputs/own-performance-por-produto.json \
+    --out ../outputs/descoberta-shopping.xlsx --export-json ../outputs/descoberta-shopping.json
+```
+
+Cada produto sai classificado: **já monitorado no Shopping** (campanha real
+achada), **candidato** (vende no ML, sem Shopping — oportunidade), **ACHADO
+fora do config** (tem Shopping real mas nenhum produto cadastrado bate com
+ele — como aconteceu com Colágeno), ou **sem evidência** (não promove
+sozinho, só sinaliza pra revisão).
+
+**O que este agente NÃO faz (ainda):** não coleta CONCORRENTES no Google
+Shopping — isso exige um ator do Apify pra Shopping, que ninguém testou ao
+vivo (mesmo status BETA de `meta_ads.py`/`google_ads_transparency.py`). Este
+agente resolve só a metade "quais produtos NOSSOS vigiar"; a coleta de quem
+mais aparece lá pra esses produtos é o próximo passo natural, uma vez que já
+se sabe quais produtos importam.
+
+**Por que não virou aba nova ainda:** o usuário perguntou sobre uma aba de
+orquestração de agentes — a posição tomada foi: construir agentes um de cada
+vez, cada um provado contra dado real primeiro (como este foi, contra a
+campanha Shopping real), e só desenhar a aba de orquestração depois de ter
+pelo menos um rodando de verdade, pra saber o que ela realmente precisa
+mostrar. Este é o primeiro.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —
