@@ -1427,6 +1427,109 @@ def render_descoberta_tab(data):
 dado sai do somatório em vez de virar 0 (ver metodologia completa em descoberta.xlsx / SKILL.md, passo 11).</p>"""
 
 
+AGENT_STATUS_LABEL = {
+    "achado": "ACHADO NESTA RODADA",
+    "vazio": "SEM ACHADO NESTA RODADA",
+    "off": "AGUARDANDO DADO",
+}
+
+
+def render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos, google_shopping_status):
+    """Aba 'Agentes' — central de status dos agentes de descoberta/recomendação
+    de produto (SKILL.md, passos 11/26/27/28). Cada card reflete SÓ o que foi
+    carregado nesta rodada via os --*-json correspondentes — não roda nem
+    recalcula nada sozinha, é um painel de estado, não um motor."""
+
+    def card(icone, nome, descricao, status, achado):
+        return f"""
+    <div class="agent-card status-{status}">
+      <div class="agent-head">
+        <span class="agent-icon" aria-hidden="true">{icone}</span>
+        <span class="agent-nome">{nome}</span>
+      </div>
+      <span class="agent-status">{AGENT_STATUS_LABEL[status]}</span>
+      <p class="agent-desc">{descricao}</p>
+      <p class="agent-achado">{achado}</p>
+    </div>"""
+
+    cards = []
+
+    n_desc = sum(len(v) for v in (descoberta or {}).get("por_produto", {}).values())
+    n_globais = len((descoberta or {}).get("globais") or [])
+    if descoberta and (n_desc or n_globais):
+        cards.append(card("◈", "Descoberta de Concorrentes",
+                           "Busca variantes/sellers por produto no Mercado Livre + Auction Insight do Google Ads.",
+                           "achado" if (n_desc or n_globais) else "vazio",
+                           f"{n_desc} candidato(s) por produto, {n_globais} candidato(s) global(is) do leilão "
+                           "— ver aba Concorrentes"))
+    else:
+        cards.append(card("◈", "Descoberta de Concorrentes",
+                           "Busca variantes/sellers por produto no Mercado Livre + Auction Insight do Google Ads.",
+                           "off", "Sem dado carregado — rode descoberta_concorrentes.py --export-json e "
+                                  "passe em --descoberta-json"))
+
+    if descoberta_shopping:
+        recs = descoberta_shopping.get("recomendacoes") or []
+        achados = [r for r in recs if r.get("origem") == "campanha_shopping"]
+        if achados:
+            nomes = ", ".join(a["produto"] for a in achados)
+            cards.append(card("⬢", "Produtos p/ Google Shopping",
+                               "Cruza campanhas Shopping reais do Google Ads com o catálogo configurado.",
+                               "achado", f"{len(achados)} achado(s) fora do config: {nomes}"))
+        else:
+            cards.append(card("⬢", "Produtos p/ Google Shopping",
+                               "Cruza campanhas Shopping reais do Google Ads com o catálogo configurado.",
+                               "vazio", f"{len(recs)} produto(s) avaliado(s), nenhum achado fora do config"))
+    else:
+        cards.append(card("⬢", "Produtos p/ Google Shopping",
+                           "Cruza campanhas Shopping reais do Google Ads com o catálogo configurado.",
+                           "off", "Sem dado carregado — rode descoberta_produtos_shopping.py --export-json "
+                                  "e passe em --descoberta-shopping-json"))
+
+    if descoberta_termos:
+        recs = descoberta_termos.get("recomendacoes") or []
+        achados = [r for r in recs if (r.get("status") or "").startswith("ACHADO")]
+        if achados:
+            p = achados[0]
+            cards.append(card("◇", "Termo de Busca Certo",
+                               "Minera keywords reais do Google Ads e recomenda o termo de mais clique/impressão "
+                               "por produto.", "achado",
+                               f"{len(achados)} achado(s) — ex.: '{p['termo_atual']}' → "
+                               f"'{p['termo_recomendado']}' ({p['produto']})"))
+        else:
+            cards.append(card("◇", "Termo de Busca Certo",
+                               "Minera keywords reais do Google Ads e recomenda o termo de mais clique/impressão "
+                               "por produto.", "vazio",
+                               f"{len(recs)} produto(s) avaliado(s), termo atual já bate com a keyword real de "
+                               "mais volume"))
+    else:
+        cards.append(card("◇", "Termo de Busca Certo",
+                           "Minera keywords reais do Google Ads e recomenda o termo de mais clique/impressão "
+                           "por produto.", "off", "Sem dado carregado — rode descoberta_termos_busca.py "
+                                                  "--export-json e passe em --descoberta-termos-json"))
+
+    if google_shopping_status.get("rodou"):
+        cards.append(card("▲", "Radar Google Shopping",
+                           "Coleta concorrentes reais no Google Shopping por produto (ator "
+                           "damilo~google-shopping-apify).",
+                           google_shopping_status["status"], google_shopping_status["achado"]))
+    else:
+        cards.append(card("▲", "Radar Google Shopping",
+                           "Coleta concorrentes reais no Google Shopping por produto (ator "
+                           "damilo~google-shopping-apify).",
+                           "off", "Sem dado carregado — rode google_shopping.py e passe em "
+                                  "--google-shopping-json"))
+
+    return f"""
+<section class="agent-grid-wrap">
+  <h2>// central de agentes — descoberta e recomendação de produto</h2>
+  <div class="agent-grid">{''.join(cards)}</div>
+  <p class="tab-note">Cada agente roda como script separado (ver SKILL.md, passos 11/26/27/28) e grava um JSON
+  de exportação — esta aba só reflete o que foi carregado nesta rodada, nunca recalcula nada sozinha. "Aguardando
+  dado" não é erro: é um agente que existe e está pronto, mas cujo JSON não foi passado nesta execução.</p>
+</section>"""
+
+
 # ------------------------------------------------------------- marketplaces (aba, ML + Google Shopping)
 def render_marketplaces_tab(marketplaces):
     """Aba 'Marketplaces' — Mercado Livre + Google Shopping (quando fornecido),
@@ -2553,7 +2656,8 @@ coleta é feita em blocos (ver ga4_jornada.py).</p>"""
 
 def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
                descoberta=None, keywords_data=None, marketplaces=None, historico=None,
-               primeira_rodada=False, ga4=None, metas_data=None, meta_ads=None):
+               primeira_rodada=False, ga4=None, metas_data=None, meta_ads=None,
+               descoberta_shopping=None, descoberta_termos=None, google_shopping_status=None):
     ordem = {"alta": 0, "media": 1, "baixa": 2}
     ordenados = sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]])
     cards = "".join(render_card(a, i) for i, a in enumerate(ordenados))
@@ -2594,6 +2698,8 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     credbar_html = render_credbar(config, own_perf, keywords_data)
     marketplaces_html = render_marketplaces_tab(marketplaces or {"Mercado Livre": radar_ml or {}})
     descoberta_html = render_descoberta_tab(descoberta)
+    agentes_html = render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos,
+                                       google_shopping_status or {"rodou": False})
     keywords_html = render_keywords_tab(keywords_data)
     historico_html = render_historico_chart(historico)
     selecao_html = render_selecao_manual_tab(config)
@@ -2802,6 +2908,47 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .squadron-list {{ list-style: none; margin: 0; padding: 0; font-size: .78rem; color: var(--text-dim); }}
   .squadron-list li {{ padding: 5px 0; border-top: 1px solid var(--border); }}
   .squadron-list li:first-child {{ border-top: none; padding-top: 0; }}
+
+  /* -------------------------------------------------- central de agentes */
+  .agent-grid-wrap {{ margin-bottom: 26px; }}
+  .agent-grid {{ display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; }}
+  .agent-card {{
+    position: relative; isolation: isolate; overflow: hidden;
+    flex: 1 1 260px; min-width: 240px; max-width: 340px;
+    background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 10px;
+    padding: 14px 16px;
+  }}
+  .agent-card > * {{ position: relative; z-index: 2; }}
+  .agent-card::after {{ content: ""; position: absolute; inset: 1.5px; border-radius: 9px; z-index: 1; background: var(--surface-2); }}
+  .agent-head {{ display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }}
+  .agent-icon {{ font-size: 1.15rem; color: var(--accent-strong); }}
+  .agent-nome {{ font-size: .86rem; font-weight: 700; }}
+  .agent-status {{
+    display: inline-block; font-size: .64rem; letter-spacing: .04em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px; background: var(--surface-3); color: var(--text-dim);
+    border: 1px solid var(--border); margin-bottom: 8px; font-weight: 600;
+  }}
+  .agent-desc {{ font-size: .76rem; color: var(--text-mute); margin: 0 0 8px; line-height: 1.4; }}
+  .agent-achado {{ font-size: .8rem; color: var(--text-dim); margin: 0; line-height: 1.45; }}
+  .agent-card.status-off {{ border-style: dashed; border-color: var(--border); opacity: .72; }}
+  .agent-card.status-off .agent-icon {{ color: var(--text-mute); }}
+  .agent-card.status-vazio {{ border-color: var(--good); }}
+  .agent-card.status-vazio .agent-status {{ color: #8fe38f; border-color: rgba(12,163,12,.5); background: var(--good-bg); }}
+  .agent-card.status-achado {{ border-color: var(--accent-strong); }}
+  .agent-card.status-achado .agent-status {{
+    color: #cfe8ff; border-color: rgba(85,174,255,.55); background: var(--accent-soft);
+  }}
+  .agent-card.status-achado .agent-achado {{ color: var(--text); font-weight: 500; }}
+  /* mesma técnica de border-beam do .pipe-step.on (_fx_neon.py), aplicada aqui
+     no card com achado real — o "efeito especial" pedido, não decoração pura:
+     só acende no card que TEM achado nesta rodada. */
+  .agent-card.status-achado::before {{
+    content: ""; position: absolute; top: 50%; left: 50%; width: 200%; height: 0; padding-bottom: 200%;
+    margin: -100% 0 0 -100%; z-index: 0;
+    background: conic-gradient(from 0deg, transparent 0 60%, #8fd0ff 80%, #ffffff 88%, transparent 96%);
+    animation: fx-beam 3.4s linear infinite;
+  }}
+  @media (prefers-reduced-motion: reduce) {{ .agent-card.status-achado::before {{ animation: none; }} }}
 
   .data-table-wrap, .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }}
   table.data-table, table.ml-radar-table {{ width: 100%; border-collapse: collapse; font-size: .82rem; white-space: nowrap; }}
@@ -3411,6 +3558,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   <button class="tab-btn active" data-tab="visao-geral" role="tab" aria-selected="true">Visão Geral</button>
   <button class="tab-btn" data-tab="marketplaces" role="tab" aria-selected="false">Marketplaces</button>
   <button class="tab-btn" data-tab="concorrentes" role="tab" aria-selected="false">Concorrentes</button>
+  <button class="tab-btn" data-tab="agentes" role="tab" aria-selected="false">Agentes</button>
   <button class="tab-btn" data-tab="metas" role="tab" aria-selected="false">Metas &amp; Evolução</button>
   <button class="tab-btn" data-tab="ga4" role="tab" aria-selected="false">GA4 · Jornada</button>
   <button class="tab-btn" data-tab="meta-ads" role="tab" aria-selected="false">Meta Ads</button>
@@ -3439,6 +3587,10 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 
   <div class="tab-panel" data-tab="concorrentes">
     <section><h2>Motor de descoberta e composição de concorrentes</h2>{descoberta_html}</section>
+  </div>
+
+  <div class="tab-panel" data-tab="agentes">
+    {agentes_html}
   </div>
 
   <div class="tab-panel" data-tab="metas">
@@ -3989,6 +4141,16 @@ def main():
     ap.add_argument("--simulate-google-shopping-proprio", default=None,
                      help="JSON com o NOSSO anúncio simulado no Google Shopping (mesmo formato de "
                           "--simulate-ml-proprio). Só usado junto com --simulate-google-shopping.")
+    ap.add_argument("--google-shopping-json", default=None,
+                     help="saída REAL de google_shopping.py (--out) — concorrentes no Google Shopping. "
+                          "Tem prioridade sobre --simulate-google-shopping quando os dois são passados.")
+    ap.add_argument("--google-shopping-proprio-json", default=None,
+                     help="saída REAL de google_shopping.py (--out-proprio) — o NOSSO anúncio no Google "
+                          "Shopping. Tem prioridade sobre --simulate-google-shopping-proprio.")
+    ap.add_argument("--descoberta-shopping-json", default=None,
+                     help="saída de descoberta_produtos_shopping.py --export-json — vira card na aba 'Agentes'")
+    ap.add_argument("--descoberta-termos-json", default=None,
+                     help="saída de descoberta_termos_busca.py --export-json — vira card na aba 'Agentes'")
     ap.add_argument("--ga4-json", default=None,
                      help="saída de ga4_jornada.py — vira a aba 'GA4 · Jornada' (KPIs, funil de compra, "
                           "matriz de decisão por canal, devices, landing pages e diagnóstico)")
@@ -4081,10 +4243,27 @@ def main():
     save_json(log_path, alertas_log)
     save_json(current_run_path, alertas)
 
-    snapshot_gs = load_json(args.simulate_google_shopping, {}) if args.simulate_google_shopping else None
-    snapshot_gs_proprio = (load_json(args.simulate_google_shopping_proprio, {})
-                           if args.simulate_google_shopping_proprio else None)
+    # dado REAL (--google-shopping-json) tem prioridade sobre o de simulação —
+    # mesmo cuidado do Windsor: nunca deixar o caminho de teste sobrescrever o real
+    gs_real = load_json(args.google_shopping_json, None) if args.google_shopping_json else None
+    snapshot_gs = (gs_real.get("registros") if gs_real is not None
+                   else (load_json(args.simulate_google_shopping, {}) if args.simulate_google_shopping else None))
+    snapshot_gs_proprio = (load_json(args.google_shopping_proprio_json, None) if args.google_shopping_proprio_json
+                           else (load_json(args.simulate_google_shopping_proprio, {})
+                                 if args.simulate_google_shopping_proprio else None))
     marketplaces = montar_radar_marketplaces(radar_ml, snapshot_gs, snapshot_gs_proprio)
+
+    if gs_real is not None:
+        total_gs = sum(len(v) for v in (gs_real.get("registros") or {}).values())
+        n_prod_gs = len(gs_real.get("registros") or {})
+        google_shopping_status = {
+            "rodou": True, "status": "achado" if total_gs else "vazio",
+            "achado": (f"{total_gs} concorrente(s) encontrado(s) em {n_prod_gs} produto(s)" if total_gs else
+                       f"0 concorrente(s) encontrado(s) em {n_prod_gs} produto(s) — termos podem precisar de "
+                       "ajuste (ver card Termo de Busca Certo)"),
+        }
+    else:
+        google_shopping_status = {"rodou": False}
 
     meta = {"data": now_iso()}
 
@@ -4102,13 +4281,18 @@ def main():
     metas_data = load_json(args.metas_json, {}) if args.metas_json else {}
     meta_ads = (load_json(args.meta_ads_performance_json, {})
                 if args.meta_ads_performance_json else {})
+    descoberta_shopping = (load_json(args.descoberta_shopping_json, {})
+                           if args.descoberta_shopping_json else {})
+    descoberta_termos = load_json(args.descoberta_termos_json, {}) if args.descoberta_termos_json else {}
 
     write_xlsx(alertas, alertas_log, snapshot_novo, ads_entries, load_json(ads_hist_path, {}), config, meta, args.out,
                own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta, keywords_data=keywords_data,
                marketplaces=marketplaces, historico=historico, ga4=ga4)
     write_html(alertas, config, meta, args.html, own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta,
                keywords_data=keywords_data, marketplaces=marketplaces, historico=historico,
-               primeira_rodada=primeira_rodada, ga4=ga4, metas_data=metas_data, meta_ads=meta_ads)
+               primeira_rodada=primeira_rodada, ga4=ga4, metas_data=metas_data, meta_ads=meta_ads,
+               descoberta_shopping=descoberta_shopping, descoberta_termos=descoberta_termos,
+               google_shopping_status=google_shopping_status)
     print_console(alertas)
 
     if not args.ads_manual:

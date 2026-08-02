@@ -1359,6 +1359,54 @@ isolado"` (já bate com a keyword real de mais volume, `"whey protein"`).
 mais específico que o usuário confirmou ser o ativo certo, também com
 evidência real (92 impressões, 11 cliques).
 
+### 29. Aba "Agentes" — central de status dos agentes de descoberta/recomendação
+
+Depois de três agentes prontos (passos 11/26/28) e um coletor (passo 27), o
+usuário pediu uma aba mostrando os agentes "trabalhando", com efeitos
+especiais, pra fechar uma versão de uso. `render_agentes_tab()` em
+`war_room.py` monta um card por agente — **painel de status, não motor**: não
+recalcula nada, só reflete o que foi carregado nesta rodada via os
+`--*-json` correspondentes.
+
+Quatro cards:
+- **Descoberta de Concorrentes** — `--descoberta-json` (já existia, passo 11)
+- **Produtos p/ Google Shopping** — `--descoberta-shopping-json` (novo, passo 26)
+- **Termo de Busca Certo** — `--descoberta-termos-json` (novo, passo 28)
+- **Radar Google Shopping** — `--google-shopping-json` (novo, passo 27)
+
+Cada card tem 3 estados reais, nunca decorativos:
+- `status-off` (borda tracejada, esmaecido) — agente existe, mas o JSON não
+  foi passado nesta execução. **Não é erro.**
+- `status-vazio` (borda verde) — o agente rodou (JSON carregado) e não achou
+  nada de acionável nesta rodada.
+- `status-achado` (borda azul + **border-beam girando**, mesma técnica visual
+  de `.pipe-step.on` em `_fx_neon.py`) — o agente achou algo de verdade
+  nesta rodada. É o "efeito especial" pedido: só acende em cima de achado
+  real, não em todo card.
+
+**De caminho, completado um pendente antigo:** `--google-shopping-json`/
+`--google-shopping-proprio-json` agora alimentam de verdade
+`montar_radar_marketplaces()` (com prioridade sobre
+`--simulate-google-shopping*`, mesmo cuidado do Windsor — real nunca é
+sobrescrito por caminho de teste), então o Radar Google Shopping também
+aparece na aba Marketplaces quando os dois `--google-shopping-*-json` forem
+passados, além do card na aba Agentes.
+
+```bash
+python war_room.py --config config.json ... \
+    --descoberta-json ../outputs/descoberta.json \
+    --descoberta-shopping-json ../outputs/descoberta-shopping.json \
+    --descoberta-termos-json ../outputs/descoberta-termos.json \
+    --google-shopping-json ../outputs/google-shopping.json \
+    --google-shopping-proprio-json ../outputs/google-shopping-proprio.json
+```
+
+Testado com Playwright (screenshot da aba renderizada) contra dado real das
+rodadas de teste dos três agentes — os 3 estados (off/vazio/achado) conferidos
+visualmente, incluindo o card sem dado carregado (esmaecido/tracejado) e o
+card com achado (borda acesa). **Só a aba HTML recebeu isso, não o XLSX** —
+escopo mantido enxuto de propósito.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

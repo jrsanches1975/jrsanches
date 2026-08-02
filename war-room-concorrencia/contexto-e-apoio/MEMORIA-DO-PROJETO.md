@@ -1043,6 +1043,38 @@ Livre: `JOIE`.
     volume de busca. Registrado como decisão, não fato absoluto: reavaliar se
     o volume importar mais que a especificidade em algum momento.
 
+47. **Aba "Agentes" criada em `war_room.py` — versão de uso dos três agentes +
+    coletor construídos no dia (2026-08-02, mesmo dia da entrada 46).** Usuário
+    pediu a aba com efeitos especiais explicitamente. `render_agentes_tab()`
+    monta um card por agente (Descoberta de Concorrentes, Produtos p/ Shopping,
+    Termo de Busca Certo, Radar Google Shopping) — é um PAINEL DE STATUS, não
+    um motor: só reflete o que foi carregado via `--descoberta-json`/
+    `--descoberta-shopping-json`/`--descoberta-termos-json`/
+    `--google-shopping-json` nesta rodada, nunca recalcula nada.
+    Três estados reais por card (`status-off`/`status-vazio`/`status-achado`),
+    não decoração: "aguardando dado" quando o `--*-json` não foi passado
+    (explicitamente documentado como NÃO SENDO ERRO), "sem achado" quando o
+    agente rodou mas não achou nada de acionável, e "achado" com o efeito
+    especial pedido — border-beam girando, reaproveitando a MESMA técnica
+    visual já usada em `.pipe-step.on` (`_fx_neon.py`, `@keyframes fx-beam`) —
+    só acende no card que tem achado de verdade, nunca em todos.
+    **De caminho, completado um pendente registrado desde a entrada 43:**
+    `--google-shopping-json`/`--google-shopping-proprio-json` (novos flags)
+    agora alimentam `montar_radar_marketplaces()` de verdade, com prioridade
+    sobre `--simulate-google-shopping*` quando os dois são passados — mesmo
+    cuidado do Windsor (real nunca é sobrescrito pelo caminho de teste). O
+    Radar Google Shopping passa a aparecer também na aba Marketplaces, não só
+    no card da aba Agentes.
+    Testado com Playwright: screenshot da aba renderizada contra os JSONs
+    reais das rodadas de teste dos 3 agentes (descoberta-shopping-teste2.json,
+    descoberta-termos-teste2.json) + um `google-shopping-teste.json` sintético
+    reproduzindo o resultado real do usuário (0 concorrentes em 3 produtos,
+    mesmo formato de `google_shopping.py --out`). Os 3 estados visuais
+    conferidos: cards "aguardando dado" (tracejado/esmaecido), "sem achado"
+    (verde) e "achado" (azul com o beam girando) todos renderizaram como
+    esperado. **Escopo mantido enxuto de propósito:** só a aba HTML recebeu a
+    central de agentes, não o XLSX.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

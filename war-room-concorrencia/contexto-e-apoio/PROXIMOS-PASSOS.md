@@ -293,6 +293,28 @@ python descoberta_termos_busca.py --config config.json \
 
 ---
 
+## 8. Aba "Agentes" no painel (2026-08-02)
+
+Criada a aba que você pediu — mostra os 4 agentes/coletores com efeitos
+especiais (a borda acende e gira quando tem achado de verdade na rodada).
+Testei com Playwright, renderiza certinho nos 3 estados (aguardando dado /
+sem achado / achado). De caminho, também liguei o `google_shopping.py` na
+aba **Marketplaces** (antes só tinha o card na aba Agentes).
+
+Pra ver com tudo junto, o comando agora é (adicionei 4 flags novos no final):
+```powershell
+py war_room.py --config config.json --out ..\outputs\war-room.xlsx --html ..\outputs\war-room.html --own-performance ..\outputs\own-performance-por-produto.json --descoberta-json ..\outputs\descoberta.json --keywords-relatorio-json ..\outputs\keywords-relatorio.json --ga4-json ..\outputs\ga4-jornada.json --metas-json ..\outputs\metas.json --meta-ads-performance-json ..\outputs\meta-ads-performance.json --descoberta-shopping-json ..\outputs\descoberta-shopping.json --descoberta-termos-json ..\outputs\descoberta-termos.json --google-shopping-json ..\outputs\google-shopping.json --google-shopping-proprio-json ..\outputs\google-shopping-proprio.json
+```
+- [ ] Rodar `descoberta_produtos_shopping.py` e `descoberta_termos_busca.py`
+      com `--export-json` (se ainda não tiver os arquivos `descoberta-shopping.json`/
+      `descoberta-termos.json` em `outputs/`)
+- [ ] Rodar o comando acima e abrir `outputs\war-room.html` — clicar na aba
+      **Agentes**
+- [ ] Me avisar se algum card aparecer "aguardando dado" que você achava que
+      já tinha rodado — pode ser só o caminho do arquivo errado no comando
+
+---
+
 ## O que saber sobre a escolha do Windsor
 
 Não são defeitos do script — são consequências do caminho, e é melhor você saber
