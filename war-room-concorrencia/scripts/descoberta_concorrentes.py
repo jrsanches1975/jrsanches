@@ -39,35 +39,47 @@ import sys
 from collections import defaultdict
 
 from apify_common import apify_run, get_token, load_json, norm
-from war_room import ML_ACTOR, match_oficial
+from war_room import ML_ACTOR_PADRAO, montar_payload_ml, _campos_listagem, match_oficial
 
 MAX_REVIEWS_REFERENCIA = 2000  # teto pra normalizar autoridade/vendas (log-scale)
 
 
 # --------------------------------------------------------------------- descoberta
-def buscar_raw(termo, token, max_items):
-    items, err = apify_run(ML_ACTOR, {"searchQuery": termo, "maxItems": max_items}, token)
+def buscar_raw(config, termo, token, max_items):
+    """Usa o MESMO ator/formato configurado em war_room.py (apify_actors/
+    apify_actors_campos/apify_actors_formato) — antes este script tinha o ator e o
+    payload fixos, dessincronizados do que o Radar (collect_snapshot) realmente usa.
+    Trocar de ator num lugar só e os dois ficarem alinhados."""
+    actor = config.get("apify_actors", {}).get("mercado_livre", ML_ACTOR_PADRAO)
+    payload = montar_payload_ml(config, termo, max_items)
+    items, err = apify_run(actor, payload, token)
     if err:
         print(f"  ERRO ao buscar '{termo}': {err}", file=sys.stderr)
     return items or []
 
 
-def descobrir_por_produto(raw_items, official_sellers):
+def descobrir_por_produto(raw_items, official_sellers, formato="viralanalyzer"):
     """Agrega TODOS os sellers distintos do resultado bruto (exceto o próprio) —
-    cada um é um candidato a concorrente ESPECÍFICO daquele produto/variante."""
+    cada um é um candidato a concorrente ESPECÍFICO daquele produto/variante.
+    Lê os campos via _campos_listagem() (mesma função do Radar em war_room.py),
+    pra funcionar com qualquer ator configurado sem duplicar a lógica de parsing."""
     por_seller = {}
     for idx, item in enumerate(raw_items):
-        seller = item.get("seller") or {}
-        nick = seller.get("nickname") if isinstance(seller, dict) else (seller or "")
+        if formato == "karamelo":
+            nick = item.get("Vendedor") or ""
+        else:
+            seller = item.get("seller") or {}
+            nick = seller.get("nickname") if isinstance(seller, dict) else (seller or "")
         if not nick or (official_sellers and match_oficial(nick, official_sellers)):
             continue
         position = idx + 1
+        campos = _campos_listagem(item, position, formato)
         if nick not in por_seller:
             por_seller[nick] = {
-                "seller": nick, "title": item.get("title"), "price": item.get("price"),
-                "position": position, "reviews": item.get("reviews_count"),
-                "rating": item.get("average_rating"), "total_listagens": 1,
-                "url": item.get("url"), "origem": ["descoberta_ml"],
+                "seller": nick, "title": campos["title"], "price": campos["price"],
+                "position": position, "reviews": campos["reviews"],
+                "rating": campos["rating"], "total_listagens": 1,
+                "url": campos["url"], "origem": ["descoberta_ml"],
             }
         else:
             por_seller[nick]["total_listagens"] += 1
@@ -314,6 +326,7 @@ def main():
 
     produtos = config.get("produtos_monitorados", []) + config.get("produtos_candidatos_manual", [])
     candidatos_manual = config.get("candidatos_concorrentes_manual", [])
+    formato = config.get("apify_actors_formato", {}).get("mercado_livre", "viralanalyzer")
 
     simulado = load_json(args.simulate_raw, {}) if args.simulate_raw else None
     token = None
@@ -331,8 +344,8 @@ def main():
             raw = simulado.get(nome, [])
         else:
             print(f"  buscando variantes/concorrentes de '{nome}' ({termo})...", file=sys.stderr)
-            raw = buscar_raw(termo, token, args.per_produto)
-        descoberta = descobrir_por_produto(raw, official_sellers)
+            raw = buscar_raw(config, termo, token, args.per_produto)
+        descoberta = descobrir_por_produto(raw, official_sellers, formato)
         candidatos = compor_candidatos_produto(nome, descoberta, candidatos_manual)
         pontuados = [(c, pontuar(c, prod.get("preco_proprio"), ativos_ads, pesos)) for c in candidatos]
         por_produto_pontuado[nome] = pontuados
