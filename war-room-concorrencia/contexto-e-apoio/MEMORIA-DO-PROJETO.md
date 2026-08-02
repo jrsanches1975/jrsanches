@@ -1075,6 +1075,30 @@ Livre: `JOIE`.
     esperado. **Escopo mantido enxuto de propósito:** só a aba HTML recebeu a
     central de agentes, não o XLSX.
 
+48. **"Botão start" sem terminal — respondido o que é possível e o que não é
+    (2026-08-02, mesmo dia).** Usuário perguntou se dava pra por um botão no
+    HTML que ligasse o backend sozinho. Resposta técnica dada primeiro, antes
+    de construir qualquer coisa: **não dá** — uma página web não tem permissão
+    pra executar processo na máquina do usuário, é bloqueio de segurança do
+    navegador (mesma classe de coisa que impede um site de ligar sua câmera
+    sem pedir), não uma limitação deste projeto que desse pra contornar com
+    código. O mais perto que chega: automatizar tudo ATÉ o ponto de precisar
+    clicar em algo.
+    Feito: `servidor.py` agora abre o navegador sozinho ao subir
+    (`webbrowser.open()` num `threading.Timer(0.4, ...)`, porque o socket já
+    está de pé no momento em que `ThreadingHTTPServer(...)` é construído,
+    então é seguro abrir a URL antes de `serve_forever()`) — só quando o host
+    é local; criado `--sem-navegador` pra quando rodar como serviço/tarefa
+    agendada sem sessão gráfica (senão tentaria abrir navegador num contexto
+    sem tela). Testado com `--sem-navegador --porta 8799` num timeout curto —
+    subiu e imprimiu o log esperado sem erro.
+    Criado `scripts/iniciar-painel.bat`: duplo-clique entra na pasta certa
+    (`%~dp0`, funciona mesmo se o atalho estiver na Área de Trabalho), confere
+    se o comando `py` existe (senão orienta a instalar Python), copia
+    `config.example.json` pra `config.json` só se ainda não existir (nunca
+    sobrescreve customização), e sobe o `servidor.py` — zero terminal digitado
+    depois da primeira vez.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

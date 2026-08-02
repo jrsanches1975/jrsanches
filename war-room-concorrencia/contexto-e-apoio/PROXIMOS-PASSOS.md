@@ -315,6 +315,25 @@ py war_room.py --config config.json --out ..\outputs\war-room.xlsx --html ..\out
 
 ---
 
+## 9. Abrir sem terminal (2026-08-02)
+
+Você perguntou se dava pra ter um botão no painel que ligasse o backend
+sozinho. **Não dá** — página web não liga processo na sua máquina, é
+bloqueio do navegador, não algo que eu resolvo com código. O mais perto que
+chega: um atalho de duplo-clique que já abre tudo.
+
+- [ ] Salve `scripts\iniciar-painel.bat` e `scripts\servidor.py` (atualizado)
+      na pasta `scripts\`
+- [ ] Dá duplo-clique em `iniciar-painel.bat` — ele entra na pasta certa,
+      confere se tem Python, copia o `config.json` se ainda não existir, e já
+      abre o navegador sozinho no painel
+- [ ] Se quiser um ícone de verdade: botão direito no `iniciar-painel.bat` →
+      Enviar para → Área de trabalho (criar atalho)
+- [ ] Pra desligar: fecha a janela preta que abriu (continua sendo assim —
+      sem instalar como serviço do Windows, que é outra conversa)
+
+---
+
 ## O que saber sobre a escolha do Windsor
 
 Não são defeitos do script — são consequências do caminho, e é melhor você saber

@@ -892,6 +892,20 @@ de exemplo em vez de erro.
 **Nunca** coloque o `APIFY_TOKEN` dentro do `config.json`: esse arquivo é
 gitignored justamente para não vazar, mas variável de ambiente é o lugar certo.
 
+**Sem terminal, com duplo-clique (2026-08-02):** o usuário pediu um "botão
+start" no HTML — impossível de verdade (página web não tem permissão pra
+ligar processo na máquina, é bloqueio de segurança do navegador, não
+limitação de código). O mais perto que dá: `servidor.py` agora **abre o
+navegador sozinho** ao subir (`webbrowser.open()`, com `threading.Timer` de
+0.4s pro socket já estar de pé — só quando `--host` é local; `--sem-navegador`
+desliga isso, pra rodar como serviço/tarefa agendada sem sessão gráfica). E
+criado `scripts/iniciar-painel.bat`: duplo-clique nele entra na pasta certa
+(`%~dp0`), confere se o Python existe, copia `config.example.json` pra
+`config.json` se ainda não existir, e sobe o `servidor.py` — zero terminal
+digitado. Pode ser arrastado pra Área de Trabalho (criar atalho) pra virar um
+"ícone de app". Ainda precisa da janela preta aberta (é o processo do
+servidor rodando) — fechar ela desliga, mesma limitação de sempre sem systemd.
+
 **O painel detecta em qual modo está, não presume.** Aberto pelo servidor: barra
 verde "backend conectado", botões de rodar/salvar ativos. Aberto como arquivo:
 barra âmbar "modo arquivo", os botões de servidor ficam **desabilitados** (não

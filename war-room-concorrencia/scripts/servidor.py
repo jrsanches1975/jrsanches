@@ -43,6 +43,7 @@ import sys
 import threading
 import time
 import urllib.parse
+import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -481,6 +482,9 @@ def main():
     ap.add_argument("--extra", nargs=argparse.REMAINDER, default=[],
                      help="tudo depois de --extra vai direto para o war_room.py "
                           "(ex.: --extra --ga4-json ../outputs/ga4-jornada.json)")
+    ap.add_argument("--sem-navegador", action="store_true",
+                     help="não abre o navegador sozinho ao subir (útil rodando como serviço/tarefa "
+                          "agendada, onde não tem sessão gráfica pra abrir nada)")
     args = ap.parse_args()
 
     args.config = os.path.abspath(args.config)
@@ -506,6 +510,11 @@ def main():
         print("  token exigido em todo pedido (X-War-Room-Token)", file=sys.stderr)
     if not local:
         print(f"  ATENÇÃO: escutando em {args.host} — alcançável pela rede", file=sys.stderr)
+    if local and not args.sem_navegador:
+        # o socket já está aberto (ThreadingHTTPServer acima faz bind no construtor),
+        # então é seguro abrir o navegador antes de serve_forever() — sem isso o
+        # usuário precisaria copiar a URL à mão toda vez que subisse o servidor.
+        threading.Timer(0.4, lambda: webbrowser.open(f"http://{args.host}:{args.porta}")).start()
     try:
         servidor.serve_forever()
     except KeyboardInterrupt:
