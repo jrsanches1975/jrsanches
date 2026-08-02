@@ -108,7 +108,60 @@ def extrair_patrocinado(item):
     return "desconhecido"
 
 
-def _campos_listagem(item, position):
+def _num_br(v):
+    """Número em formato brasileiro (vírgula decimal, ponto de milhar opcional) pra
+    float — ex.: '1.234,56' -> 1234.56, '49,9' -> 49.9. Ausente/vazio vira None,
+    nunca 0 (ausente e zero real são coisas diferentes)."""
+    if v is None or isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+    if not s:
+        return None
+    if "," in s:
+        s = s.replace(".", "").replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _campos_listagem(item, position, formato="viralanalyzer"):
+    if formato == "karamelo":
+        # nomes de campo do karamelo~mercadolivre-scraper-brasil-portugues, confirmados
+        # contra uma coleta real (2026-08-02) — ver SKILL.md passo 24. Preço e desconto
+        # chegam como texto em formato BR ("49,9", "16% OFF"); o desconto é recalculado
+        # a partir dos dois preços em vez de parsear o texto "% OFF", que é mais frágil.
+        preco = _num_br(item.get("novoPreco"))
+        original = _num_br(item.get("precoAnterior"))
+        discount = (1 - preco / original) * 100 if preco is not None and original else None
+        # tipoResultado ("ORGANIC" nos testados) é um sinal de patrocinado mais confiável
+        # do que o best-effort genérico — mas só um valor foi visto até hoje (nenhum
+        # anúncio patrocinado apareceu na amostra), então cai pro best-effort se vazio.
+        tipo = (item.get("tipoResultado") or "").strip().upper()
+        if tipo == "ORGANIC":
+            patrocinado = "nao"
+        elif tipo:
+            patrocinado = "sim"
+        else:
+            patrocinado = extrair_patrocinado(item)
+        return {
+            "title": item.get("eTituloProduto"),
+            "price": preco,
+            "original_price": original,
+            "discount_pct": discount,
+            "position": position,
+            "reviews": _num_br(item.get("numeroAvaliacoes")),
+            "rating": _num_br(item.get("produtoReviews")),
+            "frete_gratis": item.get("freteGratis"),
+            "patrocinado": patrocinado,
+            "url": item.get("zProdutoLink"),
+            # campos que o karamelo traz e o viralanalyzer não — aditivos, não
+            # quebram nada que já lê os campos acima (ver SKILL.md passo 24)
+            "venda_estimada": item.get("quantidadeVendida"),
+            "destaque": item.get("highlight") or None,
+        }
     ship = item.get("shipping") or {}
     return {
         "title": item.get("title"),
@@ -141,6 +194,7 @@ def collect_snapshot(config, token, produtos_filter, per_produto):
         produtos = [p for p in produtos if p["nome"] in produtos_filter]
 
     actor = config.get("apify_actors", {}).get("mercado_livre", ML_ACTOR_PADRAO)
+    formato = config.get("apify_actors_formato", {}).get("mercado_livre", "viralanalyzer")
     snapshot, snapshot_proprio = {}, {}
     for prod in produtos:
         termo = prod["termo_busca_ml"]
@@ -151,13 +205,16 @@ def collect_snapshot(config, token, produtos_filter, per_produto):
             print(f"  ERRO ao buscar '{termo}': {err}", file=sys.stderr)
         por_concorrente = {}
         for idx, item in enumerate(items or []):
-            seller = item.get("seller") or {}
-            nick = seller.get("nickname") if isinstance(seller, dict) else (seller or "")
+            if formato == "karamelo":
+                nick = item.get("Vendedor") or ""
+            else:
+                seller = item.get("seller") or {}
+                nick = seller.get("nickname") if isinstance(seller, dict) else (seller or "")
             position = idx + 1
 
             if official_sellers and match_oficial(nick, official_sellers) and prod["nome"] not in snapshot_proprio:
                 snapshot_proprio[prod["nome"]] = {"seller": nick, "total_listagens": 1,
-                                                   **_campos_listagem(item, position)}
+                                                   **_campos_listagem(item, position, formato)}
                 continue
 
             nome_conc = match_competitor(nick, concorrentes)
@@ -169,7 +226,7 @@ def collect_snapshot(config, token, produtos_filter, per_produto):
                     por_concorrente[nome_conc]["position"] = position
                 continue
             por_concorrente[nome_conc] = {"seller": nick, "total_listagens": 1,
-                                           **_campos_listagem(item, position)}
+                                           **_campos_listagem(item, position, formato)}
         snapshot[prod["nome"]] = por_concorrente
     return snapshot, snapshot_proprio
 

@@ -128,6 +128,11 @@
     "mercado_livre": {}
   },
 
+  "_comentario_apify_actors_formato": "Escolhe QUAL leitor de resultado usar em war_room.py: 'viralanalyzer' (padrão, testado/confirmado) ou 'karamelo' (karamelo~mercadolivre-scraper-brasil-portugues — a SAÍDA já foi testada contra uma coleta real de 2026-08-02 e está pronta em war_room.py::_campos_listagem, com números em formato BR convertidos e sinal de patrocinado via 'tipoResultado'; traz também venda_estimada e destaque, que o viralanalyzer não tem). NÃO ative 'karamelo' em apify_actors.mercado_livre/apify_actors_formato ainda: falta confirmar o nome do campo de ENTRADA (o formulário mostra 'Nome do produto', mas o JSON pode ser outro nome) — abra o Input do ator, clique 'JSON' ao lado de 'Form', me mande o nome real, e só então preencha apify_actors_campos.mercado_livre.termo com ele antes de trocar isto para 'karamelo'.",
+  "apify_actors_formato": {
+    "mercado_livre": "viralanalyzer"
+  },
+
   "_comentario_trends": "Parâmetros do google_trends.py. trends_termos (opcional) sobrescreve a lista default (marca + apelidos + produtos + concorrentes).",
   "trends_geo": "BR",
   "trends_timeframe": "today 1-m",

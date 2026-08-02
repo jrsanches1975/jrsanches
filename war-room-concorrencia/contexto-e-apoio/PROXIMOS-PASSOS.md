@@ -203,21 +203,25 @@ cd war-room-concorrencia\deploy
 - [ ] Saber a limitação: sem senha guardada na tarefa, ela só dispara com sua
       sessão do Windows aberta (computador desligado/deslogado, não roda)
 
-**Sobre o ator do Apify que você estava olhando** (`karamelo/mercadolivre-scraper-brasil-portugues`,
-$5/1.000 resultados): corrigi um bug que fazia `war_room.py` ignorar o ator
-configurado em `config.json` — agora é de verdade trocável, sem editar código
-(`apify_actors.mercado_livre` + `apify_actors_campos.mercado_livre` para os
-nomes de campo, que são diferentes de ator para ator). Você pediu para testar
-os dois e ficar com o que trouxer resultado mais apurado — isso eu não consigo
-rodar por aqui (sem `APIFY_TOKEN` neste ambiente e sem o campo de busca real do
-`karamelo` confirmado ainda).
+**Sobre o ator do Apify** (`karamelo/mercadolivre-scraper-brasil-portugues`,
+$5/1.000 resultados) — atualizado depois que você colou uma coleta real dele
+("magnesio quelato 60 capsulas", 2.105 resultados):
 
-- [ ] Rodar uma busca de teste nos dois atores (o atual e o karamelo) para o
-      mesmo produto e comparar quantos concorrentes de verdade aparecem
-- [ ] Se decidir pelo `karamelo`: no Input dele, clicar em **"JSON"** (ao lado
-      de "Form") e me mandar o print — preciso do nome real do campo "Nome do
-      produto" antes de trocar `apify_actors_campos` (nome errado não dá erro,
-      só traz coleta vazia)
+- [x] Corrigido o bug que fazia `war_room.py` ignorar o ator configurado —
+      agora é trocável de verdade, sem editar código
+- [x] Mapeado e testado o lado de SAÍDA do `karamelo` contra o dado real que
+      você mandou: preços em formato BR, desconto, vendedor, frete, reviews,
+      link — tudo confere. Ele traz DOIS campos que o ator atual não tem:
+      quantidade vendida estimada e o selo de destaque ("MAIS VENDIDO" etc.) —
+      bom sinal de que é o mais apurado dos dois, mas ainda faltando um passo
+- [ ] **Só falta o campo de ENTRADA** para poder ativar de verdade: no Input
+      do ator (o mesmo print de antes), clique em **"JSON"** ao lado de "Form"
+      e me mande o nome real do campo "Nome do produto" — sem isso não dá pra
+      preencher `apify_actors_campos.mercado_livre.termo` com segurança (nome
+      errado não dá erro, só traz coleta vazia, e isso passaria despercebido)
+- [ ] Depois de me mandar isso, eu troco `apify_actors.mercado_livre` para
+      `karamelo~mercadolivre-scraper-brasil-portugues` e
+      `apify_actors_formato.mercado_livre` para `"karamelo"` em `config.json`
 
 ---
 

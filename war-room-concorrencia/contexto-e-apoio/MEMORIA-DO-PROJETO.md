@@ -757,6 +757,36 @@ Livre: `JOIE`.
     lê o resultado e monta os alertas/HTML. Não é substituto da tarefa do
     Windows, só um complemento possível.
 
+38. **Saída do `karamelo~mercadolivre-scraper-brasil-portugues` mapeada e testada
+    contra dado real (2026-08-02, mesmo dia da entrada 37).** O usuário colou uma
+    coleta real do ator (busca "magnesio quelato 60 capsulas", 2.105 resultados,
+    campos completos por item). Isso resolveu a metade que faltava da entrada 37:
+    o lado de SAÍDA agora está implementado e testado — `_campos_listagem(item,
+    position, formato="karamelo")` em `war_room.py` lê os nomes reais do
+    `karamelo` (`eTituloProduto`, `novoPreco`/`precoAnterior`, `Vendedor`,
+    `freteGratis`, `numeroAvaliacoes`, `produtoReviews`, `zProdutoLink`).
+    **Achados de conversão:** preço e nota chegam em formato BR (vírgula
+    decimal, ex. `"49,9"`) — criada `_num_br()` (não confundir com o `_num()` do
+    Windsor, que trata `%`; aqui o problema é vírgula/ponto, formato diferente).
+    `discount_pct` é RECALCULADO a partir de `novoPreco`/`precoAnterior` em vez
+    de parsear o texto `"16% OFF"` — mais robusto, e evita mais uma classe de
+    parsing de texto arriscado. `tipoResultado` (`"ORGANIC"` em todos os itens
+    testados) virou o sinal de patrocinado, mais confiável que o best-effort
+    genérico de `extrair_patrocinado()` (que segue como fallback se o campo vier
+    vazio). Capturados dois campos que o `viralanalyzer` não tem —
+    `venda_estimada` (de `quantidadeVendida`) e `destaque` (de `highlight`,
+    ex. "MAIS VENDIDO") — aditivos, ainda sem coluna própria no XLSX/HTML.
+    Testado com um recorte real de 4 itens (`AlwaysFit`/oficial, `Vhita`,
+    `Quantum Nutrition`, `OCEAN DROP` — os dois últimos concorrentes fictícios
+    de teste, não estão no `config.example.json` real): preço, desconto e
+    match de vendedor conferidos um a um contra o esperado.
+    **Ainda NÃO ativado por padrão** — falta confirmar o nome do campo de
+    ENTRADA (o formulário mostra "Nome do produto", mas o JSON pode divergir);
+    pedido ao usuário o print da aba "JSON" do Input antes de trocar
+    `apify_actors.mercado_livre`/`apify_actors_formato.mercado_livre` de
+    verdade. Ver `config.example.json` (`apify_actors_formato`) e
+    `PROXIMOS-PASSOS.md` item 6.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer
