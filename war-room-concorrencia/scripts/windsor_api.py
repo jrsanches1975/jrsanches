@@ -59,6 +59,7 @@ informado** e precisam ser confirmados com `--listar-campos`.
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -254,6 +255,26 @@ def _num(v):
     return n / 100.0 if percentual else n
 
 
+def _texto_campanha(v):
+    """Nome de campanha da GA4 chega CODIFICADO DE URL, porque vem do UTM:
+    '+-+[[Conv]]+-+[Whey+Silk+Protein]+-+Carrossel'. Os '+' são espaços e pode
+    haver %XX. Sem decodificar, o cruzamento por nome de campanha entre GA4 e a
+    plataforma de anúncio simplesmente não casa — foi visto na resposta real."""
+    if not isinstance(v, str) or not v:
+        return v
+    if "+" not in v and "%" not in v:
+        return v
+    try:
+        d = urllib.parse.unquote_plus(v)
+    except Exception:
+        return v
+    d = re.sub(r"\s{2,}", " ", d).strip()
+    # o UTM costuma começar pelo separador ("+-+[[Conv]]..."), o que deixa um
+    # "- " sobrando na frente. Do lado da plataforma o nome é "[[Conv]] - ...",
+    # e sem tirar isso o cruzamento GA4 x Meta por nome de campanha nunca casa.
+    return re.sub(r"^[-–—\s]+|[-–—\s]+$", "", d)
+
+
 def normalizar(linhas, conector):
     """O Windsor já devolve nomes planos, então a normalização é leve: converter
     número que vier como texto e preservar ausente como None (nunca zero — 'não
@@ -271,7 +292,12 @@ def normalizar(linhas, conector):
             continue
         limpo = {}
         for k, v in r.items():
-            limpo[k] = _num(v) if k in numericos else v
+            if k in numericos:
+                limpo[k] = _num(v)
+            elif k in ("campaign", "campaign_name", "adset", "ad_name"):
+                limpo[k] = _texto_campanha(v)
+            else:
+                limpo[k] = v
         saida.append(limpo)
     return saida
 
