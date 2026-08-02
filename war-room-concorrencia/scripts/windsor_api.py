@@ -62,6 +62,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -275,6 +276,28 @@ def _texto_campanha(v):
     return re.sub(r"^[-–—\s]+|[-–—\s]+$", "", d)
 
 
+def chave_campanha(nome):
+    """Chave de JUNÇÃO para casar a mesma campanha entre GA4 e plataforma.
+
+    O nome real da Joie começa com um quadradinho colorido de status, e isso
+    aparece dos DOIS lados — mas não é garantido que apareça igual sempre
+    ('🟩 - [[Conv]] - [Padrão].' na plataforma, o mesmo vindo codificado no UTM da
+    GA4). Casar pelo nome cru é frágil: basta o emoji faltar num lado para a
+    campanha aparecer duplicada no painel, uma vez por fonte, sem se reconhecerem.
+
+    A chave joga fora a decoração e mantém só o que identifica: minúsculas, sem
+    acento, sem pontuação, sem emoji. O nome de exibição continua intacto no campo
+    `campaign`.
+    """
+    if not isinstance(nome, str):
+        return None
+    s = unicodedata.normalize("NFD", nome)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")   # tira acento
+    s = s.lower()
+    s = re.sub(r"[^a-z0-9]+", " ", s)      # emoji, colchetes, pontos, hífens
+    return re.sub(r"\s+", " ", s).strip() or None
+
+
 def normalizar(linhas, conector):
     """O Windsor já devolve nomes planos, então a normalização é leve: converter
     número que vier como texto e preservar ausente como None (nunca zero — 'não
@@ -298,6 +321,10 @@ def normalizar(linhas, conector):
                 limpo[k] = _texto_campanha(v)
             else:
                 limpo[k] = v
+        # chave de junção derivada, para casar a campanha entre fontes
+        nome = limpo.get("campaign") or limpo.get("campaign_name")
+        if nome:
+            limpo["campanha_chave"] = chave_campanha(nome)
         saida.append(limpo)
     return saida
 
