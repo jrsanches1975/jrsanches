@@ -1,150 +1,117 @@
 # O que falta fazer — checklist do usuário
 
-Atualizado em 2026-08-02. Tudo aqui depende de acesso a contas que só você tem;
-nada disso pode ser feito de dentro de uma sessão do Claude (as telas de criar
-credencial estão bloqueadas na rede do ambiente, e token não deve trafegar por
-chat).
+Atualizado em 2026-08-02, depois da decisão de seguir **só pelo Windsor multi-conta**.
 
-Ordem pensada para o item de espera externa sair da frente primeiro.
-
----
-
-## 1. Redefinir o token de desenvolvedor — 1 minuto
-
-O token apareceu num print compartilhado em conversa (2026-08-02). Sozinho ele não
-dá acesso aos dados (isso exige também as credenciais OAuth), mas o Google o trata
-como confidencial e a correção é um clique.
-
-- [ ] `ads.google.com` (MCC **595-971-6066**) → Ferramentas e Configurações →
-      Configuração → **Central de API** → **Redefinir token**
-- [ ] Guardar o novo em variável de ambiente, nunca em arquivo do repositório
+Tudo aqui depende de acesso a contas que só você tem. Nada disso pode ser feito de
+dentro de uma sessão do Claude: os hosts do Windsor, do Meta Business e do Google
+Ads estão bloqueados na rede do ambiente (verificado), e token não deve trafegar por
+chat.
 
 ---
 
-## 1b. Boa notícia: o formulário do developer token já está feito
+## Decisão que encurtou a lista
 
-O Centro de API já mostra:
+Você criou duas contas Windsor a mais, uma por ferramenta, e escolheu seguir por
+elas. Isso **cancelou** três itens que estavam pendentes:
 
-- **MCC:** 595-971-6066 (`Adm Contas`, sob `mktjoiesuplementos@gmail.com`)
-- **Nível de acesso:** *Acesso às Análises*
-- Dados de desenvolvedor preenchidos (Balanced Business Consult, Agência/SEM)
+- ~~Token de usuário de sistema da Meta~~
+- ~~Developer token do Google Ads + credencial OAuth + refresh token~~
+- ~~Reexportar a planilha de Auction Insights à mão~~
 
-Ou seja: **não há formulário pendente nem fila de análise para iniciar.** O aviso
-anterior de "espera de dias a semanas" não se aplica — aquilo valia para quem ainda
-nem pediu.
+O último é o ganho mais interessante: o Windsor entrega `auction_insight_domain`
+(a tabela de leilão por domínio concorrente), e a **API oficial do Google não
+entrega** — lá é restrita a contas em allowlist. Sua escolha preservou uma
+capacidade que o caminho dos coletores nativos perderia.
 
-O que resta é **descobrir se o nível "Acesso às Análises" já alcança a conta de
-produção**. A documentação pública é inconsistente sobre esse nível (algumas
-páginas listam só Teste/Básico/Padrão, outra cita um nível "Explorer"), então não
-vale discutir no papel: **o teste decisivo é uma execução do coletor.**
+Os coletores nativos (`meta_ads_api.py`, `google_ads_api.py`) ficam no repositório,
+testados na camada de conversão, caso você queira retomar depois. Não são
+necessários agora.
 
-- Se vier dado → está liberado, seguimos.
-- Se vier `403 — DEVELOPER_TOKEN_NOT_APPROVED` → aí sim pedimos elevação de nível,
-  e só nesse caso entra a espera. O coletor imprime essa mensagem já traduzida,
-  com o caminho exato do que fazer.
+---
 
-Para esse teste você precisa antes dos itens 3 e 4 (credencial OAuth e refresh
-token) — por isso eles subiram na ordem.
+## 1. Conectar uma fonte em cada conta Windsor
 
-Você também vai precisar do **customer_id da conta de anúncio da Joie**, que é
-diferente do id da MCC. O id da MCC entra separado:
+- [ ] Conta A → **GA4** (esta já está feita: é a que a integração do Claude usa)
+- [ ] Conta B → **Google Ads**
+- [ ] Conta C → **Meta Ads** (`facebook`)
 
-```bash
-export GOOGLE_ADS_LOGIN_CUSTOMER_ID='5959716066'   # a MCC, só dígitos
-export GOOGLE_ADS_CUSTOMER_ID='...'                # a conta da Joie, só dígitos
+Confirme em cada conta que o conector aparece **com a conta de anúncio associada**,
+não só autorizado. Foi exatamente aí que as tentativas anteriores falharam: a
+autorização parecia ter dado certo e o conector continuava sem conta.
+
+---
+
+## 2. Pegar a chave de API de cada conta
+
+Cada conta Windsor tem a **sua própria** chave — é isso que faz o esquema
+multi-conta funcionar. No painel do Windsor de cada conta, procure em
+*Settings / API*.
+
+- [ ] Chave da conta do Google Ads
+- [ ] Chave da conta do Meta
+
+Guarde como variável de ambiente, **nunca** em arquivo do repositório:
+
+```powershell
+# Windows (PowerShell) — vale nesta janela
+$env:WINDSOR_KEY_GADS = "..."
+$env:WINDSOR_KEY_META = "..."
 ```
 
-Sem o `LOGIN_CUSTOMER_ID`, acesso através de gerenciadora responde
-`403 — USER_PERMISSION_DENIED`.
+```bash
+# macOS / Linux
+export WINDSOR_KEY_GADS='...'
+export WINDSOR_KEY_META='...'
+```
 
 ---
 
-## 2. Token da Meta
+## 3. Descobrir os nomes de campo — antes de coletar
 
-Não tem espera de aprovação — ler a própria conta não exige Revisão de App.
-
-- [ ] `developers.facebook.com/apps` → criar app tipo **Empresa**, vinculado ao
-      mesmo Gerenciador de Negócios que é dono da conta de anúncio
-- [ ] No app: Adicionar produto → **Marketing API**
-- [ ] `business.facebook.com/settings` → Usuários do sistema → **Adicionar**
-      (nome: `war-room-coletor`, função Funcionário)
-- [ ] Adicionar ativos → Contas de anúncios → a conta da Joie → permissão
-      **Ver desempenho** (só leitura, de propósito: se o token vazar, ninguém
-      altera campanha nem orçamento)
-- [ ] **Gerar novo token** → escolher o app → escopos `ads_read` e
-      `read_insights` → validade **Nunca expira** → **copiar na hora**
-      (a Meta não mostra de novo)
-- [ ] Pegar o id da conta no Gerenciador de Anúncios, no formato `act_1234567890`
-
-Passo a passo detalhado: `references/meta-api-setup.md`
-
-**Tempo:** ~15 min.
-
----
-
-## 3. Credencial OAuth do Google Cloud
-
-Precisa disso para o coletor do Google Ads, independente do item 1.
-
-- [ ] `console.cloud.google.com` → criar projeto
-- [ ] APIs e Serviços → ativar a **Google Ads API**
-- [ ] Tela de permissão OAuth → tipo Externo → preencher →
-      **PUBLICAR O APP**
-      ⚠ Se ficar em modo "Teste", o refresh token **expira em 7 dias** e a
-      coleta quebra sozinha na semana seguinte. É o erro mais comum aqui.
-- [ ] Credenciais → ID do cliente OAuth → tipo **App para computador**
-- [ ] Em URIs de redirecionamento autorizados, adicionar exatamente
-      `http://localhost:8899`
-- [ ] Copiar o **ID do cliente** e a **Chave secreta**
-
-**Tempo:** ~10 min.
-
----
-
-## 4. Gerar o refresh token (depois do item 3)
+Os nomes de campo do **Google Ads** são confiáveis (vêm do `keyword_auction.py`,
+que já rodou contra sua conta real). Os do **Meta** são um palpite informado meu e
+**precisam ser confirmados**:
 
 ```bash
-export GOOGLE_ADS_CLIENT_ID='....apps.googleusercontent.com'
-export GOOGLE_ADS_CLIENT_SECRET='...'
 cd scripts
-python google_ads_oauth.py
+python windsor_api.py --listar-campos facebook --chave-env WINDSOR_KEY_META
 ```
 
-- [ ] Abrir o link que ele imprime, autorizar na conta que acessa o Google Ads
-- [ ] Guardar o refresh token que ele imprime
+- [ ] Rodar e me mandar a lista de campos que aparecer
 
-**Tempo:** ~2 min.
-
----
-
-## 5. Reexportar a planilha de Auction Insights
-
-O arquivo atual está **corrompido** por locale: um export em inglês (`0.1408`)
-colado em planilha pt-BR virou o inteiro `1408`. O estrago não é reversível por
-cálculo (`592` pode ter vindo de 0,592 ou 0,0592), então o importador recusa o
-arquivo em vez de adivinhar.
-
-Escolha **um** caminho:
-
-- [ ] No Google Ads, trocar o idioma da conta para Português e exportar de novo
-      (sai `14,08%`), **ou**
-- [ ] Baixar em .csv e usar **Arquivo → Importar** no Sheets (não colar), **ou**
-- [ ] Formatar a coluna de destino como **Texto simples** antes de colar
-
-Isso destrava o dado real na aba Keywords & Leilão. Lembrando: essa tabela de
-domínios **não** vem por API (só contas em allowlist do Google), então o export
-manual é o caminho definitivo, não um paliativo.
-
-**Tempo:** ~10 min.
+Com ela eu ajusto o script para os nomes reais da sua conta. Se eu adivinhar
+errado, a coleta traz colunas vazias — e coluna vazia num painel é pior que campo
+ausente declarado.
 
 ---
 
-## 6. Rodar na sua máquina
+## 4. Primeira coleta
+
+```bash
+cd scripts
+
+python windsor_api.py --dias 30 --debug-raw \
+    --fonte google_ads:WINDSOR_KEY_GADS:../outputs/gads-keywords.json \
+    --leilao-out ../outputs/auction-windsor.json
+
+python windsor_api.py --dias 30 --debug-raw \
+    --fonte facebook:WINDSOR_KEY_META:../outputs/meta-insights.json
+```
+
+- [ ] Rodar as duas
+- [ ] Conferir os totais contra os painéis do Google Ads e do Gerenciador da Meta
+- [ ] Me mandar **o resumo que os scripts imprimem** (não as chaves)
+
+O `--debug-raw` mostra o primeiro registro bruto de cada fonte. É nele que se
+descobre divergência de nome de campo antes de o dado errado entrar no painel.
+
+---
+
+## 5. Rodar o war room na sua máquina
 
 Se ainda não fez o primeiro uso local:
 
 ```powershell
-# Windows (PowerShell), na pasta do projeto
 py -m pip install openpyxl
 cd scripts
 copy config.example.json config.json
@@ -154,52 +121,50 @@ py servidor.py --config config.json
 - [ ] Abrir `http://127.0.0.1:8787`
 - [ ] Confirmar que a aba Seleção Manual mostra "backend conectado" (barra verde)
 
-**Tempo:** ~5 min.
-
 ---
 
-## 7. Me avisar, com os resumos
+## O que saber sobre a escolha do Windsor
 
-Quando tiver os tokens, rode cada coletor com `--debug-raw` e me mande **o resumo
-que eles imprimem** (não os tokens):
+Não são defeitos do script — são consequências do caminho, e é melhor você saber
+antes de apresentar o painel a alguém:
 
-```bash
-python meta_ads_api.py --dias 7 --debug-raw --out ../outputs/meta-insights.json \
-    --criativos-out ../outputs/meta-criativos.json
-
-python google_ads_api.py --dias 7 --debug-raw \
-    --keywords-out ../outputs/gads-keywords.json \
-    --campanhas-out ../outputs/gads-campanhas.json
-```
-
-- [ ] Comparar os totais com o Gerenciador de Anúncios / interface do Google Ads
-- [ ] Me mandar o resumo para eu conferir os nomes de campo e regenerar o painel
-
-Se as **compras** da Meta divergirem, é o `action_type` do pixel: o script tenta
-três nomes e imprime qual usou; ajusto para o da sua conta.
+- **Teto do plano Free:** limite de volume e de janela de dados. Se a coleta vier
+  cortada, o script avisa em vez de gravar zeros.
+- **Imagem do criativo provavelmente não vem.** Os cards da aba Meta Ads ficariam
+  com texto e métricas, sem arte. Se isso importar, o único caminho é a API nativa
+  da Meta (`meta_ads_api.py`, já pronto no repositório).
+- **Várias contas gratuitas para contornar o limite de um plano normalmente
+  contraria os termos do Windsor.** Se as contas forem fechadas, a coleta para sem
+  aviso. É risco seu a assumir, mas registrado aqui para não ser surpresa.
 
 ---
 
 ## O que NÃO fazer
 
-- [ ] ~~Repointar o conector Windsor para a outra conta~~ — **cancelado.** Com os
-      coletores próprios, do Windsor só precisamos da GA4, que a conta atual já
-      tem. Trocar faria você perder a GA4 para ganhar um Google Ads que passou a
-      vir direto da fonte.
-- **Não mande tokens pelo chat.** Eles vivem em variável de ambiente na sua
-  máquina. Um token da Meta que "nunca expira" colado numa conversa fica gravado
-  em log.
-- **Não coloque token no `config.json`.** Esse arquivo é gitignored justamente
-  por isso, mas variável de ambiente é o lugar certo.
+- **Não repointe o conector Windsor do Claude.** A conta
+  `mktjoiesuplementos@gmail.com` tem a GA4, que é o que a integração MCP precisa.
+  Trocar faria perder a GA4.
+- **Não mande chaves nem tokens pelo chat.** Elas vivem em variável de ambiente na
+  sua máquina.
+- **Não coloque chave no `config.json`.**
 
 ---
 
-## Oportunidade paralela (opcional, sem pressa)
+## Pendência de segurança
+
+- [ ] **Redefinir o token de desenvolvedor do Google Ads** — ele apareceu num print
+      compartilhado em conversa em 2026-08-02. Com o caminho Windsor você não vai
+      usá-lo, mas ele continua válido na sua conta: `ads.google.com` (MCC
+      595-971-6066) → Ferramentas → Configuração → Central de API → **Redefinir
+      token**.
+
+---
+
+## Oportunidade paralela (opcional)
 
 O conector **Semrush** está disponível na sua organização, ainda não autenticado.
-Não traz seu gasto nem seu CTR — mas traz **palavra-chave paga e tráfego dos
-concorrentes**, que hoje está simulado nas abas de Keywords e Descoberta. Se
-quiser, autentique e me avise que eu integro.
+Traria palavra-chave paga e tráfego **dos concorrentes**, hoje simulados nas abas
+de Keywords e Descoberta. Autentique e me avise que eu integro.
 
 ---
 
@@ -207,9 +172,9 @@ quiser, autentique e me avise que eu integro.
 
 | Aba | Fonte |
 |---|---|
-| GA4 · Jornada | **real medido** (GA4 via Windsor) |
+| GA4 · Jornada | **real medido** (GA4 via Windsor MCP) |
 | Metas & Evolução | **real** (cruza GA4 com as metas do config) |
 | Mercado Livre / Radar | **real** (Apify, precisa do `APIFY_TOKEN`) |
-| Keywords & Leilão | simulado — destrava com o item 1 e o item 5 |
-| Meta Ads (lado plataforma) | simulado — destrava com o item 2 |
+| Keywords & Leilão | simulado — destrava com os itens 1 a 4 |
+| Meta Ads (lado plataforma) | simulado — destrava com os itens 1 a 4 |
 | Marketplaces (Google Shopping) | simulado |

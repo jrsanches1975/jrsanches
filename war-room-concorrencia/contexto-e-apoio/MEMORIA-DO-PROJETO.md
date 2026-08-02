@@ -621,6 +621,42 @@ Livre: `JOIE`.
     exige conta MCC — foi pedido que ele inicie isso o quanto antes, porque é o
     único item com prazo externo.
 
+34. **DECISÃO (2026-08-02): seguir SÓ pelo Windsor multi-conta.** O usuário criou
+    duas contas Windsor a mais, uma por ferramenta, e ao ser apresentado às opções
+    escolheu explicitamente "Só Windsor multi-conta" — abandonando o caminho dos
+    coletores nativos. Foi informado dos custos dessa escolha (teto do plano Free,
+    provável ausência da imagem de criativo, e que múltiplas contas gratuitas
+    normalmente contrariam os termos do Windsor) e manteve a decisão. **Respeitar
+    isso**; `meta_ads_api.py` e `google_ads_api.py` ficam no repositório, prontos,
+    para retomada eventual — não são o caminho ativo.
+    **Verificado antes de construir:** `get_data` do MCP **não aceita** parâmetro de
+    conta Windsor (o `accounts` dele é para contas de anúncio dentro do conector),
+    então por MCP três contas não somam nada. E **todos os hosts do Windsor
+    (`connectors.windsor.ai`, `api.windsor.ai`, `onboard.windsor.ai`, `windsor.ai`)
+    estão BLOQUEADOS neste ambiente** — a camada HTTP do novo script não pôde ser
+    testada, só a normalização.
+    **Achado que melhora a decisão dele:** o Windsor entrega
+    `auction_insight_domain`, e `keyword_auction.py` já rodou com esse dado REAL —
+    ou seja, o Windsor dá a tabela de leilão por domínio que a **API oficial do
+    Google não dá** (allowlist). Isso cancelou o item da checklist de reexportar a
+    planilha à mão, e é um ponto objetivo a favor do caminho escolhido.
+    Criado `scripts/windsor_api.py`: `--fonte CONECTOR:VARIAVEL:SAIDA` repetível,
+    `--listar-campos` para descobrir campos, `--leilao-out` (pedido separado, porque
+    `auction_insight_domain` não combina com performance), `--debug-raw`, `--resposta`
+    para teste sem rede.
+    **Bug meu achado no teste:** o `%` do Windsor (`"ctr": "2.18%"`) era removido e
+    o valor ficava em pontos, o que faria o painel exibir **218%** (o `_f_pct`
+    multiplica por 100). Agora `%` vira fração. Terceira vez que a mesma classe de
+    erro de escala aparece neste projeto — vale desconfiar dela sempre.
+    **Confiança dos nomes de campo:** `google_ads` confiável (vem do
+    `keyword_auction.py` verificado); **`facebook` é palpite** e precisa de
+    `--listar-campos` antes de uso. **Pedido ao usuário:** rodar `--listar-campos
+    facebook` e mandar a lista.
+    Checklist reescrita em `contexto-e-apoio/PROXIMOS-PASSOS.md`: caiu o token da
+    Meta, caiu todo o bloco de credenciais do Google Ads e caiu o reexport manual da
+    planilha. Sobrou conectar uma fonte por conta, pegar as três chaves, conferir
+    campos e coletar.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

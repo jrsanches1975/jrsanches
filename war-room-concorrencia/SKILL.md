@@ -1046,6 +1046,62 @@ verificado com credencial inválida contra a API real que o erro chega traduzido
 conversão foi testada com `examples/gads-api-keywords-bruto.json`. Falta a
 primeira execução com credencial válida.
 
+### 23. Windsor.ai por REST, MULTI-CONTA (`windsor_api.py`)
+
+Contorna o limite de 1 conector do plano Free usando **uma conta Windsor por
+fonte**, cada uma com a sua chave de API. A integração MCP não serve para isso —
+ela autentica numa conta só, e `get_data` não aceita parâmetro de conta Windsor
+(o `accounts` dele é para contas de anúncio dentro do conector). Pela REST, sim.
+
+```bash
+export WINDSOR_KEY_GADS='...'   # conta com google_ads
+export WINDSOR_KEY_META='...'   # conta com facebook
+
+python windsor_api.py --listar-campos facebook --chave-env WINDSOR_KEY_META
+python windsor_api.py --dias 30 --debug-raw \
+    --fonte google_ads:WINDSOR_KEY_GADS:../outputs/gads-keywords.json \
+    --leilao-out ../outputs/auction-windsor.json
+python windsor_api.py --dias 30 \
+    --fonte facebook:WINDSOR_KEY_META:../outputs/meta-insights.json
+```
+
+**A vantagem que só existe por aqui:** o Windsor entrega `auction_insight_domain`
+— a tabela de leilão por domínio concorrente — e a **API oficial do Google Ads
+não entrega** (lá é restrita a contas em allowlist). Por isso o caminho Windsor
+não é só "mais fácil": ele preserva uma capacidade que os coletores nativos
+perdem. O leilão é **pedido separado**, porque `auction_insight_domain` não
+combina com métricas de performance no mesmo request (restrição registrada no
+`keyword_auction.py`) — daí o `--leilao-out`.
+
+**Confiança dos nomes de campo:** os de `google_ads` vêm do `keyword_auction.py`,
+que **rodou com dado real** contra a conta via Windsor — são confiáveis. Os de
+`facebook` são **palpite informado** e precisam de `--listar-campos` antes de
+confiar; se não conferirem, ajuste `CAMPOS["facebook"]`.
+
+**Cuidados embutidos:**
+
+1. **`%` na célula vira fração.** Windsor devolve `"ctr": "2.18%"`. Deixar como
+   2.18 faria o painel exibir **218%**, porque `_f_pct` multiplica por 100. É a
+   mesma armadilha de escala da planilha de Auction Insights.
+2. **Ausente é `None`, nunca 0**; zero real é preservado.
+3. **A chave nunca vai para o log** — o script imprime conector e período, não a URL.
+4. **Erros traduzidos:** 401/403 = a chave é de uma conta que não tem esse
+   conector; 402/429 = teto do plano.
+5. **Vazio não vira zero:** se a resposta não trouxer linha, o script avisa e
+   grava vazio de propósito.
+
+**Estado de teste:** a camada HTTP **não pôde ser testada** — todos os hosts do
+Windsor (`connectors.windsor.ai`, `api.windsor.ai`, `onboard.windsor.ai`,
+`windsor.ai`) estão **bloqueados** neste ambiente (verificado). A normalização foi
+testada com `examples/windsor-facebook-bruto.json`. `--base-url` existe porque o
+endpoint não pôde ser confirmado daqui.
+
+**Limitações do caminho, para dizer ao usuário:** teto de volume/janela do plano
+Free; **imagem de criativo provavelmente não vem** (os cards da aba Meta Ads
+ficariam sem arte — para isso só a API nativa serve); e várias contas gratuitas
+para contornar limite de plano normalmente contraria os termos do Windsor, então
+as contas podem ser fechadas e a coleta parar sem aviso.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

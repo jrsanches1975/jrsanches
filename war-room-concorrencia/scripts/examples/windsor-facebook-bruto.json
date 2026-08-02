@@ -1,0 +1,49 @@
+{
+  "_comentario": "AMOSTRA DE FORMATO da resposta REST do Windsor.ai para o conector facebook. Valores INVENTADOS. Serve para testar a normalização de windsor_api.py sem rede (os hosts do Windsor estão bloqueados no ambiente onde o script foi escrito). ATENÇÃO: os NOMES DE CAMPO aqui são um palpite informado, não confirmados — rode 'windsor_api.py --listar-campos facebook' na primeira vez e ajuste CAMPOS['facebook'] se divergirem. O que este arquivo testa de fato é a normalização: número vindo como texto, percentual com '%', campo ausente virando None e zero real preservado.",
+  "data": [
+    {
+      "date": "2026-07-15",
+      "campaign": "[[Conv]] - [Colágeno] - Carrossel",
+      "adset": "Lookalike 1% compradores",
+      "ad_name": "Carrossel v3 - antes e depois",
+      "spend": "1284.53",
+      "impressions": "148392",
+      "clicks": "3241",
+      "ctr": "2.18%",
+      "cpm": "8.66",
+      "cpc": "0.40",
+      "frequency": "1.87",
+      "reach": "79354",
+      "purchases": "58",
+      "purchase_value": "31240.50"
+    },
+    {
+      "date": "2026-07-15",
+      "campaign": "[[Trafego]] - [Creatina] - Video",
+      "adset": "Interesse suplementos",
+      "ad_name": "Video 15s vertical",
+      "spend": "742.10",
+      "impressions": "96117",
+      "clicks": "1508",
+      "ctr": "1.57%",
+      "cpm": "7.72",
+      "cpc": "0.49",
+      "frequency": "1.41",
+      "reach": "68159",
+      "purchases": "12",
+      "purchase_value": "5388.00"
+    },
+    {
+      "date": "2026-07-15",
+      "campaign": "[[Reconhecimento]] - [Marca] - Estatico",
+      "adset": "Amplo BR",
+      "ad_name": "Estatico institucional",
+      "spend": "310.00",
+      "impressions": "204553",
+      "clicks": "0",
+      "cpm": "1.52",
+      "frequency": "2.99",
+      "reach": "68387"
+    }
+  ]
+}
