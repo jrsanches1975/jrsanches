@@ -858,6 +858,40 @@ painel, `GET /api/estado`, `POST /api/selecao` grava, `POST /api/rodar` dispara,
 `GET /api/rodada?desde=N` devolve o log incremental (o painel mostra ao vivo, com
 cronômetro, e oferece recarregar quando termina bem).
 
+#### Primeira vez na sua máquina
+
+**Decisão do projeto (2026-08-02):** o war room roda **local, na máquina do
+usuário**, até a ferramenta estar fechada. Publicar em servidor está adiado por
+escolha dele — o kit existe em `deploy/` e a comparação das opções está registrada
+na memória do projeto, mas **não retome esse assunto sem ele pedir**.
+
+Uma vez só, para preparar:
+
+```bash
+# Windows (PowerShell), dentro da pasta do projeto
+py -m pip install openpyxl
+cd scripts
+copy config.example.json config.json
+$env:APIFY_TOKEN = "apify_api_..."     # vale só nesta janela do PowerShell
+py servidor.py --config config.json
+
+# macOS / Linux
+python3 -m pip install openpyxl
+cd scripts
+cp config.example.json config.json
+export APIFY_TOKEN="apify_api_..."
+python3 servidor.py --config config.json
+```
+
+Depois é só abrir **http://127.0.0.1:8787**. Enquanto a janela do terminal estiver
+aberta, o backend está de pé; fechar a janela derruba o serviço (é local, não tem
+systemd). Para deixar rodando sem token do Apify, acrescente
+`--extra --simulate-ml examples/ml-simulado-rodada2.json` e o painel sobe com dado
+de exemplo em vez de erro.
+
+**Nunca** coloque o `APIFY_TOKEN` dentro do `config.json`: esse arquivo é
+gitignored justamente para não vazar, mas variável de ambiente é o lugar certo.
+
 **O painel detecta em qual modo está, não presume.** Aberto pelo servidor: barra
 verde "backend conectado", botões de rodar/salvar ativos. Aberto como arquivo:
 barra âmbar "modo arquivo", os botões de servidor ficam **desabilitados** (não

@@ -512,6 +512,39 @@ Livre: `JOIE`.
     o próprio shell** (exit 144). Mate os processos numa chamada separada, sem o
     nome literal no resto do comando.
 
+31. **DECISÃO: fica local até a ferramenta estar fechada (2026-08-02).** Depois de
+    avaliarmos as opções de hospedagem, o usuário decidiu: *"vamos manter tudo como
+    está agora na minha máquina até a ferramenta estar finalizada sem alterações aí
+    a gente decide"*. Então o modo de uso é `servidor.py` rodando na máquina dele,
+    e o `SKILL.md` (passo 20) tem o passo a passo de Windows e macOS/Linux.
+    **Não retome o assunto de hospedagem sem ele pedir.** O material de decisão já
+    está levantado, para não refazer a pesquisa:
+    - **Hospedagem compartilhada de cPanel (HostGator e afins): NÃO serve.** Feita
+      para PHP; não mantém processo Python vivo nem escuta em porta própria.
+    - **VPS: serve, e é o encaixe do que ele pediu** (botão instantâneo com log ao
+      vivo, histórico como arquivo, máquina reaproveitável em outros projetos).
+      HostGator VPS tem root/SSH, ~R$86/mês; o *always free* ARM da Oracle roda
+      isso sem mensalidade. Kit pronto e testado em `deploy/`.
+    - **GitHub Actions sozinho: encaixe ruim** — sem processo vivo o botão perde a
+      graça (20-60s só para subir, sem log ao vivo), o `scripts/history/` teria de
+      ser commitado a cada rodada (perder o history faz toda rodada virar "primeira
+      rodada", sem diff e sem alerta), e Pages em repositório privado publica o
+      painel **aberto** (controle de acesso é recurso de Enterprise) — inaceitável
+      para um painel com metas de faturamento e inteligência de concorrente.
+    - **Netlify sozinho: não roda o pipeline.** Confirmado na documentação oficial
+      (via `get-netlify-coding-context`): as funções serverless dele são
+      **Node.js**, não há runtime Python — e o projeto é ~4 mil linhas de Python
+      com `openpyxl`. Serve muito bem para *servir* o painel (estático, CDN, HTTPS,
+      domínio próprio); a senha nativa é de plano pago, mas daria para fazer numa
+      edge function.
+    - **Netlify + GitHub Actions: combinação coerente e sem mensalidade**, e
+      corrige as duas objeções ao Actions puro: o botão chama uma função Node no
+      Netlify que dispara o `workflow_dispatch`, então o token do GitHub fica nas
+      variáveis de ambiente do Netlify e **nunca no HTML**; e o painel fica no
+      Netlify em vez do Pages, então não precisa ser público. Preço: latência de
+      ~1min no botão, log por consulta à API em vez de linha a linha, e histórico
+      via commit. Estimativa de trabalho: meio dia.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer
