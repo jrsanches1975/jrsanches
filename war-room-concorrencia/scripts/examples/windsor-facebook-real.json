@@ -1,0 +1,22 @@
+{
+  "_comentario": "Recorte REAL da resposta do Windsor (conector facebook, conta Joie Suplementos), colado pelo usuário em 2026-08-02. Só os dois dias das pontas do período de 30 dias. Serve para calibrar o parser com o formato verdadeiro: emoji de status no nome da campanha, dois espaços após o emoji em [Colágeno], e o conjunto de campos que a conta devolveu (SEM impressions/ctr/cpm/purchases).",
+  "data": [
+{"date":"2026-07-03","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Conv]] - [Padrão].","clicks":72.0,"spend":99.57},
+{"date":"2026-07-03","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Tráfego]] - [Padrão]","clicks":389.0,"spend":17.92},
+{"date":"2026-07-03","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Conv]] - [Whey]","clicks":25.0,"spend":58.66},
+{"date":"2026-07-03","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Tráfego]] - [Linha Joie FIt]","clicks":186.0,"spend":25.63},
+{"date":"2026-07-03","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟥 - [[Conv]] - [Kit HEPRO]","clicks":10.0,"spend":35.63},
+{"date":"2026-07-03","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟥 - [[Conv]] - [Copa com a Joie]","clicks":20.0,"spend":40.07},
+{"date":"2026-07-03","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩  - [[Conv]] - [Colágeno]","clicks":20.0,"spend":41.55},
+{"date":"2026-07-03","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟥 - [[Conv]] - [Whey Silk Protein]","clicks":5.0,"spend":18.19},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Conv]] - [Padrão].","clicks":79.0,"spend":56.65},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Tráfego]] - [Padrão]","clicks":302.0,"spend":11.11},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Conv]] - [Whey]","clicks":15.0,"spend":19.77},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Tráfego]] - [Linha Joie FIt]","clicks":106.0,"spend":13.41},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩  - [[Conv]] - [Colágeno]","clicks":4.0,"spend":10.05},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Conv]] - [Carrinho Abandonado]","clicks":10.0,"spend":18.69},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Whats]] - 2026","clicks":31.0,"spend":18.11},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Conv]] - [Magnésio kits]","clicks":10.0,"spend":12.79},
+{"date":"2026-08-01","datasource":"facebook","account_name":"Joie Suplementos","source":"facebook","campaign":"🟩 - [[Conv]] - [Sérum]","clicks":6.0,"spend":7.44}
+  ]
+}
