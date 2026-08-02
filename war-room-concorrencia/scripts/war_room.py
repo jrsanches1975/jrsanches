@@ -1420,11 +1420,29 @@ def montar_catalogo_concorrentes(config):
 
 def render_selecao_manual_tab(config):
     """Aba 'Seleção Manual' embutida no próprio war-room.html — liga/desliga
-    produtos e concorrentes monitorados, adiciona/remove, e exporta o config.json
-    atualizado. Sem backend: nada se grava sozinho, o botão baixa o arquivo."""
+    produtos e concorrentes monitorados, adiciona/remove e dispara a rodada.
+
+    Funciona nos DOIS modos, e diz em qual está:
+    - servido por `servidor.py`: grava o config e dispara a rodada na hora, sem
+      esperar a janela de cadência, com log ao vivo;
+    - aberto como arquivo (file://): não há o que executar, então os botões de
+      servidor ficam desligados e sobram exportar/copiar o config.json.
+    """
     catalogo_produtos = montar_catalogo_produtos(config)
     catalogo_concorrentes = montar_catalogo_concorrentes(config)
+    cadencia = config.get("cadencia_sugerida_horas", "—")
     return f"""
+<div class="backend-bar" id="backend-bar">
+  <span class="backend-dot" aria-hidden="true"></span>
+  <span id="backend-txt">verificando backend…</span>
+  <span class="backend-meta" id="backend-meta"></span>
+  <p class="backend-ajuda" id="backend-ajuda" hidden>
+    Para o botão de rodar na hora funcionar, suba o backend e abra o painel por ele:
+    <code>cd scripts &amp;&amp; python servidor.py --config config.json</code> →
+    <code>http://127.0.0.1:8787</code>. Sem ele este arquivo é estático: dá para montar a
+    seleção e exportar o <code>config.json</code>, mas nada executa.
+  </p>
+</div>
 <div class="selecao-grid">
   <div class="selecao-coluna">
     <div class="selecao-head">
@@ -1439,6 +1457,7 @@ def render_selecao_manual_tab(config):
       <input type="text" id="new-produto-termo" placeholder="termo de busca (ML)">
       <input type="number" step="0.01" id="new-produto-preco" placeholder="preço (opcional)">
       <button class="btn-mini primary" id="btn-add-produto-confirm" type="button">adicionar</button>
+      <p class="add-erro" id="erro-produto" hidden></p>
     </div>
     <div class="selecao-lista" id="lista-produtos"></div>
   </div>
@@ -1455,16 +1474,27 @@ def render_selecao_manual_tab(config):
       <input type="text" id="new-concorrente-dominio" placeholder="domínio do site (opcional)">
       <input type="text" id="new-concorrente-seller" placeholder="seller(s) no ML, separados por vírgula">
       <button class="btn-mini primary" id="btn-add-concorrente-confirm" type="button">adicionar</button>
+      <p class="add-erro" id="erro-concorrente" hidden></p>
     </div>
     <div class="selecao-lista" id="lista-concorrentes"></div>
   </div>
 </div>
 <div class="toolbar" style="margin-top:16px">
-  <button class="btn primary" id="btn-export-config" type="button">⭳ Exportar config.json atualizado</button>
+  <button class="btn primary" id="btn-rodar-agora" type="button" disabled>⚡ Salvar e rodar agora</button>
+  <button class="btn" id="btn-salvar" type="button" disabled>⌸ Só salvar no servidor</button>
+  <button class="btn" id="btn-export-config" type="button">⭳ Exportar config.json</button>
   <button class="btn" id="btn-copy-config" type="button">⧉ Copiar JSON</button>
 </div>
-<p class="tab-note">Sem backend: nada se grava sozinho. Ao terminar, exporte e salve o arquivo por cima do
-seu <code>scripts/config.json</code> antes da próxima rodada.</p>
+<p class="tab-note" id="selecao-nota">Rodar agora não espera a janela de {cadencia}h: grava a seleção e
+dispara a coleta na hora. A cadência continua valendo para as rodadas automáticas.</p>
+<div class="rodada-painel" id="rodada-painel" hidden>
+  <div class="rodada-head">
+    <span class="rodada-estado" id="rodada-estado">rodando</span>
+    <span class="rodada-timer" id="rodada-timer">0s</span>
+    <button class="btn-mini primary" id="btn-recarregar" type="button" hidden>recarregar painel</button>
+  </div>
+  <pre class="rodada-log" id="rodada-log" aria-live="polite" aria-label="Log da rodada"></pre>
+</div>
 <textarea id="config-json-preview" class="json-preview" readonly></textarea>
 <script id="selecao-manual-data" type="application/json">{json.dumps({
         "produtos": catalogo_produtos, "concorrentes": catalogo_concorrentes,
@@ -2867,6 +2897,70 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     border-radius: 10px; padding: 12px; resize: vertical;
   }}
 
+  /* ---- barra de estado do backend + painel da rodada disparada pelo botão ---- */
+  .backend-bar {{
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin: 0 0 14px; padding: 10px 14px; border-radius: 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: .78rem; color: var(--text-dim);
+  }}
+  .backend-dot {{
+    width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+    background: var(--text-mute); box-shadow: 0 0 0 3px rgba(255, 255, 255, .04);
+  }}
+  .backend-bar.on {{ border-color: var(--accent); }}
+  .backend-bar.on .backend-dot {{
+    background: #6ee7a8; box-shadow: 0 0 10px 1px rgba(110, 231, 168, .55);
+    animation: bk-pulse 2.4s ease-in-out infinite;
+  }}
+  .backend-bar.off .backend-dot {{ background: #ffb27a; }}
+  @keyframes bk-pulse {{ 0%, 100% {{ opacity: 1; }} 50% {{ opacity: .45; }} }}
+  .backend-bar strong {{ color: var(--text); font-weight: 600; }}
+  .backend-meta {{ margin-left: auto; color: var(--text-mute); font-variant-numeric: tabular-nums; }}
+  .backend-ajuda {{
+    width: 100%; margin: 4px 0 0; font-size: .74rem; color: var(--text-mute); line-height: 1.6;
+  }}
+  .backend-ajuda code {{
+    display: inline-block; padding: 1px 6px; border-radius: 5px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-family: ui-monospace, "SF Mono", monospace; font-size: .72rem; color: var(--text-dim);
+  }}
+  .add-erro {{
+    width: 100%; margin: 2px 0 0; font-size: .72rem; color: #ff9c96;
+  }}
+  .btn[disabled] {{ opacity: .45; cursor: not-allowed; }}
+  .btn.rodando {{ position: relative; overflow: hidden; }}
+  .btn.rodando::after {{
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .16) 50%, transparent 80%);
+    animation: bk-varre 1.15s linear infinite;
+  }}
+  @keyframes bk-varre {{ from {{ transform: translateX(-100%); }} to {{ transform: translateX(100%); }} }}
+  .rodada-painel {{
+    margin-top: 14px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface-2); overflow: hidden;
+  }}
+  .rodada-head {{
+    display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+    border-bottom: 1px solid var(--border); font-size: .76rem;
+  }}
+  .rodada-estado {{
+    text-transform: uppercase; letter-spacing: .12em; font-size: .68rem; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong);
+  }}
+  .rodada-estado.ok {{ background: rgba(110, 231, 168, .14); color: #6ee7a8; }}
+  .rodada-estado.erro {{ background: rgba(255, 156, 150, .14); color: #ff9c96; }}
+  .rodada-timer {{ color: var(--text-mute); font-variant-numeric: tabular-nums; }}
+  .rodada-head .btn-mini {{ margin-left: auto; }}
+  .rodada-log {{
+    margin: 0; max-height: 320px; overflow: auto; padding: 12px 14px;
+    font-family: ui-monospace, "SF Mono", monospace; font-size: .72rem; line-height: 1.65;
+    color: var(--text-dim); white-space: pre-wrap; word-break: break-word;
+  }}
+  .rodada-log .lin-erro {{ color: #ff9c96; }}
+  .rodada-log .lin-ok {{ color: #6ee7a8; }}
+  .rodada-log .lin-cmd {{ color: var(--accent-strong); }}
+
   a:focus-visible, button:focus-visible, input:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
   .card:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 3px; }}
 
@@ -3384,11 +3478,25 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   document.getElementById('btn-add-produto-toggle').addEventListener('click', function () {{
     addProdutoForm.style.display = addProdutoForm.style.display === 'none' ? 'flex' : 'none';
   }});
+  /* nome é a chave do snapshot (o diff entre rodadas casa por nome), então nome
+     repetido quebraria a comparação. O backend recusa; aqui avisamos na hora, em
+     vez de deixar o usuário descobrir só ao salvar. */
+  function jaExiste(lista, nome) {{
+    var alvo = nome.trim().toLowerCase();
+    return lista.some(function (i) {{ return (i.nome || '').trim().toLowerCase() === alvo; }});
+  }}
+  function avisar(id, msg) {{
+    var el = document.getElementById(id);
+    el.textContent = msg; el.hidden = !msg;
+  }}
+
   document.getElementById('btn-add-produto-confirm').addEventListener('click', function () {{
     var nome = document.getElementById('new-produto-nome').value.trim();
     var termo = document.getElementById('new-produto-termo').value.trim();
     var preco = document.getElementById('new-produto-preco').value;
-    if (!nome || !termo) return;
+    if (!nome || !termo) {{ avisar('erro-produto', 'nome e termo de busca são obrigatórios'); return; }}
+    if (jaExiste(produtos, nome)) {{ avisar('erro-produto', '"' + nome + '" já está na lista'); return; }}
+    avisar('erro-produto', '');
     produtos.push({{nome: nome, termo_busca_ml: termo, preco_proprio: preco ? parseFloat(preco) : null,
                     ticket_medio: preco ? parseFloat(preco) : null, monitorando: true}});
     document.getElementById('new-produto-nome').value = '';
@@ -3406,7 +3514,9 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     var nome = document.getElementById('new-concorrente-nome').value.trim();
     var dominio = document.getElementById('new-concorrente-dominio').value.trim();
     var sellers = document.getElementById('new-concorrente-seller').value.trim();
-    if (!nome) return;
+    if (!nome) {{ avisar('erro-concorrente', 'o nome é obrigatório'); return; }}
+    if (jaExiste(concorrentes, nome)) {{ avisar('erro-concorrente', '"' + nome + '" já está na lista'); return; }}
+    avisar('erro-concorrente', '');
     concorrentes.push({{nome: nome, dominio_site: dominio || undefined,
                         sellers_ml: sellers ? sellers.split(',').map(function (s) {{ return s.trim(); }}) : [],
                         monitorando: true}});
@@ -3448,6 +3558,202 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     preview.value = texto; preview.style.display = 'block';
     try {{ await navigator.clipboard.writeText(texto); }} catch (err) {{ preview.select(); }}
   }});
+
+  /* ------------------------------------------------------------------ backend
+     O painel funciona servido pelo servidor.py OU como arquivo solto. A
+     diferença é detectada, não presumida: um GET em api/estado responde só no
+     primeiro caso (em file:// o fetch nem sai). Nada de botão que parece
+     funcionar e não faz nada. */
+  var bar = document.getElementById('backend-bar');
+  var barTxt = document.getElementById('backend-txt');
+  var barMeta = document.getElementById('backend-meta');
+  var barAjuda = document.getElementById('backend-ajuda');
+  var btnRodar = document.getElementById('btn-rodar-agora');
+  var btnSalvar = document.getElementById('btn-salvar');
+  var painel = document.getElementById('rodada-painel');
+  var elEstado = document.getElementById('rodada-estado');
+  var elTimer = document.getElementById('rodada-timer');
+  var elLog = document.getElementById('rodada-log');
+  var btnRecarregar = document.getElementById('btn-recarregar');
+  var online = false;
+  var vigiando = false;
+  var lidas = 0;
+  var t0 = 0;
+  var timer = null;
+
+  function selecaoAtual() {{
+    var c = montarConfigAtualizado();
+    return {{
+      produtos_monitorados: c.produtos_monitorados,
+      produtos_candidatos_manual: c.produtos_candidatos_manual,
+      concorrentes: c.concorrentes,
+      candidatos_concorrentes_manual: c.candidatos_concorrentes_manual
+    }};
+  }}
+
+  async function api(rota, corpo) {{
+    var opcoes = {{cache: 'no-store'}};
+    if (corpo !== undefined) {{
+      opcoes.method = 'POST';
+      opcoes.headers = {{'Content-Type': 'application/json'}};
+      opcoes.body = JSON.stringify(corpo);
+    }}
+    var r = await fetch(rota, opcoes);
+    var dados = null;
+    try {{ dados = await r.json(); }} catch (e) {{ /* resposta sem corpo */ }}
+    return {{status: r.status, ok: r.ok, dados: dados}};
+  }}
+
+  function marcarOffline(motivo) {{
+    online = false;
+    bar.classList.remove('on'); bar.classList.add('off');
+    barTxt.innerHTML = '<strong>backend offline</strong> — modo arquivo' + (motivo ? ' (' + motivo + ')' : '');
+    barAjuda.hidden = false;
+    btnRodar.disabled = true; btnSalvar.disabled = true;
+    btnRodar.title = 'precisa do backend (servidor.py) para executar';
+    btnSalvar.title = btnRodar.title;
+  }}
+
+  function marcarOnline(est) {{
+    online = true;
+    bar.classList.add('on'); bar.classList.remove('off');
+    barTxt.innerHTML = '<strong>backend conectado</strong> — ' + (est.marca || 'war room')
+      + ' · ' + est.config;
+    var partes = [];
+    if (est.cadencia_horas) partes.push('cadência ' + est.cadencia_horas + 'h');
+    if (est.html_atualizado_em) partes.push('painel de ' + est.html_atualizado_em.replace('T', ' '));
+    barMeta.textContent = partes.join(' · ');
+    barAjuda.hidden = true;
+    btnRodar.disabled = false; btnSalvar.disabled = false;
+    btnRodar.title = ''; btnSalvar.title = '';
+    if (est.rodada && est.rodada.estado === 'rodando') vigiar();
+  }}
+
+  function classeLinha(l) {{
+    if (l.indexOf('$ ') === 0) return 'lin-cmd';
+    if (/^(ERRO|Traceback|\\s+File ")|error:/.test(l)) return 'lin-erro';
+    if (l.indexOf('OK ->') === 0) return 'lin-ok';
+    return '';
+  }}
+
+  function escapar(s) {{
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }}
+
+  function anexarLinhas(linhas) {{
+    if (!linhas.length) return;
+    var perto = elLog.scrollHeight - elLog.scrollTop - elLog.clientHeight < 60;
+    elLog.insertAdjacentHTML('beforeend', linhas.map(function (l) {{
+      var cls = classeLinha(l);
+      return cls ? '<span class="' + cls + '">' + escapar(l) + '</span>\\n' : escapar(l) + '\\n';
+    }}).join(''));
+    if (perto) elLog.scrollTop = elLog.scrollHeight;   // só acompanha se o usuário não subiu
+  }}
+
+  function tique() {{
+    elTimer.textContent = Math.round((Date.now() - t0) / 1000) + 's';
+  }}
+
+  function vigiar() {{
+    if (vigiando) return;
+    vigiando = true;
+    lidas = 0;
+    t0 = Date.now();
+    elLog.innerHTML = '';
+    painel.hidden = false;
+    btnRecarregar.hidden = true;
+    elEstado.className = 'rodada-estado';
+    elEstado.textContent = 'rodando';
+    btnRodar.disabled = true; btnRodar.classList.add('rodando');
+    btnSalvar.disabled = true;
+    clearInterval(timer);
+    timer = setInterval(tique, 1000);
+    tique();
+
+    (async function laco() {{
+      while (true) {{
+        await new Promise(function (r) {{ setTimeout(r, 1200); }});
+        var res;
+        try {{ res = await api('api/rodada?desde=' + lidas); }}
+        catch (e) {{ anexarLinhas(['[painel] perdi contato com o backend']); break; }}
+        if (!res.ok || !res.dados) {{ anexarLinhas(['[painel] resposta inesperada do backend']); break; }}
+        var d = res.dados;
+        anexarLinhas(d.linhas || []);
+        lidas += (d.linhas || []).length;
+        if (d.estado !== 'rodando') {{
+          clearInterval(timer);
+          elEstado.className = 'rodada-estado ' + (d.estado === 'ok' ? 'ok' : 'erro');
+          elEstado.textContent = d.estado === 'ok' ? 'concluída' : 'falhou';
+          if (d.motivo) anexarLinhas(['[painel] ' + d.motivo]);
+          // só oferece recarregar quando a rodada REALMENTE terminou bem; se
+          // falhou, o painel na tela continua sendo o da rodada anterior
+          btnRecarregar.hidden = d.estado !== 'ok';
+          break;
+        }}
+      }}
+      vigiando = false;
+      btnRodar.classList.remove('rodando');
+      btnRodar.disabled = !online;
+      btnSalvar.disabled = !online;
+    }})();
+  }}
+
+  btnRecarregar.addEventListener('click', function () {{ location.reload(); }});
+
+  btnSalvar.addEventListener('click', async function () {{
+    btnSalvar.disabled = true;
+    try {{
+      var res = await api('api/selecao', selecaoAtual());
+      if (res.ok) {{
+        var c = res.dados.contagem;
+        barMeta.textContent = 'salvo: ' + c.produtos_monitorados + ' produto(s) e '
+          + c.concorrentes + ' concorrente(s) monitorados · backup ' + res.dados.backup;
+      }} else {{
+        alert('Não salvou: ' + ((res.dados && res.dados.erro) || res.status));
+      }}
+    }} catch (e) {{
+      marcarOffline('caiu');
+    }}
+    btnSalvar.disabled = !online;
+  }});
+
+  btnRodar.addEventListener('click', async function () {{
+    btnRodar.disabled = true;
+    try {{
+      var res = await api('api/rodar', {{selecao: selecaoAtual()}});
+      if (res.status === 409) {{
+        // 409 = o pedido é válido, o estado não permite. Pergunta antes de forçar,
+        // porque forçar consome saldo de API de verdade.
+        var msg = (res.dados && res.dados.erro) || 'rodada bloqueada';
+        if (confirm(msg + '.\\n\\nDisparar de qualquer jeito?')) {{
+          res = await api('api/rodar', {{forcar: true}});
+        }} else {{
+          btnRodar.disabled = false; return;
+        }}
+      }}
+      if (res.status === 202) {{ vigiar(); }}
+      else {{
+        alert('Não disparou: ' + ((res.dados && res.dados.erro) || res.status));
+        btnRodar.disabled = false;
+      }}
+    }} catch (e) {{
+      marcarOffline('caiu');
+    }}
+  }});
+
+  (async function sondar() {{
+    // em file:// o fetch é bloqueado pela política de origem do navegador ANTES
+    // de o JS poder tratar, e isso suja o console com erro de CORS. Como já
+    // sabemos o resultado pelo protocolo, nem tentamos.
+    if (location.protocol === 'file:') {{ marcarOffline('arquivo local'); return; }}
+    try {{
+      var res = await api('api/estado');
+      if (res.ok && res.dados && res.dados.ok) marcarOnline(res.dados);
+      else marcarOffline(res.status === 401 ? 'token exigido' : 'não respondeu');
+    }} catch (e) {{
+      marcarOffline(location.protocol === 'file:' ? 'arquivo local' : null);
+    }}
+  }})();
 
   render();
 }})();

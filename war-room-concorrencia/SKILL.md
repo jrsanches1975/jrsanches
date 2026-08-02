@@ -834,6 +834,71 @@ JSON de saída emite as chaves `registros` **e** `result`, porque
 Para `vendas-produto`, várias linhas do mesmo produto são **somadas** (export por
 pedido), não sobrescritas.
 
+### 20. Backend: incluir item e rodar na hora (`servidor.py`)
+
+A aba de Seleção Manual sozinha não executa nada — um HTML estático não grava
+arquivo nem dispara processo. `servidor.py` é o backend local que fecha esse laço:
+você inclui um produto ou concorrente, clica em **⚡ Salvar e rodar agora** e a
+coleta sai na hora, **sem esperar a janela de cadência**.
+
+```bash
+cd scripts
+python servidor.py --config config.json
+
+# abra http://127.0.0.1:8787 — o painel tem de ser aberto PELO servidor,
+# não por file://, senão o navegador bloqueia a conversa com a API
+
+# passando argumentos extras para a rodada (tudo depois de --extra vai ao war_room.py):
+python servidor.py --config config.json \
+  --extra --ga4-json ../outputs/ga4-jornada.json --metas-json ../outputs/metas.json
+```
+
+Só de biblioteca padrão — nada de instalar dependência. Rotas: `GET /` serve o
+painel, `GET /api/estado`, `POST /api/selecao` grava, `POST /api/rodar` dispara,
+`GET /api/rodada?desde=N` devolve o log incremental (o painel mostra ao vivo, com
+cronômetro, e oferece recarregar quando termina bem).
+
+**O painel detecta em qual modo está, não presume.** Aberto pelo servidor: barra
+verde "backend conectado", botões de rodar/salvar ativos. Aberto como arquivo:
+barra âmbar "modo arquivo", os botões de servidor ficam **desabilitados** (não
+existe botão que parece funcionar e não faz nada) e sobram exportar/copiar o
+`config.json`. A detecção é por protocolo antes do `fetch`, porque em `file://` o
+navegador bloqueia a chamada antes de o JS poder tratar, e isso sujaria o console.
+
+**Segurança — um endpoint que executa comando merece justificativa explícita:**
+
+- Escuta em **127.0.0.1** por padrão. `--host 0.0.0.0` **exige** `--token`
+  (ou `WAR_ROOM_TOKEN`), senão o script se recusa a subir: sem isso, qualquer um
+  na mesma rede dispararia rodadas e queimaria seu saldo de API.
+- **O comando da rodada nunca vem do navegador** — é montado no servidor a partir
+  da linha de comando. `POST /api/selecao` aceita **só as quatro listas** de
+  seleção e valida campo por campo contra uma lista de permissão; qualquer chave
+  fora dela é descartada. Sem isso, uma aba maliciosa aberta ao lado poderia
+  gravar um campo que virasse comando e ter execução remota na sua máquina.
+  *Testado:* um POST com `comando_rodada: ["rm","-rf","/"]` grava o item e
+  **descarta a chave**.
+- Nunca `shell=True`; o subprocesso recebe lista de argumentos.
+- Exige `Content-Type: application/json` e recusa `Origin` de outra origem — junto,
+  é o que obriga o navegador a um preflight que falha em pedido cross-site.
+- **Backup antes de sobrescrever** (`config.json.bak-<hora>`, no `.gitignore`) e
+  troca atômica via `os.replace`, para nunca deixar meio arquivo.
+- Uma rodada por vez (segundo clique recebe 409) e trava de intervalo mínimo
+  (`--intervalo-minimo-minutos`, padrão 5) contra clique duplo; o botão pergunta
+  antes de forçar, porque forçar consome saldo de verdade.
+- `--timeout-minutos` (padrão 30) mata rodada travada.
+
+**Honestidade de estado:** se o `war_room.py` sai com código ≠ 0, a rodada é
+marcada **`erro`** mesmo tendo impresso coisa útil antes, e o botão de recarregar
+**não** aparece — o painel na tela continua sendo o da rodada anterior, em vez de
+sugerir que atualizou. Nome repetido é barrado no navegador na hora da inclusão
+(o nome é a chave do diff entre rodadas; repetido, a comparação quebra) e também
+no backend, como segunda barreira.
+
+Verificado com navegador real nos dois modos: inclusão → gravação no
+`config.json` → rodada disparada → item aparecendo no painel regerado, e o ciclo
+"salvar sem mexer em nada" é **idempotente** (nenhum item ou campo perdido, as 25
+outras chaves do config intactas).
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

@@ -1,5 +1,6 @@
 scripts/history/*.json
 scripts/config.json
+scripts/config.json.bak-*
 scripts/ads-manual.json
 scripts/*-30d.json
 scripts/own-performance*.json

@@ -473,6 +473,45 @@ Livre: `JOIE`.
     LISTA de concorrentes serve); só os PERCENTUAIS estão inutilizáveis até o
     reexport.
 
+30. **Backend local (`scripts/servidor.py`) — pedido de 2026-08-02.** O usuário
+    pediu: "na inclusão manual deve ter um botão pra assim que incluir algum
+    produto ou concorrente ele poder ser acionado e o sistema começar a rodar com
+    as novas informações sem esperar a janela de 6hs. precisamos de um backend".
+    Correto — HTML estático não grava arquivo nem executa processo. Criado
+    `servidor.py`, só biblioteca padrão (`http.server` + `subprocess`), com
+    `GET /`, `GET /api/estado`, `POST /api/selecao`, `POST /api/rodar`,
+    `GET /api/rodada?desde=N`. A aba de Seleção Manual ganhou barra de estado do
+    backend, **⚡ Salvar e rodar agora**, **⌸ Só salvar** e painel de log ao vivo
+    com cronômetro.
+    **Decisões de segurança (não afrouxar sem pensar):** escuta em 127.0.0.1 e
+    `--host` aberto EXIGE `--token`; o comando da rodada é montado no servidor a
+    partir da linha de comando e **nunca** vem do POST; `POST /api/selecao` aceita
+    só as 4 listas e valida contra lista de permissão de campos (testado: uma
+    chave `comando_rodada` injetada é descartada); sem `shell=True`; exige
+    `Content-Type: application/json` e recusa `Origin` estranha; backup +
+    `os.replace` atômico.
+    **Honestidade de estado:** código de saída ≠ 0 ⇒ rodada marcada `erro` e o
+    botão de recarregar NÃO aparece (o painel na tela segue sendo o da rodada
+    anterior, em vez de sugerir que atualizou).
+    **Bugs achados pelos testes** (todos com navegador real via Playwright):
+    - o front deixava adicionar nome duplicado e só descobria no salvamento, com
+      `alert` cru. Agora barra na inclusão, comparando sem diferenciar caixa — o
+      nome é a chave do diff entre rodadas, repetido a comparação quebra.
+    - o `fetch` em `file://` era bloqueado pela política de origem antes do JS
+      poder tratar, sujando o console com erro de CORS. Agora a detecção é por
+      `location.protocol`, sem tentar.
+    - `/favicon.ico` gerava 404 no log a cada carregamento → responde 204.
+    **Verificado ponta a ponta:** inclusão no navegador → gravação no
+    `config.json` → rodada disparada → item no painel regerado; ciclo "salvar sem
+    mexer em nada" idempotente (nenhum campo perdido, 25/25 das outras chaves
+    intactas); trava de rodada simultânea (409) e de intervalo mínimo, com
+    confirmação antes de forçar.
+    **Armadilha do ambiente, para não perder tempo de novo:** `pkill -f`/`pgrep -f`
+    casam com a própria linha de comando do shell quando ela contém o texto
+    `servidor.py` (ex.: um `nohup python3 servidor.py` na mesma chamada) e **matam
+    o próprio shell** (exit 144). Mate os processos numa chamada separada, sem o
+    nome literal no resto do comando.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

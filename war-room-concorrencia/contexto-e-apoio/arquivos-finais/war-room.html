@@ -375,6 +375,70 @@
     border-radius: 10px; padding: 12px; resize: vertical;
   }
 
+  /* ---- barra de estado do backend + painel da rodada disparada pelo botão ---- */
+  .backend-bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin: 0 0 14px; padding: 10px 14px; border-radius: 12px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: .78rem; color: var(--text-dim);
+  }
+  .backend-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+    background: var(--text-mute); box-shadow: 0 0 0 3px rgba(255, 255, 255, .04);
+  }
+  .backend-bar.on { border-color: var(--accent); }
+  .backend-bar.on .backend-dot {
+    background: #6ee7a8; box-shadow: 0 0 10px 1px rgba(110, 231, 168, .55);
+    animation: bk-pulse 2.4s ease-in-out infinite;
+  }
+  .backend-bar.off .backend-dot { background: #ffb27a; }
+  @keyframes bk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+  .backend-bar strong { color: var(--text); font-weight: 600; }
+  .backend-meta { margin-left: auto; color: var(--text-mute); font-variant-numeric: tabular-nums; }
+  .backend-ajuda {
+    width: 100%; margin: 4px 0 0; font-size: .74rem; color: var(--text-mute); line-height: 1.6;
+  }
+  .backend-ajuda code {
+    display: inline-block; padding: 1px 6px; border-radius: 5px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-family: ui-monospace, "SF Mono", monospace; font-size: .72rem; color: var(--text-dim);
+  }
+  .add-erro {
+    width: 100%; margin: 2px 0 0; font-size: .72rem; color: #ff9c96;
+  }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btn.rodando { position: relative; overflow: hidden; }
+  .btn.rodando::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .16) 50%, transparent 80%);
+    animation: bk-varre 1.15s linear infinite;
+  }
+  @keyframes bk-varre { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  .rodada-painel {
+    margin-top: 14px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--surface-2); overflow: hidden;
+  }
+  .rodada-head {
+    display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+    border-bottom: 1px solid var(--border); font-size: .76rem;
+  }
+  .rodada-estado {
+    text-transform: uppercase; letter-spacing: .12em; font-size: .68rem; font-weight: 600;
+    padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong);
+  }
+  .rodada-estado.ok { background: rgba(110, 231, 168, .14); color: #6ee7a8; }
+  .rodada-estado.erro { background: rgba(255, 156, 150, .14); color: #ff9c96; }
+  .rodada-timer { color: var(--text-mute); font-variant-numeric: tabular-nums; }
+  .rodada-head .btn-mini { margin-left: auto; }
+  .rodada-log {
+    margin: 0; max-height: 320px; overflow: auto; padding: 12px 14px;
+    font-family: ui-monospace, "SF Mono", monospace; font-size: .72rem; line-height: 1.65;
+    color: var(--text-dim); white-space: pre-wrap; word-break: break-word;
+  }
+  .rodada-log .lin-erro { color: #ff9c96; }
+  .rodada-log .lin-ok { color: #6ee7a8; }
+  .rodada-log .lin-cmd { color: var(--accent-strong); }
+
   a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
@@ -1212,8 +1276,8 @@
         <text x="64" y="106" class="seal-label">dado real</text>
       </svg>
       <div class="top-stats">
-        <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">2026-08-02 02:50 UTC</span></div>
-        <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value" data-count="6">6</span></div>
+        <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">2026-08-02 10:11 UTC</span></div>
+        <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value" data-count="0">0</span></div>
       </div>
     </div>
   </div>
@@ -1224,7 +1288,7 @@
       <span class="pipe-name">COLETA</span>
       <span class="pipe-sub">snapshot capturado</span>
     </div><span class="pipe-arrow" aria-hidden="true" style="--pd:0.34s">»</span>
-    <div class="pipe-step">
+    <div class="pipe-step on">
       <span class="pipe-ico" aria-hidden="true">◇</span>
       <span class="pipe-name">DIFF</span>
       <span class="pipe-sub">comparado c/ rodada anterior</span>
@@ -1232,19 +1296,19 @@
     <div class="pipe-step">
       <span class="pipe-ico" aria-hidden="true">▲</span>
       <span class="pipe-name">ALERTA</span>
-      <span class="pipe-sub">6 detectado(s)</span>
+      <span class="pipe-sub">0 detectado(s)</span>
     </div><span class="pipe-arrow" aria-hidden="true" style="--pd:1.02s">»</span>
     <div class="pipe-step">
       <span class="pipe-ico" aria-hidden="true">⬢</span>
       <span class="pipe-name">AGENTE</span>
-      <span class="pipe-sub">2 acionado(s)</span>
+      <span class="pipe-sub">0 acionado(s)</span>
     </div><span class="pipe-arrow" aria-hidden="true" style="--pd:1.36s">»</span>
-    <div class="pipe-step on">
+    <div class="pipe-step">
       <span class="pipe-ico" aria-hidden="true">⬣</span>
       <span class="pipe-name">AÇÃO</span>
-      <span class="pipe-sub">1 aguardando você</span>
+      <span class="pipe-sub">nada pendente</span>
     </div></div>
-<div class="status-banner"><span class="status-pill alta"><span class="dot"></span>1 alerta(s) crítico(s) — ação imediata recomendada</span></div>
+<div class="status-banner"><span class="status-pill ok"><span class="dot"></span>Todos os sinais nominais — nenhuma ameaça detectada</span></div>
 
 <nav class="tabs" role="tablist" aria-label="Seções da war room">
   <button class="tab-btn active" data-tab="visao-geral" role="tab" aria-selected="true">Visão Geral</button>
@@ -1261,192 +1325,10 @@
 <div class="shell">
   <div class="tab-panel active" data-tab="visao-geral">
     
-<section class="squadron-strip">
-  <h2>// esquadrão de combate — ações em andamento por agente</h2>
-  <div class="squadron-grid">
-    <div class="squadron-card sev-alta">
-      <div class="squadron-head">
-        <span class="squadron-emblema">◈</span>
-        <span class="squadron-nome">Agente de Precificação e Margem</span>
-      </div>
-      <span class="squadron-status">AGUARDANDO AUTORIZAÇÃO</span>
-      <div class="squadron-count">3 ação(ões) atribuída(s)</div>
-      <ul class="squadron-list"><li>Black Skull baixou o preço de 'Faciderm' de R$ 89.90 para R$ 71.90 (-20.0%).</li><li>Black Skull passou a oferecer 20% de desconto em 'Faciderm' (antes 0%).</li><li>Black Skull subiu o preço de 'Linha Joie Fit' de R$ 119.90 para R$ 129.90 (+8.3%</li></ul>
-    </div>
-    <div class="squadron-card sev-baixa">
-      <div class="squadron-head">
-        <span class="squadron-emblema">●</span>
-        <span class="squadron-nome">Agente de Marketplace (Mercado Livre Ops)</span>
-      </div>
-      <span class="squadron-status">MONITORANDO</span>
-      <div class="squadron-count">3 ação(ões) atribuída(s)</div>
-      <ul class="squadron-list"><li>Growth Supplements apareceu pela 1a vez na busca de 'Faciderm' (posição 2).</li><li>Black Skull ganhou visibilidade em 'Amaze': subiu da posição 4 para 1 e reviews </li><li>Growth Supplements sumiu da busca de 'Amaze' (estava na posição 1). Hipótese: ru</li></ul>
-    </div></div>
-</section>
     
-<section class="gauge-strip">
-  <h2>Desempenho próprio — Google/Meta Ads + GA4</h2>
-  <div class="gauge-grid">
-    <div class="gauge">
-      <div class="gauge-produto">Faciderm</div>
-      <div class="gauge-main">
-        <span class="gauge-value" data-count="5.00" data-count-dec="2" data-count-suf="×">5.00×</span><span class="gauge-tag">ROAS</span>
-      </div>
-      <div class="gauge-row"><span>CPA</span><strong>R$ 104.90</strong></div>
-      <div class="gauge-row"><span>INVEST.</span><strong>R$ 2,597</strong></div>
-      <div class="gauge-row"><span>CTR</span><strong>6.47%</strong></div>
-      <div class="signal-bar"><span style="width:64.6741651205937%"></span></div>
-      
-      <div class="gauge-ga4">
-        <div class="gauge-row"><span>GA4 SESSÕES</span><strong>1,912</strong></div>
-        <div class="gauge-row"><span>ENGAJAMENTO</span><strong>47.9%</strong></div>
-        <div class="gauge-row"><span>CONVERSÃO</span><strong>19.1%</strong></div>
-      </div>
-    </div>
-    <div class="gauge">
-      <div class="gauge-produto">Amaze</div>
-      <div class="gauge-main">
-        <span class="gauge-value" data-count="4.23" data-count-dec="2" data-count-suf="×">4.23×</span><span class="gauge-tag">ROAS</span>
-      </div>
-      <div class="gauge-row"><span>CPA</span><strong>R$ 128.52</strong></div>
-      <div class="gauge-row"><span>INVEST.</span><strong>R$ 2,016</strong></div>
-      <div class="gauge-row"><span>CTR</span><strong>2.62%</strong></div>
-      <div class="signal-bar"><span style="width:26.246877769720413%"></span></div>
-      
-      <div class="gauge-ga4">
-        <div class="gauge-row"><span>GA4 SESSÕES</span><strong>1,011</strong></div>
-        <div class="gauge-row"><span>ENGAJAMENTO</span><strong>53.4%</strong></div>
-        <div class="gauge-row"><span>CONVERSÃO</span><strong>23.6%</strong></div>
-      </div>
-    </div>
-    <div class="gauge">
-      <div class="gauge-produto">Linha Joie Fit</div>
-      <div class="gauge-main">
-        <span class="gauge-value" data-count="3.55" data-count-dec="2" data-count-suf="×">3.55×</span><span class="gauge-tag">ROAS</span>
-      </div>
-      <div class="gauge-row"><span>CPA</span><strong>R$ 134.49</strong></div>
-      <div class="gauge-row"><span>INVEST.</span><strong>R$ 2,313</strong></div>
-      <div class="gauge-row"><span>CTR</span><strong>2.29%</strong></div>
-      <div class="signal-bar"><span style="width:22.90051731640102%"></span></div>
-      
-      <div class="gauge-ga4">
-        <div class="gauge-row"><span>GA4 SESSÕES</span><strong>1,543</strong></div>
-        <div class="gauge-row"><span>ENGAJAMENTO</span><strong>44.2%</strong></div>
-        <div class="gauge-row"><span>CONVERSÃO</span><strong>7.9%</strong></div>
-      </div>
-    </div></div>
-</section>
     <section>
       <h2>Battlecards — mudanças detectadas nesta rodada</h2>
-      <div class="grid">
-    <article class="card sev-alta" style="--d:0.00s" data-alerta-idx="0"
-             aria-label="Battlecard Faciderm contra Black Skull — abrir detalhe">
-      <div class="card-head">
-        <span class="badge"><span class="badge-ico">▲</span>CRÍTICO</span>
-        <span class="tipo">queda preco · nível agressiva</span>
-      </div>
-      <h3><span class="crosshair" aria-hidden="true"></span>Faciderm <span class="vs">vs</span> Black Skull</h3>
-      <p class="resumo">Black Skull baixou o preço de 'Faciderm' de R$ 89.90 para R$ 71.90 (-20.0%).</p>
-      
-      
-      
-      <p><span class="label">// impacto na concorrência</span>Sinal de liquidação de estoque, novo substituto ou guerra de preço deliberada. Risco alto de canibalização no curto prazo.</p>
-      <p><span class="label">// impacto estimado no volume</span>Estimativa por elasticidade deve ser tratada como piso — quedas agressivas convertem desproporcionalmente mais (efeito ancoragem). Estimativa: +30.0% de deslocamento de demanda (a seu favor), usando elasticidade configurada (-1.5) x variação de preço observada (-20.0%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 104.90, ROAS 5.00, CTR 6.47% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.</p>
-      <p class="label">// estratégia imediata</p>
-      <ul><li>Price-match seletivo só nos SKUs mais expostos, não na linha toda</li><li>Reforçar prova social (reviews/garantia) para justificar não seguir a queda</li><li>Campanha de retenção/e-mail para base já convertida</li><li>Checar se é liquidação temporária antes de comprometer margem de forma permanente</li></ul>
-      <div class="kpis"><span class="kpi">Margem de contribuição</span><span class="kpi">ROAS</span><span class="kpi">CAC</span><span class="kpi">Share of search/Buy Box</span><span class="kpi">Taxa de conversão</span><span class="kpi">Ticket médio</span></div>
-      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
-    </article>
-    <article class="card sev-media" style="--d:0.05s" data-alerta-idx="1"
-             aria-label="Battlecard Faciderm contra Black Skull — abrir detalhe">
-      <div class="card-head">
-        <span class="badge"><span class="badge-ico">◆</span>ATENÇÃO</span>
-        <span class="tipo">novo desconto · nível default</span>
-      </div>
-      <h3><span class="crosshair" aria-hidden="true"></span>Faciderm <span class="vs">vs</span> Black Skull</h3>
-      <p class="resumo">Black Skull passou a oferecer 20% de desconto em 'Faciderm' (antes 0%).</p>
-      
-      
-      
-      <p><span class="label">// impacto na concorrência</span>Desconto por tempo limitado costuma converter mais rápido que uma baixa de preço permanente (efeito urgência).</p>
-      <p><span class="label">// impacto estimado no volume</span>Tratar como a queda de preço equivalente, com efeito concentrado na janela do cupom (não distribuído).</p>
-      <p class="label">// estratégia imediata</p>
-      <ul><li>Cupom-espelho de curta duração no produto equivalente</li><li>Destacar frete grátis/parcelamento se não puder cobrir o desconto</li><li>Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado</li></ul>
-      <div class="kpis"><span class="kpi">CTR</span><span class="kpi">Taxa de conversão</span><span class="kpi">CAC no período do cupom</span><span class="kpi">ROAS da campanha ativa</span></div>
-      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
-    </article>
-    <article class="card sev-media" style="--d:0.10s" data-alerta-idx="2"
-             aria-label="Battlecard Faciderm contra Growth Supplements — abrir detalhe">
-      <div class="card-head">
-        <span class="badge"><span class="badge-ico">◆</span>ATENÇÃO</span>
-        <span class="tipo">novo entrante · nível default</span>
-      </div>
-      <h3><span class="crosshair" aria-hidden="true"></span>Faciderm <span class="vs">vs</span> Growth Supplements</h3>
-      <p class="resumo">Growth Supplements apareceu pela 1a vez na busca de 'Faciderm' (posição 2).</p>
-      
-      
-      
-      <p><span class="label">// impacto na concorrência</span>Aumento da concorrência direta no mesmo termo de busca; dilui share entre mais players.</p>
-      <p><span class="label">// impacto estimado no volume</span>Risco difuso, maior quanto mais barato/melhor avaliado for o novo entrante.</p>
-      <p class="label">// estratégia imediata</p>
-      <ul><li>Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas</li><li>Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta</li></ul>
-      <div class="kpis"><span class="kpi">Share of search</span><span class="kpi">Posição média</span><span class="kpi">Taxa de conversão</span></div>
-      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
-    </article>
-    <article class="card sev-media" style="--d:0.15s" data-alerta-idx="3"
-             aria-label="Battlecard Amaze contra Black Skull — abrir detalhe">
-      <div class="card-head">
-        <span class="badge"><span class="badge-ico">◆</span>ATENÇÃO</span>
-        <span class="tipo">salto visibilidade ml · nível default</span>
-      </div>
-      <h3><span class="crosshair" aria-hidden="true"></span>Amaze <span class="vs">vs</span> Black Skull</h3>
-      <p class="resumo">Black Skull ganhou visibilidade em 'Amaze': subiu da posição 4 para 1 e reviews de 60 para 95.</p>
-      
-      
-      
-      <p><span class="label">// impacto na concorrência</span>Mais impressões para o concorrente no mesmo termo; nas primeiras posições do ML o CTR cai muito rápido por posição perdida.</p>
-      <p><span class="label">// impacto estimado no volume</span>Correlacionado com perda de share of search; não quantificável com precisão sem dados de leilão — tratar como alerta de atenção.</p>
-      <p class="label">// estratégia imediata</p>
-      <ul><li>Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)</li><li>Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa</li><li>Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento</li></ul>
-      <div class="kpis"><span class="kpi">Posição média na busca</span><span class="kpi">CTR</span><span class="kpi">Taxa de conversão</span><span class="kpi">Impression share (Mercado Ads)</span></div>
-      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
-    </article>
-    <article class="card sev-media" style="--d:0.20s" data-alerta-idx="4"
-             aria-label="Battlecard Amaze contra Growth Supplements — abrir detalhe">
-      <div class="card-head">
-        <span class="badge"><span class="badge-ico">◆</span>ATENÇÃO</span>
-        <span class="tipo">concorrente sumiu · nível default</span>
-      </div>
-      <h3><span class="crosshair" aria-hidden="true"></span>Amaze <span class="vs">vs</span> Growth Supplements</h3>
-      <p class="resumo">Growth Supplements sumiu da busca de 'Amaze' (estava na posição 1). Hipótese: ruptura de estoque ou pausa de campanha — não confirmado.</p>
-      
-      
-      
-      <p><span class="label">// impacto na concorrência</span>Janela de oportunidade temporária — menos competição direta pelo termo/posição.</p>
-      <p><span class="label">// impacto estimado no volume</span>Oportunidade de ganho de share enquanto durar; não é permanente até confirmar (pode ser reposição de estoque em dias).</p>
-      <p class="label">// estratégia imediata</p>
-      <ul><li>Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã</li><li>Não reduzir preço proativamente — a demanda já não tem para onde ir</li></ul>
-      <div class="kpis"><span class="kpi">Share of search</span><span class="kpi">Volume/conversão do SKU equivalente</span><span class="kpi">ROAS</span></div>
-      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
-    </article>
-    <article class="card sev-media" style="--d:0.25s" data-alerta-idx="5"
-             aria-label="Battlecard Linha Joie Fit contra Black Skull — abrir detalhe">
-      <div class="card-head">
-        <span class="badge"><span class="badge-ico">◆</span>ATENÇÃO</span>
-        <span class="tipo">aumento preco concorrente · nível moderada</span>
-      </div>
-      <h3><span class="crosshair" aria-hidden="true"></span>Linha Joie Fit <span class="vs">vs</span> Black Skull</h3>
-      <p class="resumo">Black Skull subiu o preço de 'Linha Joie Fit' de R$ 119.90 para R$ 129.90 (+8.3%).</p>
-      
-      
-      
-      <p><span class="label">// impacto na concorrência</span>Janela real de oportunidade para ganhar posição/Buy Box e volume sem sacrificar margem.</p>
-      <p><span class="label">// impacto estimado no volume</span>Ganho potencial relevante (ver estimativa por elasticidade, sentido positivo). Estimativa: -12.5% de deslocamento de demanda (a favor do concorrente), usando elasticidade configurada (-1.5) x variação de preço observada (+8.3%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 134.49, ROAS 3.55, CTR 2.29% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.</p>
-      <p class="label">// estratégia imediata</p>
-      <ul><li>Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura</li><li>Atualizar comparativos de preço em conteúdo/anúncio</li></ul>
-      <div class="kpis"><span class="kpi">Share of search/impressões</span><span class="kpi">ROAS</span><span class="kpi">CAC</span></div>
-      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-whey" target="_blank" rel="noopener">◈ ver evidência</a></div>
-    </article></div>
+      <div class="grid"><div class="empty">Nenhum alvo nesta varredura<br><span>(sem mudanças em relação à última rodada, ou é a linha de base)</span></div></div>
     </section>
     <p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os sinais de
     atividade em ads (Meta Ad Library / Google Ads Transparency Center) refletem contagem de anúncios ativos
@@ -1466,7 +1348,7 @@
   <div class="cred-cell">
     <span class="cred-ico" aria-hidden="true">⛁</span>
     <span><span class="cred-label">Fontes ativas nesta rodada</span>
-    <span class="cred-sub">Mercado Livre · Google Ads/GA4 · Auction Insight (simulado)</span></span>
+    <span class="cred-sub">Mercado Livre · Auction Insight (simulado)</span></span>
   </div>
 </div>
   </div>
@@ -1483,27 +1365,9 @@
           </tr></thead>
           <tbody>
             <tr class="radar-concorrente">
-              <td>Amaze</td><td class="quem">Black Skull</td><td>#1</td>
-              <td>R$ 84.90</td><td>—</td><td>95</td>
-              <td>4.3</td><td>não</td>
-              <td class="ads-flag">n/d</td>
-            </tr>
-            <tr class="radar-proprio">
-              <td>Amaze</td><td class="quem">NÓS</td><td>#2</td>
-              <td>R$ 99.90</td><td>—</td><td>340</td>
-              <td>4.8</td><td>sim</td>
-              <td class="ads-flag">n/d</td>
-            </tr>
-            <tr class="radar-concorrente">
               <td>Linha Joie Fit</td><td class="quem">Black Skull</td><td>#1</td>
               <td>R$ 129.90</td><td>—</td><td>910</td>
               <td>4.8</td><td>não</td>
-              <td class="ads-flag">n/d</td>
-            </tr>
-            <tr class="radar-proprio">
-              <td>Linha Joie Fit</td><td class="quem">NÓS</td><td>#5</td>
-              <td>R$ 129.90</td><td>—</td><td>480</td>
-              <td>4.6</td><td>não</td>
               <td class="ads-flag">n/d</td>
             </tr>
             <tr class="radar-concorrente">
@@ -1518,10 +1382,10 @@
               <td>4.4</td><td>não</td>
               <td class="ads-flag">n/d</td>
             </tr>
-            <tr class="radar-proprio">
-              <td>Faciderm</td><td class="quem">NÓS</td><td>#3</td>
-              <td>R$ 149.90</td><td>—</td><td>210</td>
-              <td>4.7</td><td>sim</td>
+            <tr class="radar-concorrente">
+              <td>Amaze</td><td class="quem">Black Skull</td><td>#1</td>
+              <td>R$ 84.90</td><td>—</td><td>95</td>
+              <td>4.3</td><td>não</td>
               <td class="ads-flag">n/d</td>
             </tr></tbody>
         </table>
@@ -1536,18 +1400,6 @@
             <th>Reviews</th><th>Rating</th><th>Frete grátis</th><th>Anúncio patrocinado?</th>
           </tr></thead>
           <tbody>
-            <tr class="radar-proprio">
-              <td>Amaze</td><td class="quem">NÓS</td><td>#1</td>
-              <td>R$ 99.90</td><td>—</td><td>150</td>
-              <td>4.8</td><td>sim</td>
-              <td class="ads-flag">SIM</td>
-            </tr>
-            <tr class="radar-concorrente">
-              <td>Amaze</td><td class="quem">Growth Supplements</td><td>#2</td>
-              <td>R$ 76.90</td><td>4%</td><td>88</td>
-              <td>4.6</td><td>sim</td>
-              <td class="ads-flag">SIM</td>
-            </tr>
             <tr class="radar-concorrente">
               <td>Linha Joie Fit</td><td class="quem">Black Skull</td><td>#1</td>
               <td>R$ 124.90</td><td>4%</td><td>640</td>
@@ -1560,22 +1412,16 @@
               <td>4.4</td><td>não</td>
               <td class="ads-flag">não</td>
             </tr>
-            <tr class="radar-proprio">
-              <td>Linha Joie Fit</td><td class="quem">NÓS</td><td>#3</td>
-              <td>R$ 129.90</td><td>—</td><td>210</td>
-              <td>4.6</td><td>não</td>
-              <td class="ads-flag">não</td>
-            </tr>
             <tr class="radar-concorrente">
               <td>Faciderm</td><td class="quem">Black Skull</td><td>#1</td>
               <td>R$ 74.90</td><td>17%</td><td>210</td>
               <td>4.5</td><td>sim</td>
               <td class="ads-flag">SIM</td>
             </tr>
-            <tr class="radar-proprio">
-              <td>Faciderm</td><td class="quem">NÓS</td><td>#4</td>
-              <td>R$ 149.90</td><td>—</td><td>95</td>
-              <td>4.7</td><td>sim</td>
+            <tr class="radar-concorrente">
+              <td>Amaze</td><td class="quem">Growth Supplements</td><td>#2</td>
+              <td>R$ 76.90</td><td>4%</td><td>88</td>
+              <td>4.6</td><td>sim</td>
               <td class="ads-flag">SIM</td>
             </tr></tbody>
         </table>
@@ -3380,6 +3226,17 @@ das métricas de performance (o Google Ads recusa combinar os dois na mesma cons
     <section>
       <h2>Seleção manual — produtos e concorrentes monitorados</h2>
       
+<div class="backend-bar" id="backend-bar">
+  <span class="backend-dot" aria-hidden="true"></span>
+  <span id="backend-txt">verificando backend…</span>
+  <span class="backend-meta" id="backend-meta"></span>
+  <p class="backend-ajuda" id="backend-ajuda" hidden>
+    Para o botão de rodar na hora funcionar, suba o backend e abra o painel por ele:
+    <code>cd scripts &amp;&amp; python servidor.py --config config.json</code> →
+    <code>http://127.0.0.1:8787</code>. Sem ele este arquivo é estático: dá para montar a
+    seleção e exportar o <code>config.json</code>, mas nada executa.
+  </p>
+</div>
 <div class="selecao-grid">
   <div class="selecao-coluna">
     <div class="selecao-head">
@@ -3394,6 +3251,7 @@ das métricas de performance (o Google Ads recusa combinar os dois na mesma cons
       <input type="text" id="new-produto-termo" placeholder="termo de busca (ML)">
       <input type="number" step="0.01" id="new-produto-preco" placeholder="preço (opcional)">
       <button class="btn-mini primary" id="btn-add-produto-confirm" type="button">adicionar</button>
+      <p class="add-erro" id="erro-produto" hidden></p>
     </div>
     <div class="selecao-lista" id="lista-produtos"></div>
   </div>
@@ -3410,16 +3268,27 @@ das métricas de performance (o Google Ads recusa combinar os dois na mesma cons
       <input type="text" id="new-concorrente-dominio" placeholder="domínio do site (opcional)">
       <input type="text" id="new-concorrente-seller" placeholder="seller(s) no ML, separados por vírgula">
       <button class="btn-mini primary" id="btn-add-concorrente-confirm" type="button">adicionar</button>
+      <p class="add-erro" id="erro-concorrente" hidden></p>
     </div>
     <div class="selecao-lista" id="lista-concorrentes"></div>
   </div>
 </div>
 <div class="toolbar" style="margin-top:16px">
-  <button class="btn primary" id="btn-export-config" type="button">⭳ Exportar config.json atualizado</button>
+  <button class="btn primary" id="btn-rodar-agora" type="button" disabled>⚡ Salvar e rodar agora</button>
+  <button class="btn" id="btn-salvar" type="button" disabled>⌸ Só salvar no servidor</button>
+  <button class="btn" id="btn-export-config" type="button">⭳ Exportar config.json</button>
   <button class="btn" id="btn-copy-config" type="button">⧉ Copiar JSON</button>
 </div>
-<p class="tab-note">Sem backend: nada se grava sozinho. Ao terminar, exporte e salve o arquivo por cima do
-seu <code>scripts/config.json</code> antes da próxima rodada.</p>
+<p class="tab-note" id="selecao-nota">Rodar agora não espera a janela de 6h: grava a seleção e
+dispara a coleta na hora. A cadência continua valendo para as rodadas automáticas.</p>
+<div class="rodada-painel" id="rodada-painel" hidden>
+  <div class="rodada-head">
+    <span class="rodada-estado" id="rodada-estado">rodando</span>
+    <span class="rodada-timer" id="rodada-timer">0s</span>
+    <button class="btn-mini primary" id="btn-recarregar" type="button" hidden>recarregar painel</button>
+  </div>
+  <pre class="rodada-log" id="rodada-log" aria-live="polite" aria-label="Log da rodada"></pre>
+</div>
 <textarea id="config-json-preview" class="json-preview" readonly></textarea>
 <script id="selecao-manual-data" type="application/json">{"produtos": [{"nome": "Faciderm", "termo_busca_ml": "sérum facial vitamina c", "preco_proprio": 149.9, "ticket_medio": 149.9, "campanhas_google_ads": ["Faciderm"], "campanhas_meta_ads": ["Faciderm"], "atributos": {"categoria": "sérum facial", "ingrediente_principal": "vitamina c", "formato": "líquido", "tamanho": "30ml"}, "monitorando": true}, {"nome": "Amaze", "termo_busca_ml": "polivitamínico feminino", "preco_proprio": 99.9, "ticket_medio": 99.9, "campanhas_google_ads": ["Amaze"], "campanhas_meta_ads": ["Amaze"], "atributos": {"categoria": "polivitamínico", "publico": "feminino", "formato": "cápsulas", "tamanho": "60 cápsulas"}, "monitorando": true}, {"nome": "Linha Joie Fit", "termo_busca_ml": "whey protein isolado", "preco_proprio": 129.9, "ticket_medio": 129.9, "campanhas_google_ads": ["Joie Fit"], "campanhas_meta_ads": ["Joie Fit"], "atributos": {"categoria": "whey protein", "tipo": "isolado", "formato": "pó", "tamanho": "900g"}, "monitorando": true}, {"nome": "Creatina Joie", "termo_busca_ml": "creatina monohidratada 300g", "atributos": {"categoria": "creatina", "formato": "pó", "tamanho": "300g"}, "monitorando": false}], "concorrentes": [{"nome": "Black Skull", "sellers_ml": ["BLACK SKULL", "BLACKSKULL OFICIAL"], "dominio_site": "blackskull.com.br", "meta_page": "Black Skull", "google_advertiser": "Black Skull", "monitorando": true}, {"nome": "Growth Supplements", "sellers_ml": ["GROWTH SUPPLEMENTS"], "dominio_site": "growthsupplements.com.br", "meta_page": "Growth Supplements", "google_advertiser": "Growth Supplements", "monitorando": true}, {"nome": "Max Titanium", "dominio_site": "maxtitanium.com.br", "sellers_ml": ["MAX TITANIUM OFICIAL"], "monitorando": false}]}</script>
     </section>
@@ -3498,11 +3367,25 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
   document.getElementById('btn-add-produto-toggle').addEventListener('click', function () {
     addProdutoForm.style.display = addProdutoForm.style.display === 'none' ? 'flex' : 'none';
   });
+  /* nome é a chave do snapshot (o diff entre rodadas casa por nome), então nome
+     repetido quebraria a comparação. O backend recusa; aqui avisamos na hora, em
+     vez de deixar o usuário descobrir só ao salvar. */
+  function jaExiste(lista, nome) {
+    var alvo = nome.trim().toLowerCase();
+    return lista.some(function (i) { return (i.nome || '').trim().toLowerCase() === alvo; });
+  }
+  function avisar(id, msg) {
+    var el = document.getElementById(id);
+    el.textContent = msg; el.hidden = !msg;
+  }
+
   document.getElementById('btn-add-produto-confirm').addEventListener('click', function () {
     var nome = document.getElementById('new-produto-nome').value.trim();
     var termo = document.getElementById('new-produto-termo').value.trim();
     var preco = document.getElementById('new-produto-preco').value;
-    if (!nome || !termo) return;
+    if (!nome || !termo) { avisar('erro-produto', 'nome e termo de busca são obrigatórios'); return; }
+    if (jaExiste(produtos, nome)) { avisar('erro-produto', '"' + nome + '" já está na lista'); return; }
+    avisar('erro-produto', '');
     produtos.push({nome: nome, termo_busca_ml: termo, preco_proprio: preco ? parseFloat(preco) : null,
                     ticket_medio: preco ? parseFloat(preco) : null, monitorando: true});
     document.getElementById('new-produto-nome').value = '';
@@ -3520,7 +3403,9 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
     var nome = document.getElementById('new-concorrente-nome').value.trim();
     var dominio = document.getElementById('new-concorrente-dominio').value.trim();
     var sellers = document.getElementById('new-concorrente-seller').value.trim();
-    if (!nome) return;
+    if (!nome) { avisar('erro-concorrente', 'o nome é obrigatório'); return; }
+    if (jaExiste(concorrentes, nome)) { avisar('erro-concorrente', '"' + nome + '" já está na lista'); return; }
+    avisar('erro-concorrente', '');
     concorrentes.push({nome: nome, dominio_site: dominio || undefined,
                         sellers_ml: sellers ? sellers.split(',').map(function (s) { return s.trim(); }) : [],
                         monitorando: true});
@@ -3563,10 +3448,206 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
     try { await navigator.clipboard.writeText(texto); } catch (err) { preview.select(); }
   });
 
+  /* ------------------------------------------------------------------ backend
+     O painel funciona servido pelo servidor.py OU como arquivo solto. A
+     diferença é detectada, não presumida: um GET em api/estado responde só no
+     primeiro caso (em file:// o fetch nem sai). Nada de botão que parece
+     funcionar e não faz nada. */
+  var bar = document.getElementById('backend-bar');
+  var barTxt = document.getElementById('backend-txt');
+  var barMeta = document.getElementById('backend-meta');
+  var barAjuda = document.getElementById('backend-ajuda');
+  var btnRodar = document.getElementById('btn-rodar-agora');
+  var btnSalvar = document.getElementById('btn-salvar');
+  var painel = document.getElementById('rodada-painel');
+  var elEstado = document.getElementById('rodada-estado');
+  var elTimer = document.getElementById('rodada-timer');
+  var elLog = document.getElementById('rodada-log');
+  var btnRecarregar = document.getElementById('btn-recarregar');
+  var online = false;
+  var vigiando = false;
+  var lidas = 0;
+  var t0 = 0;
+  var timer = null;
+
+  function selecaoAtual() {
+    var c = montarConfigAtualizado();
+    return {
+      produtos_monitorados: c.produtos_monitorados,
+      produtos_candidatos_manual: c.produtos_candidatos_manual,
+      concorrentes: c.concorrentes,
+      candidatos_concorrentes_manual: c.candidatos_concorrentes_manual
+    };
+  }
+
+  async function api(rota, corpo) {
+    var opcoes = {cache: 'no-store'};
+    if (corpo !== undefined) {
+      opcoes.method = 'POST';
+      opcoes.headers = {'Content-Type': 'application/json'};
+      opcoes.body = JSON.stringify(corpo);
+    }
+    var r = await fetch(rota, opcoes);
+    var dados = null;
+    try { dados = await r.json(); } catch (e) { /* resposta sem corpo */ }
+    return {status: r.status, ok: r.ok, dados: dados};
+  }
+
+  function marcarOffline(motivo) {
+    online = false;
+    bar.classList.remove('on'); bar.classList.add('off');
+    barTxt.innerHTML = '<strong>backend offline</strong> — modo arquivo' + (motivo ? ' (' + motivo + ')' : '');
+    barAjuda.hidden = false;
+    btnRodar.disabled = true; btnSalvar.disabled = true;
+    btnRodar.title = 'precisa do backend (servidor.py) para executar';
+    btnSalvar.title = btnRodar.title;
+  }
+
+  function marcarOnline(est) {
+    online = true;
+    bar.classList.add('on'); bar.classList.remove('off');
+    barTxt.innerHTML = '<strong>backend conectado</strong> — ' + (est.marca || 'war room')
+      + ' · ' + est.config;
+    var partes = [];
+    if (est.cadencia_horas) partes.push('cadência ' + est.cadencia_horas + 'h');
+    if (est.html_atualizado_em) partes.push('painel de ' + est.html_atualizado_em.replace('T', ' '));
+    barMeta.textContent = partes.join(' · ');
+    barAjuda.hidden = true;
+    btnRodar.disabled = false; btnSalvar.disabled = false;
+    btnRodar.title = ''; btnSalvar.title = '';
+    if (est.rodada && est.rodada.estado === 'rodando') vigiar();
+  }
+
+  function classeLinha(l) {
+    if (l.indexOf('$ ') === 0) return 'lin-cmd';
+    if (/^(ERRO|Traceback|\s+File ")|error:/.test(l)) return 'lin-erro';
+    if (l.indexOf('OK ->') === 0) return 'lin-ok';
+    return '';
+  }
+
+  function escapar(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function anexarLinhas(linhas) {
+    if (!linhas.length) return;
+    var perto = elLog.scrollHeight - elLog.scrollTop - elLog.clientHeight < 60;
+    elLog.insertAdjacentHTML('beforeend', linhas.map(function (l) {
+      var cls = classeLinha(l);
+      return cls ? '<span class="' + cls + '">' + escapar(l) + '</span>\n' : escapar(l) + '\n';
+    }).join(''));
+    if (perto) elLog.scrollTop = elLog.scrollHeight;   // só acompanha se o usuário não subiu
+  }
+
+  function tique() {
+    elTimer.textContent = Math.round((Date.now() - t0) / 1000) + 's';
+  }
+
+  function vigiar() {
+    if (vigiando) return;
+    vigiando = true;
+    lidas = 0;
+    t0 = Date.now();
+    elLog.innerHTML = '';
+    painel.hidden = false;
+    btnRecarregar.hidden = true;
+    elEstado.className = 'rodada-estado';
+    elEstado.textContent = 'rodando';
+    btnRodar.disabled = true; btnRodar.classList.add('rodando');
+    btnSalvar.disabled = true;
+    clearInterval(timer);
+    timer = setInterval(tique, 1000);
+    tique();
+
+    (async function laco() {
+      while (true) {
+        await new Promise(function (r) { setTimeout(r, 1200); });
+        var res;
+        try { res = await api('api/rodada?desde=' + lidas); }
+        catch (e) { anexarLinhas(['[painel] perdi contato com o backend']); break; }
+        if (!res.ok || !res.dados) { anexarLinhas(['[painel] resposta inesperada do backend']); break; }
+        var d = res.dados;
+        anexarLinhas(d.linhas || []);
+        lidas += (d.linhas || []).length;
+        if (d.estado !== 'rodando') {
+          clearInterval(timer);
+          elEstado.className = 'rodada-estado ' + (d.estado === 'ok' ? 'ok' : 'erro');
+          elEstado.textContent = d.estado === 'ok' ? 'concluída' : 'falhou';
+          if (d.motivo) anexarLinhas(['[painel] ' + d.motivo]);
+          // só oferece recarregar quando a rodada REALMENTE terminou bem; se
+          // falhou, o painel na tela continua sendo o da rodada anterior
+          btnRecarregar.hidden = d.estado !== 'ok';
+          break;
+        }
+      }
+      vigiando = false;
+      btnRodar.classList.remove('rodando');
+      btnRodar.disabled = !online;
+      btnSalvar.disabled = !online;
+    })();
+  }
+
+  btnRecarregar.addEventListener('click', function () { location.reload(); });
+
+  btnSalvar.addEventListener('click', async function () {
+    btnSalvar.disabled = true;
+    try {
+      var res = await api('api/selecao', selecaoAtual());
+      if (res.ok) {
+        var c = res.dados.contagem;
+        barMeta.textContent = 'salvo: ' + c.produtos_monitorados + ' produto(s) e '
+          + c.concorrentes + ' concorrente(s) monitorados · backup ' + res.dados.backup;
+      } else {
+        alert('Não salvou: ' + ((res.dados && res.dados.erro) || res.status));
+      }
+    } catch (e) {
+      marcarOffline('caiu');
+    }
+    btnSalvar.disabled = !online;
+  });
+
+  btnRodar.addEventListener('click', async function () {
+    btnRodar.disabled = true;
+    try {
+      var res = await api('api/rodar', {selecao: selecaoAtual()});
+      if (res.status === 409) {
+        // 409 = o pedido é válido, o estado não permite. Pergunta antes de forçar,
+        // porque forçar consome saldo de API de verdade.
+        var msg = (res.dados && res.dados.erro) || 'rodada bloqueada';
+        if (confirm(msg + '.\n\nDisparar de qualquer jeito?')) {
+          res = await api('api/rodar', {forcar: true});
+        } else {
+          btnRodar.disabled = false; return;
+        }
+      }
+      if (res.status === 202) { vigiar(); }
+      else {
+        alert('Não disparou: ' + ((res.dados && res.dados.erro) || res.status));
+        btnRodar.disabled = false;
+      }
+    } catch (e) {
+      marcarOffline('caiu');
+    }
+  });
+
+  (async function sondar() {
+    // em file:// o fetch é bloqueado pela política de origem do navegador ANTES
+    // de o JS poder tratar, e isso suja o console com erro de CORS. Como já
+    // sabemos o resultado pelo protocolo, nem tentamos.
+    if (location.protocol === 'file:') { marcarOffline('arquivo local'); return; }
+    try {
+      var res = await api('api/estado');
+      if (res.ok && res.dados && res.dados.ok) marcarOnline(res.dados);
+      else marcarOffline(res.status === 401 ? 'token exigido' : 'não respondeu');
+    } catch (e) {
+      marcarOffline(location.protocol === 'file:' ? 'arquivo local' : null);
+    }
+  })();
+
   render();
 })();
 </script>
-<script id="fx-alertas-data" type="application/json">[{"severidade": "alta", "nivel": "agressiva", "tipo": "queda_preco", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull baixou o preço de 'Faciderm' de R$ 89.90 para R$ 71.90 (-20.0%).", "impacto_concorrencia": "Sinal de liquidação de estoque, novo substituto ou guerra de preço deliberada. Risco alto de canibalização no curto prazo.", "impacto_volume": "Estimativa por elasticidade deve ser tratada como piso — quedas agressivas convertem desproporcionalmente mais (efeito ancoragem). Estimativa: +30.0% de deslocamento de demanda (a seu favor), usando elasticidade configurada (-1.5) x variação de preço observada (-20.0%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 104.90, ROAS 5.00, CTR 6.47% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Price-match seletivo só nos SKUs mais expostos, não na linha toda", "Reforçar prova social (reviews/garantia) para justificar não seguir a queda", "Campanha de retenção/e-mail para base já convertida", "Checar se é liquidação temporária antes de comprometer margem de forma permanente"], "kpis": ["Margem de contribuição", "ROAS", "CAC", "Share of search/Buy Box", "Taxa de conversão", "Ticket médio"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "aguardando_autorizacao"}, {"severidade": "media", "nivel": "default", "tipo": "novo_desconto", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull passou a oferecer 20% de desconto em 'Faciderm' (antes 0%).", "impacto_concorrencia": "Desconto por tempo limitado costuma converter mais rápido que uma baixa de preço permanente (efeito urgência).", "impacto_volume": "Tratar como a queda de preço equivalente, com efeito concentrado na janela do cupom (não distribuído).", "estrategia": ["Cupom-espelho de curta duração no produto equivalente", "Destacar frete grátis/parcelamento se não puder cobrir o desconto", "Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado"], "kpis": ["CTR", "Taxa de conversão", "CAC no período do cupom", "ROAS da campanha ativa"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "novo_entrante", "produto": "Faciderm", "concorrente": "Growth Supplements", "resumo": "Growth Supplements apareceu pela 1a vez na busca de 'Faciderm' (posição 2).", "impacto_concorrencia": "Aumento da concorrência direta no mesmo termo de busca; dilui share entre mais players.", "impacto_volume": "Risco difuso, maior quanto mais barato/melhor avaliado for o novo entrante.", "estrategia": ["Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas", "Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta"], "kpis": ["Share of search", "Posição média", "Taxa de conversão"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-faciderm", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "salto_visibilidade_ml", "produto": "Amaze", "concorrente": "Black Skull", "resumo": "Black Skull ganhou visibilidade em 'Amaze': subiu da posição 4 para 1 e reviews de 60 para 95.", "impacto_concorrencia": "Mais impressões para o concorrente no mesmo termo; nas primeiras posições do ML o CTR cai muito rápido por posição perdida.", "impacto_volume": "Correlacionado com perda de share of search; não quantificável com precisão sem dados de leilão — tratar como alerta de atenção.", "estrategia": ["Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)", "Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa", "Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento"], "kpis": ["Posição média na busca", "CTR", "Taxa de conversão", "Impression share (Mercado Ads)"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-amaze", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "concorrente_sumiu", "produto": "Amaze", "concorrente": "Growth Supplements", "resumo": "Growth Supplements sumiu da busca de 'Amaze' (estava na posição 1). Hipótese: ruptura de estoque ou pausa de campanha — não confirmado.", "impacto_concorrencia": "Janela de oportunidade temporária — menos competição direta pelo termo/posição.", "impacto_volume": "Oportunidade de ganho de share enquanto durar; não é permanente até confirmar (pode ser reposição de estoque em dias).", "estrategia": ["Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã", "Não reduzir preço proativamente — a demanda já não tem para onde ir"], "kpis": ["Share of search", "Volume/conversão do SKU equivalente", "ROAS"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-amaze", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "moderada", "tipo": "aumento_preco_concorrente", "produto": "Linha Joie Fit", "concorrente": "Black Skull", "resumo": "Black Skull subiu o preço de 'Linha Joie Fit' de R$ 119.90 para R$ 129.90 (+8.3%).", "impacto_concorrencia": "Janela real de oportunidade para ganhar posição/Buy Box e volume sem sacrificar margem.", "impacto_volume": "Ganho potencial relevante (ver estimativa por elasticidade, sentido positivo). Estimativa: -12.5% de deslocamento de demanda (a favor do concorrente), usando elasticidade configurada (-1.5) x variação de preço observada (+8.3%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 134.49, ROAS 3.55, CTR 2.29% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura", "Atualizar comparativos de preço em conteúdo/anúncio"], "kpis": ["Share of search/impressões", "ROAS", "CAC"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-whey", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}]</script>
+<script id="fx-alertas-data" type="application/json">[]</script>
 <script>
 /* Simulador de planejamento: premissas -> projeção x meta, recalculado ao vivo.
    "Realizado" é dado medido; "cenário" é projeção sob a premissa do usuário. */
