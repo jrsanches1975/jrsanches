@@ -1397,11 +1397,38 @@ especiais, pra fechar uma versão de uso. `render_agentes_tab()` em
 recalcula nada, só reflete o que foi carregado nesta rodada via os
 `--*-json` correspondentes.
 
-Quatro cards:
+**Sete cards, em duas famílias.** O usuário perguntou pela aba que mostrasse o
+motor que detecta o concorrente, cruza a mudança contra a rodada anterior
+(efeito) e monta a estratégia de combate — isso já existia (é o que gera os
+battlecards da Visão Geral), só não tinha card na aba Agentes. Adicionados os
+3 primeiros:
+
+- **Vigilância do Radar (ML + Shopping)** — `radar_ml` (o mesmo dict que
+  alimenta a aba Marketplaces). Achado = pelo menos 1 concorrente rastreado em
+  algum produto nesta rodada.
+- **Cruzamento de Efeito** — `alertas_rodada` filtrado pelos tipos que vêm de
+  `diff_precos()` (`novo_entrante`, `queda_preco`, `aumento_preco_concorrente`,
+  `novo_desconto`, `salto_visibilidade_ml`, `concorrente_sumiu`). Se
+  `primeira_rodada` for `True`, o card mostra "vazio" com o motivo explícito
+  (linha de base, comparação só vale a partir da próxima coleta) — nunca
+  confundir "sem comparação ainda" com "sem mudança".
+- **Estratégia de Combate** — conta quantos alertas da rodada têm
+  `estrategia` não vazia (todo alerta tem, via `playbook_entry()` em
+  `make_alert()` — este card é, na prática, "quantos battlecards saíram
+  nesta rodada").
+
+E os 4 que já existiam:
 - **Descoberta de Concorrentes** — `--descoberta-json` (já existia, passo 11)
 - **Produtos p/ Google Shopping** — `--descoberta-shopping-json` (novo, passo 26)
 - **Termo de Busca Certo** — `--descoberta-termos-json` (novo, passo 28)
 - **Radar Google Shopping** — `--google-shopping-json` (novo, passo 27)
+
+O pulso (`.agent-pulse`, um ponto pulsante ao lado do rótulo de status) é o
+efeito "em operação" — acende em qualquer card que não seja `status-off`
+(ou seja, que rodou de verdade nesta rodada), diferente do border-beam
+(`status-achado`), que só acende quando há achado real. Os dois efeitos juntos
+respondem a "mostra os agentes trabalhando E o status": pulso = ativo agora,
+beam = achou algo.
 
 Cada card tem 3 estados reais, nunca decorativos:
 - `status-off` (borda tracejada, esmaecido) — agente existe, mas o JSON não

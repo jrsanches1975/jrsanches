@@ -1308,6 +1308,31 @@ Ads em vez de ter os dois. Ter GA4 + Google Ads + Meta ao mesmo tempo exige plan
 pago do Windsor **ou** coletores próprios contra a Marketing API da Meta e a API do
 Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
 
+50. **Motor principal ganhou cards na aba Agentes + diagnóstico do "Nenhum alvo"
+    (2026-08-02, mesmo dia).** Usuário rodou o botão "Salvar e rodar agora" pela
+    primeira vez de verdade (via `iniciar-painel.bat` já corrigido) e viu
+    "Nenhum alvo nesta varredura" na Visão Geral. Perguntou onde estava a aba dos
+    agentes de detecção/cruzamento/estratégia. Resposta: esse motor **já existia**
+    desde o início do projeto (é o que gera os battlecards — `montar_radar_ml()` +
+    `diff_precos()` + `make_alert()`/playbook), só não tinha representação na aba
+    "Agentes" (que só cobria os 4 agentes de descoberta/recomendação de produto).
+    "Nenhum alvo" **não é bug**: é o estado documentado quando a rodada é linha de
+    base (1a execução) OU quando não há mudança real desde a última coleta —
+    reproduzido de propósito rodando a mesma fixture 2x seguidas
+    (`--simulate-ml examples/ml-simulado-rodada1.json` duas vezes com o mesmo
+    `--history-dir`), confirmando que o comportamento é honesto, não quebrado.
+    Feito: `render_agentes_tab()` ganhou 3 novos cards antes dos 4 antigos —
+    **Vigilância do Radar (ML + Shopping)** (`radar_ml`, achado = algum
+    concorrente rastreado), **Cruzamento de Efeito** (`alertas_rodada` filtrado
+    pelos tipos de `diff_precos()`, com aviso explícito quando é linha de base),
+    **Estratégia de Combate** (conta alertas com `estrategia` não vazia). Criado
+    `.agent-pulse`: um ponto pulsante ao lado do rótulo de status, aceso em
+    qualquer card que não seja `status-off` — o "efeito especial de agente em
+    operação" pedido, complementar ao border-beam que já existia só para achado
+    real. Testado ponta a ponta com `ml-simulado-rodada1.json` rodado 2x
+    (1a = linha de base, 2a = sem mudança) e confirmado visualmente via
+    screenshot Playwright nos dois estados.
+
 ## Onde estão os detalhes completos
 
 Se precisar de mais profundidade sobre qualquer ponto acima (trechos de

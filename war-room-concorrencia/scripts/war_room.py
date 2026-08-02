@@ -1434,25 +1434,93 @@ AGENT_STATUS_LABEL = {
 }
 
 
-def render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos, google_shopping_status):
-    """Aba 'Agentes' — central de status dos agentes de descoberta/recomendação
-    de produto (SKILL.md, passos 11/26/27/28). Cada card reflete SÓ o que foi
-    carregado nesta rodada via os --*-json correspondentes — não roda nem
-    recalcula nada sozinha, é um painel de estado, não um motor."""
+TIPOS_CRUZAMENTO_EFEITO = {"novo_entrante", "queda_preco", "aumento_preco_concorrente",
+                           "novo_desconto", "salto_visibilidade_ml", "concorrente_sumiu"}
+
+
+def render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos, google_shopping_status,
+                        radar_ml=None, alertas_rodada=None, primeira_rodada=False):
+    """Aba 'Agentes' — central de status de TODOS os agentes do sistema: os 3 de
+    descoberta/recomendação de produto (SKILL.md, passos 11/26/27/28) e os 3 do
+    motor principal — vigilância (coleta), cruzamento de efeito (diff + impacto) e
+    estratégia de combate (playbook por alerta). Cada card reflete SÓ o que essa
+    rodada de fato produziu — não roda nem recalcula nada sozinha, é um painel de
+    estado, não um motor paralelo."""
 
     def card(icone, nome, descricao, status, achado):
+        pulso = '<span class="agent-pulse" aria-hidden="true"></span>' if status != "off" else ""
         return f"""
     <div class="agent-card status-{status}">
       <div class="agent-head">
         <span class="agent-icon" aria-hidden="true">{icone}</span>
         <span class="agent-nome">{nome}</span>
       </div>
-      <span class="agent-status">{AGENT_STATUS_LABEL[status]}</span>
+      <span class="agent-status">{pulso}{AGENT_STATUS_LABEL[status]}</span>
       <p class="agent-desc">{descricao}</p>
       <p class="agent-achado">{achado}</p>
     </div>"""
 
     cards = []
+
+    # --------------------------------------------------- motor principal (3)
+    if radar_ml is not None:
+        n_produtos = len(radar_ml)
+        n_concorrentes = sum(1 for entradas in radar_ml.values() for e in entradas if not e.get("proprio"))
+        achado_vig = n_concorrentes > 0
+        cards.append(card("◉", "Vigilância do Radar (ML + Shopping)",
+                           "Coleta via Apify a posição, preço, desconto e reviews de cada concorrente "
+                           "configurado, produto a produto — é o dado bruto que alimenta todo o resto.",
+                           "achado" if achado_vig else "vazio",
+                           (f"{n_concorrentes} concorrente(s) rastreado(s) em {n_produtos} produto(s) nesta rodada"
+                            if achado_vig else
+                            f"{n_produtos} produto(s) varrido(s), nenhum concorrente configurado apareceu na "
+                            "busca desta rodada")))
+    else:
+        cards.append(card("◉", "Vigilância do Radar (ML + Shopping)",
+                           "Coleta via Apify a posição, preço, desconto e reviews de cada concorrente "
+                           "configurado, produto a produto — é o dado bruto que alimenta todo o resto.",
+                           "off", "Sem coleta nesta execução — rode com --token/--simulate-ml"))
+
+    if alertas_rodada is not None:
+        cruzamento = [a for a in alertas_rodada if a.get("tipo") in TIPOS_CRUZAMENTO_EFEITO]
+        if primeira_rodada:
+            cards.append(card("⇄", "Cruzamento de Efeito",
+                               "Compara a rodada atual com a anterior (preço, desconto, posição, entrada/saída) "
+                               "e estima o efeito no volume via elasticidade de preço configurada — é premissa, "
+                               "não dado medido.",
+                               "vazio", "Linha de base salva nesta rodada — a comparação (e a estimativa de "
+                                        "efeito) só existe a partir da PRÓXIMA coleta."))
+        else:
+            achado_cruz = bool(cruzamento)
+            cards.append(card("⇄", "Cruzamento de Efeito",
+                               "Compara a rodada atual com a anterior (preço, desconto, posição, entrada/saída) "
+                               "e estima o efeito no volume via elasticidade de preço configurada — é premissa, "
+                               "não dado medido.",
+                               "achado" if achado_cruz else "vazio",
+                               (f"{len(cruzamento)} mudança(s) real cruzada(s) contra a rodada anterior — ver "
+                                "battlecards na Visão Geral" if achado_cruz else
+                                "Comparado com a rodada anterior — nenhuma mudança relevante nos concorrentes "
+                                "rastreados")))
+        com_estrategia = [a for a in alertas_rodada if a.get("estrategia")]
+        achado_estr = bool(com_estrategia)
+        cards.append(card("⚔", "Estratégia de Combate",
+                           "Para cada alerta gerado, anexa a recomendação do playbook (impacto na concorrência, "
+                           "impacto estimado no volume, ação imediata, KPIs afetados) — sempre recomendação, "
+                           "nunca execução automática.",
+                           "achado" if achado_estr else "vazio",
+                           (f"{len(com_estrategia)} battlecard(s) com estratégia de combate anexada nesta rodada"
+                            if achado_estr else "Nenhum alerta nesta rodada para gerar estratégia")))
+    else:
+        cards.append(card("⇄", "Cruzamento de Efeito",
+                           "Compara a rodada atual com a anterior (preço, desconto, posição, entrada/saída) e "
+                           "estima o efeito no volume via elasticidade de preço configurada — é premissa, não "
+                           "dado medido.", "off", "Sem rodada processada nesta execução"))
+        cards.append(card("⚔", "Estratégia de Combate",
+                           "Para cada alerta gerado, anexa a recomendação do playbook (impacto na concorrência, "
+                           "impacto estimado no volume, ação imediata, KPIs afetados) — sempre recomendação, "
+                           "nunca execução automática.", "off", "Sem rodada processada nesta execução"))
+
+    # ------------------------------------------------- descoberta/recomendação (4)
 
     n_desc = sum(len(v) for v in (descoberta or {}).get("por_produto", {}).values())
     n_globais = len((descoberta or {}).get("globais") or [])
@@ -1522,11 +1590,14 @@ def render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos, googl
 
     return f"""
 <section class="agent-grid-wrap">
-  <h2>// central de agentes — descoberta e recomendação de produto</h2>
+  <h2>// central de agentes — vigilância, efeito, estratégia e descoberta</h2>
   <div class="agent-grid">{''.join(cards)}</div>
-  <p class="tab-note">Cada agente roda como script separado (ver SKILL.md, passos 11/26/27/28) e grava um JSON
-  de exportação — esta aba só reflete o que foi carregado nesta rodada, nunca recalcula nada sozinha. "Aguardando
-  dado" não é erro: é um agente que existe e está pronto, mas cujo JSON não foi passado nesta execução.</p>
+  <p class="tab-note">Os 3 primeiros cards são o motor principal (o mesmo que gera os battlecards da Visão
+  Geral); os 4 seguintes são os agentes de descoberta/recomendação de produto (SKILL.md, passos 11/26/27/28).
+  Cada agente roda como script/etapa separada e grava (ou recebe) um JSON — esta aba só reflete o que essa
+  rodada de fato processou, nunca recalcula nada sozinha. "Aguardando dado" não é erro: é um agente que existe
+  e está pronto, mas cujo dado não foi passado nesta execução. "Sem achado nesta rodada" também não é erro —
+  pode ser a linha de base (1a coleta) ou simplesmente nenhuma mudança real desde a rodada anterior.</p>
 </section>"""
 
 
@@ -2720,7 +2791,9 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     marketplaces_html = render_marketplaces_tab(marketplaces or {"Mercado Livre": radar_ml or {}})
     descoberta_html = render_descoberta_tab(descoberta)
     agentes_html = render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos,
-                                       google_shopping_status or {"rodou": False})
+                                       google_shopping_status or {"rodou": False},
+                                       radar_ml=radar_ml, alertas_rodada=alertas_rodada,
+                                       primeira_rodada=primeira_rodada)
     keywords_html = render_keywords_tab(keywords_data)
     historico_html = render_historico_chart(historico)
     selecao_html = render_selecao_manual_tab(config)
@@ -2970,6 +3043,20 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     animation: fx-beam 3.4s linear infinite;
   }}
   @media (prefers-reduced-motion: reduce) {{ .agent-card.status-achado::before {{ animation: none; }} }}
+  /* pulso "em operação" — só aparece quando o agente rodou de fato nesta rodada
+     (status != off); é o que distingue visualmente "agente ativo" de "agente
+     parado esperando dado", sem depender só da cor da borda. */
+  .agent-pulse {{
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px;
+    background: currentColor; vertical-align: middle; box-shadow: 0 0 0 0 currentColor;
+    animation: agent-pulse-anim 1.8s ease-out infinite;
+  }}
+  @keyframes agent-pulse-anim {{
+    0% {{ box-shadow: 0 0 0 0 currentColor; opacity: 1; }}
+    70% {{ box-shadow: 0 0 0 6px transparent; opacity: .55; }}
+    100% {{ box-shadow: 0 0 0 0 transparent; opacity: 1; }}
+  }}
+  @media (prefers-reduced-motion: reduce) {{ .agent-pulse {{ animation: none; }} }}
 
   .data-table-wrap, .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }}
   table.data-table, table.ml-radar-table {{ width: 100%; border-collapse: collapse; font-size: .82rem; white-space: nowrap; }}
