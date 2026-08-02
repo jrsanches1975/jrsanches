@@ -953,6 +953,35 @@ Livre: `JOIE`.
     em vez de reaproveitar os de simulação, mesmo cuidado já tomado com o
     Windsor.
 
+44. **Ator de Google Shopping testado e confirmado — saída sim, entrada ainda
+    não (2026-08-02, mesmo dia da entrada 43).** Usuário achou e testou
+    `damilo~google-shopping-apify` na Apify Store, colou uma busca real
+    ("magnesio quelato", ~44 itens) junto com prints do Input (aba "Form") e
+    de outro ator alternativo de Google Ads Transparency
+    (`solidcode/ads-transparency-scraper`, só explorado, sem resultado real
+    colado ainda — não trocado no config). Corrigido `google_shopping.py`
+    contra o dado real: `source` (vendedor) e `link` (URL) são os campos REAIS
+    — nenhum dos dois estava nos meus palpites originais (eu tinha
+    `seller`/`merchant`/`store`/`storeName`/`sellerName` e
+    `url`/`productUrl`/`offerUrl`, nenhum bateria sem esse teste). Preço vem
+    como texto e às vezes com sufixo `"agora"` colado (`"R$ 99,40 agora"`) —
+    a limpeza ingênua anterior (`.replace("R$", "")`) deixaria essa palavra
+    grudada e o `float()` falharia silenciosamente, tratando um preço real
+    como "não medido". Substituído por regex (`_PRECO_RE`) que extrai só o
+    padrão numérico, testado contra as 4 variações reais vistas (com/sem
+    "agora", com/sem milhar). Confirmado também que este ator **não tem** um
+    campo de preço original/desconto — `discount_pct` fica `None` sempre para
+    esta fonte, e isso é o correto, não uma falha de mapeamento.
+    Ativado `config["apify_actors"]["google_shopping"] = "damilo~google-shopping-apify"`
+    em `config.example.json`.
+    **Ainda em aberto:** o campo de ENTRADA (nome da busca) nunca foi
+    confirmado pela aba "JSON" do Input — só a "Form", com "Search query"
+    (singular) e "Search queries" (plural, com "+ Add", sugerindo que o ator
+    aceita várias buscas por chamada). `montar_input()` usa `"query"` porque a
+    SAÍDA ecoa esse nome de campo — indício forte, não confirmação. Antes de
+    confiar na coleta de produção, rodar com `--debug-raw` numa busca real e
+    conferir se o resultado bate com o termo pedido.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

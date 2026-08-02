@@ -1266,45 +1266,51 @@ campanha Shopping real), e só desenhar a aba de orquestração depois de ter
 pelo menos um rodando de verdade, pra saber o que ela realmente precisa
 mostrar. Este é o primeiro.
 
-### 27. Coletor de concorrentes no Google Shopping (`google_shopping.py`) — BETA, sem ator escolhido
+### 27. Coletor de concorrentes no Google Shopping (`google_shopping.py`) — saída confirmada, entrada não
 
 Metade que faltava do passo 26: agora que se sabe QUAIS produtos vigiar no
-Shopping, este script coletaria os CONCORRENTES lá — mesmo formato de saída
-do Radar de ML (`{produto: {concorrente: {...}}}` + `{produto: {...}}` do
-próprio), reaproveitando `_num()` pra preço em formato BR e um casador de
-loja mais amplo que o do ML (`match_competitor_shopping()`, que olha
-`nome`/`google_advertiser`/`sellers_ml` do concorrente, porque o nome da loja
-no Shopping tende a se parecer mais com a marca do que com um nickname de ML).
+Shopping, este script coleta os CONCORRENTES lá — mesmo formato de saída do
+Radar de ML (`{produto: {concorrente: {...}}}` + `{produto: {...}}` do
+próprio), com um casador de loja mais amplo que o do ML
+(`match_competitor_shopping()`, que olha `nome`/`google_advertiser`/
+`sellers_ml` do concorrente, porque o nome da loja no Shopping tende a se
+parecer mais com a marca do que com um nickname de ML).
 
 **Diferença deliberada dos outros BETA deste projeto:** `meta_ads.py` e
 `google_ads_transparency.py` chutaram um ator específico (de descrição
 pública no Apify Store), mesmo sem testar ao vivo. Para Google Shopping eu
-não tenho essa confiança — nenhum ator de Google Shopping foi sugerido aqui,
-de propósito. `config["apify_actors"]["google_shopping"]` fica **vazio** e o
-script recusa rodar sem ele (`--actor` ou config), com uma mensagem de erro
-clara em vez de tentar um nome que talvez nem exista.
+não tive essa confiança de início — nenhum ator foi sugerido, de propósito —
+até o usuário testar um de verdade.
 
-**Como achar e testar um ator** (mesmo caminho que funcionou para o
-`karamelo` de Mercado Livre):
-1. Pesquise "google shopping" na Apify Store
-2. Escolha um com avaliação/uso razoáveis
-3. Rode uma busca de teste pelo painel do Apify e cole o resultado real aqui —
-   os nomes de campo (`CAMPOS_ESPERADOS`, com várias chaves candidatas por
-   campo lógico) são confirmados contra o dado real antes de confiar em
-   qualquer preço/posição exibido
-4. Preencha `config["apify_actors"]["google_shopping"]` com o ator confirmado
+**Ator escolhido e testado com dado real (2026-08-02):**
+`damilo~google-shopping-apify` ("Google Shopping Scraper" na Apify Store,
+$3,50/1.000 resultados). A SAÍDA está confirmada: `source` (vendedor) e
+`link` (URL) vieram antes dos palpites em `CAMPOS_ESPERADOS`; preço chega
+como texto, às vezes com sufixo `"agora"` (`"R$ 99,40 agora"`), tratado por
+regex em `_num()` — nunca há campo de preço original/desconto nesta saída,
+então `discount_pct` fica sempre `None` aqui (correto, não é bug: o ator não
+traz essa informação).
+
+**O que AINDA falta confirmar:** o nome do campo de ENTRADA (a busca). Só a
+aba "Form" do Input foi vista ("Search query"/"Search queries"), nunca a
+"JSON" — `montar_input()` usa `"query"` como palpite (a própria saída ecoa um
+campo `query`, indício forte, não confirmação). Rode com `--debug-raw` antes
+de confiar de verdade; se a coleta vier vazia, é o primeiro lugar a olhar.
 
 ```bash
-python google_shopping.py --config config.json --actor SEU_ATOR_TESTADO \
+python google_shopping.py --config config.json \
     --token $APIFY_TOKEN --out ../outputs/google-shopping.json \
     --out-proprio ../outputs/google-shopping-proprio.json --debug-raw
 ```
 
+(o ator já vem de `config["apify_actors"]["google_shopping"]`, não precisa de
+`--actor` a menos que queira sobrescrever)
+
 **Ainda não ligado a `war_room.py`:** os flags existentes
 `--simulate-google-shopping`/`--simulate-google-shopping-proprio` são para
 teste/demo (a aba Marketplaces não os distingue de dado real com um selo,
-diferente de Meta Ads/Keywords). Quando este coletor estiver confirmado com
-ator real, o passo certo é criar flags dedicados
+diferente de Meta Ads/Keywords). Quando a entrada também estiver confirmada,
+o passo certo é criar flags dedicados
 `--google-shopping-json`/`--google-shopping-proprio-json` em vez de
 reaproveitar os de simulação — mesmo cuidado já tomado com o Windsor (nunca
 usar o caminho de teste pra dado de verdade).

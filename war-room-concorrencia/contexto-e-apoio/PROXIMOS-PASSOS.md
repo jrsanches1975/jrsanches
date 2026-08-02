@@ -256,18 +256,20 @@ produto — já adicionei como candidato em `config.example.json`.
       --config config.json --own-performance-json ../outputs/own-performance-por-produto.json
       --out ../outputs/descoberta-shopping.xlsx`
 
-**`google_shopping.py`** (código pronto, mas **sem ator escolhido** — não é
-descuido, foi deliberado): diferente do ator de Mercado Livre, eu não tinha
-confiança suficiente pra apontar um ator real de Google Shopping, então não
-chutei nenhum.
-- [ ] Pesquise "google shopping" na Apify Store (apify.com/store?search=google+shopping)
-- [ ] Escolha um com avaliação/uso razoáveis, rode uma busca de teste pelo
-      painel do Apify (Input → Save & start) pro produto "Whey Protein
-      Isolado" ou outro seu
-- [ ] Cole o resultado real aqui — confirmo os nomes de campo antes de você
-      confiar na coleta (mesmo processo que fizemos com o karamelo)
-- [ ] Depois de confirmado, preencho `config["apify_actors"]["google_shopping"]`
-      com o ator real e o coletor fica pronto pra rodar
+**`google_shopping.py`** — você já achou e testou o ator
+(`damilo~google-shopping-apify`, "Google Shopping Scraper"). A SAÍDA já está
+confirmada e corrigida contra o dado real que você colou (`source`/`link`
+eram diferentes dos meus palpites originais; preço com sufixo "agora" agora
+é tratado certo). Já ativei em `config.example.json`.
+- [ ] **Só falta confirmar o campo de ENTRADA:** abra o Input do ator, clique
+      "JSON" (ao lado de "Form" — a mesma aba que faltou olhar desta vez) e
+      me mande o print. Hoje o script usa `"query"` por indício (a saída
+      ecoa esse nome), não confirmação
+- [ ] Depois de confirmar, rode: `python google_shopping.py --config config.json
+      --token $APIFY_TOKEN --out ../outputs/google-shopping.json
+      --out-proprio ../outputs/google-shopping-proprio.json --debug-raw`
+- [ ] Se seu `config.json` local já existe, copie
+      `apify_actors.google_shopping` do `config.example.json` atualizado
 
 ---
 

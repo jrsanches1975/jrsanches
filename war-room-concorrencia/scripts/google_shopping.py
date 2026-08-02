@@ -4,31 +4,32 @@ Coletor de Google Shopping — mesmo padrão do Radar de Mercado Livre
 (`collect_snapshot()` em `war_room.py`): preço, posição, reviews e rating de
 cada concorrente + o NOSSO próprio anúncio, por produto monitorado.
 
-*** STATUS: SEM ATOR ESCOLHIDO — leia antes de rodar ***
-Diferente de `meta_ads.py` e `google_ads_transparency.py` (que chutaram um
-ator específico, de descrição pública no Apify Store, mesmo sem testar ao
-vivo), aqui eu NÃO tenho confiança suficiente pra apontar um ator real de
-Google Shopping. Inventar um nome que talvez nem exista seria pior que não
-ter coletor nenhum: o script rodaria, "funcionaria" tecnicamente, e devolveria
-erro ou vazio sem dizer o motivo real. Por isso este script EXIGE o ator via
-`config["apify_actors"]["google_shopping"]` ou `--actor` — sem chute de
-default.
+*** STATUS: SAÍDA CONFIRMADA COM DADO REAL (2026-08-02) — ENTRADA AINDA NÃO ***
+Ator escolhido: `damilo~google-shopping-apify` ("Google Shopping Scraper" na
+Apify Store, $3,50/1.000 resultados). O usuário rodou uma busca real
+("magnesio quelato") e colou o resultado — os campos de SAÍDA abaixo
+(`CAMPOS_ESPERADOS`) já têm `source` (vendedor) e `link` (URL) confirmados
+contra esse dado real, na frente dos palpites. Preço vem como texto
+("R$ 26,90", às vezes "R$ 99,40 agora" — o sufixo "agora" é tratado por regex
+em `_num()`, não string replace ingênuo). NÃO há campo de preço original/
+desconto na saída deste ator — `discount_pct` fica sempre `None` aqui, e é o
+correto: o ator simplesmente não traz essa informação, não é ausência de dado
+por bug.
 
-Como achar um (o mesmo caminho que funcionou para o ator de Mercado Livre,
-karamelo~mercadolivre-scraper-brasil-portugues):
-  1. Pesquise "google shopping" na Apify Store (apify.com/store?search=google+shopping)
-  2. Escolha um com avaliação e uso razoáveis
-  3. Rode uma busca de teste pelo painel do Apify (Input > Save & start)
-  4. Cole o resultado real aqui no chat — os nomes de campo são confirmados
-     antes de você confiar na coleta, do mesmo jeito que fizemos com o
-     karamelo (não adivinhe o nome do campo de busca pelo rótulo do
-     formulário — teste sempre pela aba "JSON" do Input)
+**O que AINDA não foi confirmado:** o nome do campo de ENTRADA (a busca). Só
+vimos a aba "Form" do Input ("Search query" singular + "Search queries"
+plural, com um botão "+ Add"), nunca a aba "JSON" — por isso `montar_input()`
+usa `"query"` como palpite (a própria SAÍDA ecoa um campo `"query"` com o
+termo buscado, o que é um indício forte, mas não confirmação). Antes de
+confiar na coleta de verdade, rode com `--debug-raw` numa conta de teste, ou
+abra o Input do ator e clique "JSON" pra conferir o nome real — se vier
+diferente de `query`, ajuste `montar_input()`.
 
-Os nomes de campo abaixo (CAMPOS_ESPERADOS) são um palpite MÚLTIPLO — várias
-chaves plausíveis por campo lógico, na ordem em que tentamos — porque atores
-diferentes de Shopping usam convenções diferentes. `--debug-raw` mostra o
-primeiro item bruto de cada busca, pra conferir contra a lista antes de
-confiar em qualquer número.
+Os nomes de campo abaixo (CAMPOS_ESPERADOS) misturam confirmado (source, link,
+rating, ratingCount) com palpite (os demais, caso outro ator seja usado no
+lugar) — várias chaves plausíveis por campo lógico, na ordem em que tentamos.
+`--debug-raw` mostra o primeiro item bruto de cada busca, pra conferir contra
+a lista antes de confiar em qualquer número.
 
 Formato de saída: idêntico ao snapshot do Radar de ML — {produto:
 {concorrente: {...}}} e {produto: {...}} do próprio. NÃO reaproveite os flags
@@ -45,6 +46,7 @@ Uso:
         --out-proprio ../outputs/google-shopping-proprio.json --debug-raw
 """
 import argparse
+import re
 import sys
 
 from apify_common import apify_run, get_token, load_json, norm, save_json
@@ -54,8 +56,10 @@ CAMPOS_ESPERADOS = {
     "title": ["title", "productTitle", "name", "productName"],
     "price": ["price", "currentPrice", "salePrice", "priceValue"],
     "original_price": ["originalPrice", "oldPrice", "listPrice", "regularPrice"],
-    "seller": ["seller", "merchant", "store", "storeName", "sellerName"],
-    "url": ["url", "productUrl", "link", "offerUrl"],
+    # "source" é o campo CONFIRMADO contra dado real do ator damilo/google-shopping-apify
+    # (2026-08-02) — vem antes dos palpites porque é o único que já foi visto de verdade.
+    "seller": ["source", "seller", "merchant", "store", "storeName", "sellerName"],
+    "url": ["link", "url", "productUrl", "offerUrl"],
     "rating": ["rating", "reviewScore", "stars", "averageRating"],
     "reviews": ["reviewsCount", "numReviews", "reviews", "ratingCount"],
 }
@@ -86,17 +90,25 @@ def extrair_campo(item, chaves):
     return None
 
 
+_PRECO_RE = re.compile(r"(\d{1,3}(?:\.\d{3})*(?:,\d+)?|\d+(?:\.\d+)?)")
+
+
 def _num(v):
-    """Converte texto de preço (ex. 'R$ 49,90', '49.90') pra float. Ausente vira
-    None, nunca 0 — mesma convenção do resto do projeto: 'não medido' e 'zero'
-    são coisas diferentes."""
+    """Converte texto de preço (ex. 'R$ 49,90', '99,40 agora' — confirmado real:
+    o ator damilo/google-shopping-apify às vezes anexa a palavra 'agora' depois
+    do valor) pra float. Ausente vira None, nunca 0 — 'não medido' e 'zero' são
+    coisas diferentes."""
     if v is None or isinstance(v, bool):
         return None
     if isinstance(v, (int, float)):
         return float(v)
-    s = str(v).strip().replace("R$", "").strip()
-    if not s:
+    texto = str(v).strip()
+    if not texto:
         return None
+    m = _PRECO_RE.search(texto)
+    if not m:
+        return None
+    s = m.group(1)
     if "," in s and "." in s:
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
@@ -142,9 +154,11 @@ def match_competitor_shopping(nome_loja, concorrentes):
 
 
 def montar_input(termo, config):
-    """Payload best-effort — NÃO confirmado. Ajuste conforme o schema real do
-    ator escolhido (mesmo aviso de meta_ads.py: campo com nome errado não dá
-    erro, só traz coleta vazia)."""
+    """'query' é um palpite (INDÍCIO forte, não confirmação): a SAÍDA real do
+    damilo~google-shopping-apify ecoa um campo 'query' com o termo buscado, mas
+    a aba 'JSON' do Input nunca foi vista, só a 'Form' ('Search query'/
+    'Search queries'). Se a coleta vier vazia, rode --debug-raw e confira o
+    nome do campo real antes de assumir que é bug de outra coisa."""
     return {
         "query": termo,
         "country": "BR",
