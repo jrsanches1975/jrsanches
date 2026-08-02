@@ -87,23 +87,56 @@ ausente declarado.
 
 ## 4. Primeira coleta
 
-```bash
-cd scripts
+**Atualizado em 2026-08-02 à noite — já processei o que você colou.** Três dos
+quatro pedidos já vieram reais e estão gravados em `outputs/`:
 
-python windsor_api.py --dias 30 --debug-raw \
-    --fonte google_ads:WINDSOR_KEY_GADS:../outputs/gads-keywords.json \
-    --leilao-out ../outputs/auction-windsor.json
+- [x] `google_ads auction_insight_domain` (leilão por domínio) — 771 registros,
+      03/07 a 31/07 → `outputs/auction-windsor.json`
+- [x] `facebook` com todos os campos (impressões, CTR, CPM, gasto) — 241
+      registros, 03/07 a 01/08 → `outputs/meta-insights.json`
+- [x] Lado GA4 das mesmas campanhas Meta (via MCP, sem precisar de URL) →
+      `outputs/ga4-campanhas-facebook.json`
+- [ ] **Ainda falta:** `google_ads` por **palavra-chave** (não por campanha).
+      O que você mandou foi clique/gasto agregado por campanha — a aba
+      Keywords & Leilão precisa do nível de keyword para ficar 100% real:
 
-python windsor_api.py --dias 30 --debug-raw \
-    --fonte facebook:WINDSOR_KEY_META:../outputs/meta-insights.json
+```
+fields=date,campaign,keyword_text,impressions,clicks,ctr,cpc,
+       search_impression_share,search_rank_lost_impression_share,
+       quality_score
 ```
 
-- [ ] Rodar as duas
-- [ ] Conferir os totais contra os painéis do Google Ads e do Gerenciador da Meta
-- [ ] Me mandar **o resumo que os scripts imprimem** (não as chaves)
+- [ ] Rodar essa URL no painel do Windsor (conta do Google Ads) e me mandar o
+      JSON, do mesmo jeito que mandou os outros três
 
-O `--debug-raw` mostra o primeiro registro bruto de cada fonte. É nele que se
-descobre divergência de nome de campo antes de o dado errado entrar no painel.
+Não precisa mais rodar `windsor_api.py` você mesmo pelas contas — continue
+colando o JSON do painel do Windsor aqui que eu normalizo e gravo. O script
+`windsor_api.py` só entraria em jogo se você preferir automatizar via linha de
+comando mais pra frente.
+
+---
+
+### Achado no leilão que precisa da sua decisão
+
+Comparando quantos dias cada domínio apareceu no leilão **durante** a janela de
+alta de CPC (18–26/07) contra o resto do período, estes aumentaram presença
+justamente nessa janela: `renovabe.com.br`, `soldiersnutrition.com.br`,
+`darklabsuplementos.com.br`, `coompare.com.br`, `vivatrue.com.br` (e
+`maxtitanium.com.br`, que você já rastreia). Já adicionei os cinco novos como
+**candidatos** em `config.example.json` (`candidatos_concorrentes_manual`) —
+não como concorrentes confirmados, porque presença no leilão é correlação, não
+prova.
+
+- [ ] Revisar os cinco e decidir se promove algum para `concorrentes[]`
+
+**Mais importante:** `gsuplementos.com.br` aparece 51 dos 62 dias — é o
+domínio mais presente depois dos marketplaces — e você já tem "Growth
+Supplements" cadastrado, mas com o domínio `growthsupplements.com.br` (sem o
+"row"). Pode ser a mesma empresa anunciando por um domínio diferente do que
+está no cadastro.
+
+- [ ] Confirmar se `gsuplementos.com.br` é a Growth Supplements e, se for,
+      corrigir `dominio_site` em `config.example.json`/`config.json`
 
 ---
 
@@ -120,6 +153,35 @@ py servidor.py --config config.json
 
 - [ ] Abrir `http://127.0.0.1:8787`
 - [ ] Confirmar que a aba Seleção Manual mostra "backend conectado" (barra verde)
+
+**Por que não gerei o HTML/XLSX final eu mesmo desta vez:** a aba de Radar do
+Mercado Livre exige uma coleta ao vivo via Apify (`APIFY_TOKEN`), e esse token
+não existe neste ambiente (nem deveria — é seu). Rodar sem ele com
+`--simulate-ml` teria voltado essa aba de "real" para "simulado" no painel
+novo, uma regressão que preferi não fazer silenciosamente. Rode este comando na
+sua máquina, com seu `APIFY_TOKEN` exportado, pra juntar tudo que já está real
+(inclusive o que processei agora) num painel só:
+
+```bash
+cd scripts
+python war_room.py --config config.json \
+  --out ../outputs/war-room.xlsx --html ../outputs/war-room.html \
+  --token SEU_APIFY_TOKEN \
+  --own-performance ../outputs/own-performance-por-produto.json \
+  --descoberta-json ../outputs/descoberta.json \
+  --keywords-relatorio-json ../outputs/keywords-relatorio.json \
+  --ga4-json ../outputs/ga4-jornada.json \
+  --metas-json ../outputs/metas.json \
+  --meta-ads-performance-json ../outputs/meta-ads-performance.json
+```
+
+- [ ] Rodar e abrir `../outputs/war-room.html` — a aba **Meta Ads** já deve vir
+      com o funil e as campanhas 100% reais (as duas pontas, GA4 e plataforma)
+- [ ] `Keywords & Leilão` continua parcialmente simulada até o item 4 (keyword
+      do Google Ads) chegar — o leilão por domínio dentro dela ainda é o da
+      fixture de exemplo, não o real; me avise quando rodar que eu troco pela
+      versão real (`outputs/auction-windsor.json`) via
+      `gerar_relatorio_keywords.py`
 
 ---
 
@@ -175,6 +237,7 @@ de Keywords e Descoberta. Autentique e me avise que eu integro.
 | GA4 · Jornada | **real medido** (GA4 via Windsor MCP) |
 | Metas & Evolução | **real** (cruza GA4 com as metas do config) |
 | Mercado Livre / Radar | **real** (Apify, precisa do `APIFY_TOKEN`) |
-| Keywords & Leilão | simulado — destrava com os itens 1 a 4 |
-| Meta Ads (lado plataforma) | simulado — destrava com os itens 1 a 4 |
+| Meta Ads (lado GA4 + lado plataforma) | **real** desde 2026-08-02 (as duas pontas — falta só rodar o comando do item 5 pra entrar no HTML/XLSX) |
+| Keywords & Leilão — leilão por domínio | **real coletado** (`outputs/auction-windsor.json`), ainda não plugado na aba — falta o item 4 (keyword) pra trocar a fixture pela versão real de uma vez |
+| Keywords & Leilão — por palavra-chave | simulado — falta o item 4 |
 | Marketplaces (Google Shopping) | simulado |

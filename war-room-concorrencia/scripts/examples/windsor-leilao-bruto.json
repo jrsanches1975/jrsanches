@@ -1,0 +1,10 @@
+{
+  "_comentario": "AMOSTRA DE FORMATO da resposta REST do Windsor.ai para auction_insight_domain (conector google_ads). Valores inventados. Serve para testar que windsor_api.py normaliza e que keyword_auction.py consome sem adaptador.",
+  "data": [
+    {"date": "2026-07-20", "datasource": "google_ads", "campaign": "Brand.", "auction_insight_domain": "vhita.com.br"},
+    {"date": "2026-07-20", "datasource": "google_ads", "campaign": "Brand.", "auction_insight_domain": "gsuplementos.com.br"},
+    {"date": "2026-07-21", "datasource": "google_ads", "campaign": "Brand.", "auction_insight_domain": "vhita.com.br"},
+    {"date": "2026-07-22", "datasource": "google_ads", "campaign": "Brand.", "auction_insight_domain": "vhita.com.br"},
+    {"date": "2026-07-22", "datasource": "google_ads", "campaign": "Brand.", "auction_insight_domain": "mercadolivre.com.br"}
+  ]
+}

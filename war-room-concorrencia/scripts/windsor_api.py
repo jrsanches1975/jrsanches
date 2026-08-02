@@ -374,7 +374,22 @@ def main():
             sys.exit(1)
         with open(args.resposta, encoding="utf-8") as f:
             d = json.load(f)
-        linhas = normalizar(d.get("data") if isinstance(d, dict) else d, args.conector)
+        bruto = d.get("data") if isinstance(d, dict) else d
+        if bruto is None:
+            # a resposta REST do Windsor usa a chave 'data'. Se o arquivo não tem
+            # essa chave, é provável que seja uma fixture de OUTRO coletor (o
+            # google_ads_api.py usa 'results', no formato GAQL) — sem esta checagem
+            # o erro seguinte era um TypeError cru, sem dizer o que fazer.
+            chaves = list(d.keys()) if isinstance(d, dict) else []
+            print(f"ERRO: {args.resposta} não tem a chave 'data' esperada da resposta REST "
+                  f"do Windsor.\n  Chaves encontradas: {chaves or '(arquivo não é um objeto)'}\n"
+                  "  Se este arquivo veio de outro coletor (ex.: google_ads_api.py, que usa "
+                  "'results'), use a fixture certa para este script.", file=sys.stderr)
+            sys.exit(1)
+        if not isinstance(bruto, list):
+            print(f"ERRO: 'data' não é uma lista (veio {type(bruto).__name__}).", file=sys.stderr)
+            sys.exit(1)
+        linhas = normalizar(bruto, args.conector)
         save_json(args.out, {
             "result": linhas, "registros": linhas,
             "origem": f"ARQUIVO DE TESTE ({args.resposta}) — NÃO é coleta real do Windsor",

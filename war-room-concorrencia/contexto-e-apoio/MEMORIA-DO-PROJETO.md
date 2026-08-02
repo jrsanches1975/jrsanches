@@ -657,6 +657,70 @@ Livre: `JOIE`.
     planilha. Sobrou conectar uma fonte por conta, pegar as três chaves, conferir
     campos e coletar.
 
+35. **`windsor_api.py` corrigido contra o endpoint real e a decoração de nome de
+    campanha (2026-08-02).** O usuário mandou print do painel do Windsor com a URL
+    real gerada: o endpoint é `/all` (fixo), não `/{conector}` como eu tinha
+    assumido — `montar_url()` corrigido, com `--caminho` como escape se alguma
+    conta usar outro. O `/all` real veio com **duas fontes misturadas** na mesma
+    resposta (`google_ads` + `googleanalytics4`); sem filtrar, `clicks` de Ads
+    somaria com `sessions` de GA4 — criado `filtrar_fonte()`.
+    Nome de campanha real trouxe dois problemas que só apareceram com dado de
+    verdade: (a) o nome que chega via UTM da GA4 vem **codificado de URL**
+    (`+` no lugar de espaço, `%XX`) — `_texto_campanha()` decodifica; (b) o mesmo
+    nome carrega decoração diferente dos dois lados (emoji de status colorido,
+    espaço duplo, ponto final, acentuação inconsistente) — criada `chave_campanha()`,
+    uma chave de junção normalizada (sem acento, minúscula, sem pontuação/emoji),
+    guardada em `campanha_chave` ao lado do nome de exibição intacto. Sem isso a
+    mesma campanha apareceria duplicada por fonte no painel.
+    `--resposta` (modo de teste sem rede) ganhou validação: antes, uma fixture do
+    formato errado (`results` do `google_ads_api.py` em vez de `data` do REST do
+    Windsor) estourava um `TypeError` cru — agora a mensagem nomeia as chaves
+    encontradas e aponta a causa provável.
+
+36. **Primeiro dado REAL do Windsor processado, três fontes ao mesmo tempo
+    (2026-08-02).** O usuário colou três exports reais do painel do Windsor
+    (`/all`, JSON completo, não recortado): `google_ads` clique/gasto por
+    campanha, `google_ads auction_insight_domain` (leilão por domínio, 771
+    registros, 03/07 a 31/07) e `facebook` com todos os campos (impressões, CTR,
+    CPM, gasto, 241 registros, 03/07 a 01/08). Complementado com uma chamada real
+    via MCP (`get_data` na conta `mktjoiesuplementos@gmail.com`, que já está
+    conectada) filtrando GA4 por `source=Facebook`, trazendo o lado GA4 das
+    mesmas campanhas Meta (55 registros).
+    Os três foram normalizados por `windsor_api.py` e gravados em
+    `outputs/auction-windsor.json`, `outputs/meta-insights.json` e
+    `outputs/ga4-campanhas-facebook.json` — **dado real, não fixture** (por isso
+    NÃO usei o modo `--resposta`, que sempre marca `simulado: true`; processei
+    com um script avulso chamando `normalizar()` direto, para poder gravar
+    `simulado` como ausente/false e a origem real correta).
+    Rodado `meta_ads_performance.py --ga4-campanhas ... --plataforma ...` **sem**
+    `--simulado` — as duas pontas (GA4 e plataforma) agora são reais ao mesmo
+    tempo pela primeira vez. Saída em `outputs/meta-ads-performance.json`.
+    **Achado no leilão:** comparando a taxa de presença de cada domínio na janela
+    de alta de CPC já identificada (18-26/07) contra o resto do período,
+    `renovabe.com.br`, `soldiersnutrition.com.br`, `darklabsuplementos.com.br`,
+    `coompare.com.br` e `vivatrue.com.br` aumentaram presença especificamente
+    nessa janela (a `maxtitanium.com.br`, já rastreado, também) — adicionados a
+    `candidatos_concorrentes_manual` em `config.example.json` com a origem
+    anotada. É correlação, não confirmação: falta impression_share real para
+    fechar a causalidade, e falta ainda **decidir se `gsuplementos.com.br`
+    (51 de 62 dias, o domínio mais presente depois dos marketplaces) é o mesmo
+    Growth Supplements já cadastrado sob `growthsupplements.com.br`** — sinalizado
+    ao usuário, não presumido nem corrigido sozinho.
+    **Ainda faltando para fechar a aba Keywords & Leilão com dado real:** dado
+    de keyword_text (impressions, search_impression_share) do Google Ads — só
+    veio clique/gasto por campanha e o leilão por domínio, não por palavra-chave.
+    **Achado um bug de mojibake, não corrigido:** uma campanha (6 sessões, peso
+    desprezível) veio com o emoji já corrompido antes da URL-codificação
+    (`ðŸŸ©` em vez de `🟩`) — sintoma de um encoding errado na origem (provavelmente
+    no próprio parâmetro UTM configurado na plataforma), não algo que
+    `_texto_campanha()` deveria tentar adivinhar/consertar.
+    **Não rodei `war_room.py` para regenerar o HTML/XLSX final** porque a aba de
+    Radar do Mercado Livre exige coleta ao vivo via Apify (`APIFY_TOKEN`), que não
+    existe neste ambiente — usar `--simulate-ml` teria regredido essa aba de
+    "real" para "simulado" no export novo, então preferi deixar o HTML como está
+    e documentar o comando completo para o usuário rodar na máquina dele (ver
+    `PROXIMOS-PASSOS.md`).
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

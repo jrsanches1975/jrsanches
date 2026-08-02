@@ -61,9 +61,14 @@
     }
   ],
 
-  "_comentario_candidatos_concorrentes_manual": "Introdução manual de candidatos a concorrente — nomes/domínios que você já suspeita mas ainda não confirmou o suficiente pra promover a 'concorrentes[]'. descoberta_concorrentes.py junta isso com o que vem do Auction Insight e da busca por produto, pontua tudo junto, e é você quem decide promover.",
+  "_comentario_candidatos_concorrentes_manual": "Introdução manual de candidatos a concorrente — nomes/domínios que você já suspeita mas ainda não confirmou o suficiente pra promover a 'concorrentes[]'. descoberta_concorrentes.py junta isso com o que vem do Auction Insight e da busca por produto, pontua tudo junto, e é você quem decide promover. Os itens marcados '(achado no Auction Insight real, 2026-08-02)' vieram do cruzamento do auction_insight_domain real (Windsor.ai, google_ads, 03/07 a 31/07) com a janela de alta de CPC já identificada (18-26/07): apareceram MAIS nessa janela do que fora dela nas campanhas Brand./Search./Search - Linha Joie Fit. Isso é correlação, não confirmação — reveja o nome da empresa por trás do domínio antes de promover.",
   "candidatos_concorrentes_manual": [
-    {"nome": "Max Titanium", "dominio_site": "maxtitanium.com.br", "sellers_ml": ["MAX TITANIUM OFICIAL"]}
+    {"nome": "Max Titanium", "dominio_site": "maxtitanium.com.br", "sellers_ml": ["MAX TITANIUM OFICIAL"]},
+    {"nome": "Renovabe", "dominio_site": "renovabe.com.br", "origem": "achado no Auction Insight real, 2026-08-02"},
+    {"nome": "Soldiers Nutrition", "dominio_site": "soldiersnutrition.com.br", "origem": "achado no Auction Insight real, 2026-08-02"},
+    {"nome": "Dark Lab Suplementos", "dominio_site": "darklabsuplementos.com.br", "origem": "achado no Auction Insight real, 2026-08-02"},
+    {"nome": "Coompare", "dominio_site": "coompare.com.br", "origem": "achado no Auction Insight real, 2026-08-02"},
+    {"nome": "Vivatrue", "dominio_site": "vivatrue.com.br", "origem": "achado no Auction Insight real, 2026-08-02"}
   ],
 
   "_comentario_official_domains": "Domínio(s) da PRÓPRIA marca — usado por keyword_auction.py para tirar a própria marca da lista de 'pontos de interferência' no leilão (senão apareceria competindo consigo mesma). joie-suplementos.com é o domínio confirmado ao vivo no Auction Insight da campanha 'Brand' via Windsor.ai — confira o seu antes de usar.",

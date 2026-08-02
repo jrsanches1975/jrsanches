@@ -1073,10 +1073,25 @@ perdem. O leilão é **pedido separado**, porque `auction_insight_domain` não
 combina com métricas de performance no mesmo request (restrição registrada no
 `keyword_auction.py`) — daí o `--leilao-out`.
 
-**Confiança dos nomes de campo:** os de `google_ads` vêm do `keyword_auction.py`,
-que **rodou com dado real** contra a conta via Windsor — são confiáveis. Os de
-`facebook` são **palpite informado** e precisam de `--listar-campos` antes de
-confiar; se não conferirem, ajuste `CAMPOS["facebook"]`.
+**Endpoint confirmado por print real do painel: é `/all` (fixo), não
+`/{conector}`.** `--caminho` existe como escape se alguma conta gerar outro.
+Uma resposta real de `/all` veio com **duas fontes misturadas**
+(`google_ads` + `googleanalytics4`) — sem filtrar, `clicks` de um somaria com
+`sessions` do outro; `filtrar_fonte()` cuida disso antes de normalizar.
+
+**Confiança dos nomes de campo:** os de `google_ads` e `facebook` **já foram
+confirmados contra dado real** colado pelo usuário (não mais palpite) —
+`--listar-campos` continua disponível para quando uma conta nova divergir.
+
+**Nome de campanha, dois problemas só visíveis com dado real:**
+
+1. O nome que chega via UTM na GA4 vem **codificado de URL** (`+` no lugar de
+   espaço, `%XX`) — `_texto_campanha()` decodifica.
+2. O mesmo nome carrega decoração diferente nos dois lados (emoji de status
+   colorido, espaço duplo, ponto final, acentuação inconsistente) —
+   `chave_campanha()` gera uma chave de junção normalizada (sem acento,
+   minúscula, sem pontuação/emoji) em `campanha_chave`, ao lado do nome de
+   exibição intacto. Sem isso a mesma campanha aparece duplicada por fonte.
 
 **Cuidados embutidos:**
 
@@ -1089,12 +1104,19 @@ confiar; se não conferirem, ajuste `CAMPOS["facebook"]`.
    conector; 402/429 = teto do plano.
 5. **Vazio não vira zero:** se a resposta não trouxer linha, o script avisa e
    grava vazio de propósito.
+6. **`--resposta` (modo de teste sem rede) valida a chave `data`** — uma fixture
+   do formato errado (`results` do `google_ads_api.py`, por exemplo) nomeia as
+   chaves encontradas no erro em vez de estourar um `TypeError` cru.
 
-**Estado de teste:** a camada HTTP **não pôde ser testada** — todos os hosts do
-Windsor (`connectors.windsor.ai`, `api.windsor.ai`, `onboard.windsor.ai`,
-`windsor.ai`) estão **bloqueados** neste ambiente (verificado). A normalização foi
-testada com `examples/windsor-facebook-bruto.json`. `--base-url` existe porque o
-endpoint não pôde ser confirmado daqui.
+**Estado de teste:** a camada HTTP em si (`_pedir()`, dentro do próprio script)
+**não pôde ser exercitada** — todos os hosts do Windsor
+(`connectors.windsor.ai`, `api.windsor.ai`, `onboard.windsor.ai`, `windsor.ai`)
+seguem **bloqueados** neste ambiente (verificado). Mas a **normalização já foi
+validada contra dado real**: o usuário colou exports reais do painel do Windsor
+(`google_ads` clique/gasto, `auction_insight_domain`, `facebook` completo) e
+esse dado real passou por `normalizar()` sem erro — só não passou pela função
+`_pedir()`/`coletar()` porque não veio de uma chamada HTTP feita por este
+script. `--base-url` continua existindo como escape.
 
 **Limitações do caminho, para dizer ao usuário:** teto de volume/janela do plano
 Free; **imagem de criativo provavelmente não vem** (os cards da aba Meta Ads

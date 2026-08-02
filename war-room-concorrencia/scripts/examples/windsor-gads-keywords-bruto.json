@@ -1,0 +1,8 @@
+{
+  "_comentario": "AMOSTRA DE FORMATO da resposta REST do Windsor.ai para o conector google_ads com campos de keyword_text. Baseado no formato real de campanhas colado pelo usuário em 2026-08-02 (mesmos nomes de campo: date, datasource, account_name, source, campaign), com keyword_text e metricas de leilao acrescentadas. Valores de keyword INVENTADOS para teste.",
+  "data": [
+    {"date":"2026-07-20","datasource":"google_ads","account_name":"E-commerce Joie Suplementos","source":"google","campaign":"Brand.","keyword_text":"joie suplementos","impressions":1840,"clicks":68,"cpc":"2.23","search_impression_share":"74.1%","search_rank_lost_impression_share":"8.4%"},
+    {"date":"2026-07-20","datasource":"google_ads","account_name":"E-commerce Joie Suplementos","source":"google","campaign":"Search.","keyword_text":"colageno verisol","impressions":961,"clicks":15,"cpc":"3.15","search_impression_share":"12.6%","search_rank_lost_impression_share":"60.2%"},
+    {"date":"2026-07-20","datasource":"google_ads","account_name":"E-commerce Joie Suplementos","source":"google","campaign":"Pmax - Todos os Produtos.","keyword_text":null,"impressions":2045,"clicks":0,"cpc":null}
+  ]
+}
