@@ -697,13 +697,39 @@ Passos já tentados nesta sessão para resolver o descompasso de contas:
    capacidade** (sem acesso a screenshot/tela do usuário nesta sessão); pedi
    para ele mandar print, ainda sem resposta quando este documento foi escrito.
 
-**Próximo passo ao retomar:** pedir o print do resultado da autorização (ou
-rodar `get_connectors`/`get_fields` de novo ao vivo), e se o padrão de "só 1
-conector no Free" se confirmar, apresentar ao usuário as opções reais: (a)
-upgrade de plano (link de `get_subscription_url` já disponível), (b) manter
-só GA4 real e não fabricar dado de Ads enquanto isso, ou (c) reconfigurar qual
-conta Windsor esta integração usa (fora do escopo de ferramentas deste chat —
-é ajuste de conector no Claude/Cowork).
+**Verificado de novo em 2026-08-02** (não repetir): `get_current_user` →
+`mktjoiesuplementos@gmail.com`, plano `FREE`; `get_connectors` → só
+`googleanalytics4` (conta `304174518` "GA4 - Joie Suplementos"). Nada mudou.
+
+**Também verificado em 2026-08-02: não existe alternativa de MCP.** `ListConnectors`
+e `SearchMcpRegistry` (chaves "Meta Ads", "Facebook Ads", "Google Ads",
+"advertising campaigns", "marketing analytics") devolvem o **Windsor.ai como único**
+conector de mídia paga. Não há "MCP da Meta" para instalar no lugar. Logo, a
+solução é dentro do Windsor ou direto na API da fonte. Registrado porque o usuário
+perguntou se não daria para "conectar via MCP" — a resposta é que o Windsor **já é**
+o MCP; o gargalo é a conta e o plano, não o protocolo.
+
+**Nota lateral:** `Semrush` aparece na lista de conectores da org com
+`installState: unknown` (não autenticado). Não substitui o dado próprio de mídia
+(não traz nosso gasto nem nosso CTR), mas traria keyword paga e tráfego **dos
+concorrentes** — hoje simulados nas abas de Keywords e Descoberta. Oportunidade
+paralela, não caminho crítico.
+
+**EM ANDAMENTO (2026-08-02):** o usuário escolheu testar a opção de **repontar o
+conector Windsor do claude.ai para a outra conta** (`jrsanches1975@gmail.com`),
+que é grátis. **A armadilha que derrubou as duas tentativas anteriores:** é preciso
+**fazer logout do windsor.ai no navegador antes** de reconectar — senão o OAuth
+reaproveita a sessão existente e reconecta a MESMA conta, parecendo que não
+funcionou. Ao retomar: rodar `get_current_user` + `get_connectors` e comparar com
+os valores verificados acima. Se ainda vier o e-mail antigo, o conector deste chat
+está com a sessão velha (desligar/religar o Windsor.ai nas configurações do chat,
+ou abrir conversa nova).
+
+**Ressalva a dizer ao usuário se a opção der certo pela metade:** se a outra conta
+também for Free, o limite de 1 conector continua valendo — ele troca GA4 por Google
+Ads em vez de ter os dois. Ter GA4 + Google Ads + Meta ao mesmo tempo exige plano
+pago do Windsor **ou** coletores próprios contra a Marketing API da Meta e a API do
+Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
 
 ## Onde estão os detalhes completos
 
