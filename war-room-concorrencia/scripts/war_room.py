@@ -2114,9 +2114,12 @@ def _slug(v):
 
 
 # ------------------------------------------- campanhas com criativo (GA4/Meta)
-def render_criativo_card(c, contexto="ga4"):
+def render_criativo_card(c, contexto="ga4", indice=None, total=None):
     """Card de campanha com o criativo quando existir. Sem imagem, mostra o
-    porquê — nunca um placeholder fingindo ser o criativo real."""
+    porquê — nunca um placeholder fingindo ser o criativo real. Quando a mesma
+    campanha tem mais de um criativo (variações rodando juntas), indice/total
+    marcam qual variação é esta — as métricas em `c` são da campanha inteira,
+    não desta variação isolada."""
     img = c.get("criativo_imagem")
     if img:
         visual = (f'<div class="crea-img"><img src="{img}" alt="Criativo de {c.get("criativo_titulo") or "campanha"}"'
@@ -2146,6 +2149,8 @@ def render_criativo_card(c, contexto="ga4"):
     meta_txt = ""
     if c.get("criativo_formato"):
         meta_txt = f'<span class="crea-formato">{c["criativo_formato"]}</span>'
+    if total and total > 1:
+        meta_txt += f'<span class="crea-variacao">variação {indice} de {total}</span>'
     corpo = f'<p class="crea-corpo">{c["criativo_corpo"]}</p>' if c.get("criativo_corpo") else ""
     link = (f'<a class="crea-link" href="{c["criativo_url"]}" target="_blank" rel="noopener">ver anúncio ↗</a>'
             if c.get("criativo_url") else "")
@@ -2166,13 +2171,27 @@ def render_ga4_campanhas(campanhas):
     if not campanhas:
         return ('<p class="hist-empty">Campanhas não carregadas — passe <code>--campanhas</code> em '
                 '<code>ga4_jornada.py</code>.</p>')
-    com_crea = [c for c in campanhas if c.get("criativo_imagem")]
-    sem_crea = [c for c in campanhas if not c.get("criativo_imagem")]
+    com_crea = [c for c in campanhas if c.get("criativos")]
+    sem_crea = [c for c in campanhas if not c.get("criativos")]
     galeria = ""
-    if com_crea:
+    cartoes = []
+    limite_cartoes = 16
+    truncado = 0
+    for c in com_crea:
+        lista = c["criativos"]
+        for i, crea in enumerate(lista):
+            if len(cartoes) >= limite_cartoes:
+                truncado += 1
+                continue
+            linha_cartao = {**c, **crea}
+            cartoes.append(render_criativo_card(linha_cartao, "ga4", i + 1, len(lista)))
+    if cartoes:
+        aviso_truncado = (f'<p class="tab-note">Mostrando os {limite_cartoes} primeiros criativos '
+                           f'({truncado} não exibido(s) aqui — ainda contam nas métricas da campanha).</p>'
+                           if truncado else "")
         galeria = f"""
 <h3 class="descoberta-produto">Criativos anexados</h3>
-<div class="crea-grid">{''.join(render_criativo_card(c) for c in com_crea[:8])}</div>"""
+<div class="crea-grid">{''.join(cartoes)}</div>{aviso_truncado}"""
     rows = []
     for c in sem_crea[:24]:
         pago = '<span class="ga4-badge q-testar">pago</span>' if c.get("pago") else ""
@@ -2197,7 +2216,9 @@ def render_ga4_campanhas(campanhas):
     return f"""{galeria}{tabela}
 <p class="tab-note">As métricas são da GA4 (lado do site) e são medidas. <strong>A imagem do criativo não
 vem da GA4</strong> — vem do Meta/Google (ou de um mapa manual) e é anexada por nome de campanha; onde não
-houver, o card avisa em vez de mostrar um placeholder passando por criativo real.</p>"""
+houver, o card avisa em vez de mostrar um placeholder passando por criativo real. Uma campanha com mais de
+um criativo rodando junto aparece com um card por variação (a métrica exibida é sempre da campanha
+inteira, não de uma variação isolada).</p>"""
 
 
 # ------------------------------------------------------- metas e evolução
@@ -3251,6 +3272,11 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .crea-formato {{
     font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
     color: var(--violet); background: var(--violet-soft); border: 1px solid rgba(139,92,246,.4);
+    padding: 3px 8px; border-radius: 999px;
+  }}
+  .crea-variacao {{
+    font-size: .58rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-dim); background: rgba(148,163,184,.14); border: 1px solid var(--border-strong);
     padding: 3px 8px; border-radius: 999px;
   }}
   .crea-link {{ font-size: .66rem; text-decoration: none; white-space: nowrap; }}

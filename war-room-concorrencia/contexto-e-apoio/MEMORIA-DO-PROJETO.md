@@ -1099,6 +1099,29 @@ Livre: `JOIE`.
     sobrescreve customização), e sobe o `servidor.py` — zero terminal digitado
     depois da primeira vez.
 
+49. **Jornada (GA4/Meta) só mostrava 1 criativo por campanha do Google — corrigido
+    (2026-08-02, mesmo dia).** Usuário notou que a aba Jornada trazia vários cards
+    de criativo pro Meta mas só "uma capa" pro Google. Causa raiz: o Meta já
+    coleta no nível de ANÚNCIO (`meta_ads_api.py`, `--nivel ad`), então uma
+    campanha com N anúncios naturalmente vira N linhas com N criativos; o Google
+    não tem coletor de criativo automático nenhum — a única fonte é o mapa manual
+    `--criativos` de `ga4_jornada.py`, que só aceitava 1 objeto por chave
+    (campanha), travando em 1 imagem mesmo quando a campanha real rodava várias
+    variações. Perguntei ao usuário se ele tinha Google Ads API, export manual ou
+    queria testar o connector `google_ads` do Windsor para os assets — ele
+    escolheu "só ajustar o que já existe por enquanto" (sem nova coleta agora).
+    Feito: `ga4_jornada.py::montar_campanhas()` agora aceita, em cada chave do
+    `--criativos`, tanto um objeto único quanto uma **lista** de objetos; a lista
+    completa fica em `criativos` (nova chave), os campos `criativo_*` no topo
+    continuam existindo como compatibilidade (primeiro item). Em `war_room.py`,
+    `render_ga4_campanhas()` agora itera essa lista e gera um card POR VARIAÇÃO
+    (badge "variação X de Y" quando há mais de uma), com limite de 16 cards e
+    aviso se truncar. Testado ponta a ponta com fixture real de campanhas
+    (`examples/ga4-real/ga4-campanhas.json`, campanha "Pmax - Faciderm.") + um
+    `--criativos` de teste com 2 variações — confirmado visualmente via
+    screenshot Playwright que os 2 cards aparecem lado a lado com a métrica da
+    campanha (compartilhada, correta) repetida nos dois.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

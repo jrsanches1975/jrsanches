@@ -744,6 +744,21 @@ card diz "sem criativo anexado" — nunca mostra placeholder passando por criati
 real. As fixtures de exemplo usam mockups SVG gerados proceduralmente, com
 "MOCKUP SIMULADO" impresso na própria arte.
 
+**Uma campanha pode ter mais de um criativo rodando ao mesmo tempo** (variações
+de imagem/vídeo/copy) — no `--criativos` de `ga4_jornada.py`, cada chave (nome
+da campanha) aceita tanto um objeto único (`{imagem_url, titulo, ...}`) quanto
+uma **lista** desses objetos. `montar_campanhas()` guarda a lista inteira em
+`criativos` (usada pela galeria — um card por variação, com badge "variação X
+de Y") e mantém os campos `criativo_*` no topo da linha como compatibilidade
+(sempre o primeiro item da lista). O Meta Ads (`meta_ads_api.py`/
+`meta_ads_performance.py`) já resolve isso nativamente porque coleta no nível
+de ANÚNCIO (não de campanha) — cada anúncio é uma linha com seu próprio
+criativo, então uma campanha com 3 anúncios já aparecia com 3 cards antes desta
+mudança. O Google Ads ainda não tem um coletor automático de criativo
+equivalente ao `meta_ads_api.py` (só o mapa manual acima) — se/quando isso for
+construído, é só alimentar `--criativos` de `ga4_jornada.py` com uma lista por
+campanha, no mesmo formato.
+
 ### 18. Visual cósmico (`_cosmos.py`)
 
 A arte do hero (nebulosa, disco de acreção, buraco negro, cometa, starfield) é

@@ -245,11 +245,27 @@ def montar_kpis(overview, funil, serie_linhas):
     }
 
 
+def _normalizar_criativo(raw):
+    return {
+        "criativo_imagem": raw.get("imagem_url"),
+        "criativo_titulo": raw.get("titulo"),
+        "criativo_corpo": raw.get("corpo"),
+        "criativo_formato": raw.get("formato"),
+        "criativo_url": raw.get("url_anuncio"),
+    }
+
+
 def montar_campanhas(campanhas, criativos=None):
-    """Desempenho por campanha (dado REAL da GA4) com o criativo anexado quando
-    houver — a imagem do criativo NÃO vem da GA4, vem do Meta/Google (ou de um
-    mapa manual); sem esse arquivo a linha aparece sem imagem, nunca com
-    placeholder passando por criativo real."""
+    """Desempenho por campanha (dado REAL da GA4) com o(s) criativo(s) anexado(s)
+    quando houver — a imagem do criativo NÃO vem da GA4, vem do Meta/Google (ou de
+    um mapa manual); sem esse arquivo a linha aparece sem imagem, nunca com
+    placeholder passando por criativo real.
+
+    Uma campanha pode ter rodado com VÁRIOS criativos ao mesmo tempo (variações de
+    imagem/vídeo/copy), então o mapa aceita tanto um único objeto
+    ({imagem_url,...}) quanto uma lista deles por campanha — a lista completa fica
+    em "criativos" (usada pela galeria); os campos "criativo_*" no topo da linha
+    seguem existindo para compatibilidade e trazem só o primeiro item."""
     criativos = {k: v for k, v in (criativos or {}).items() if not k.startswith("_")}
     linhas = []
     for c in campanhas:
@@ -257,7 +273,17 @@ def montar_campanhas(campanhas, criativos=None):
         s = _num(c.get("sessions"))
         compras = _num(c.get("ecommerce_purchases"))
         receita = _num(c.get("purchase_revenue"))
-        crea = criativos.get(nome) or {}
+        crea_bruto = criativos.get(nome)
+        if crea_bruto is None:
+            lista_crea = []
+        elif isinstance(crea_bruto, list):
+            lista_crea = [_normalizar_criativo(x) for x in crea_bruto if isinstance(x, dict)]
+        else:
+            lista_crea = [_normalizar_criativo(crea_bruto)]
+        primeiro = lista_crea[0] if lista_crea else {
+            "criativo_imagem": None, "criativo_titulo": None, "criativo_corpo": None,
+            "criativo_formato": None, "criativo_url": None,
+        }
         linhas.append({
             "campanha": nome, "source": c.get("source"), "medium": c.get("medium"),
             "pago": (c.get("medium") or "").lower() in ("cpc", "ppc", "paid", "paidsocial", "display"),
@@ -269,11 +295,8 @@ def montar_campanhas(campanhas, criativos=None):
             "receita_por_sessao": (receita / s) if (isinstance(receita, (int, float)) and s) else None,
             "ticket_medio": (receita / compras) if (isinstance(receita, (int, float))
                                                      and isinstance(compras, (int, float)) and compras) else None,
-            "criativo_imagem": crea.get("imagem_url"),
-            "criativo_titulo": crea.get("titulo"),
-            "criativo_corpo": crea.get("corpo"),
-            "criativo_formato": crea.get("formato"),
-            "criativo_url": crea.get("url_anuncio"),
+            "criativos": lista_crea,
+            **primeiro,
         })
     linhas.sort(key=lambda l: -(l["receita"] or 0))
     return linhas
