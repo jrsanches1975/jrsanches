@@ -6,8 +6,11 @@ rodada anterior, classificação de severidade, e o pacote de resposta (impacto 
 concorrência, impacto estimado no volume, estratégia imediata, KPIs impactados) para
 cada mudança detectada.
 
-Fonte automatizada: Mercado Livre (mesmo actor do radar-keywords-concorrentes,
-viralanalyzer/mercadolivre-scraper). Gasto real de ads NÃO é capturável em nenhuma
+Fonte automatizada: Mercado Livre, via um ator do Apify Store — o padrão é
+viralanalyzer~mercadolivre-scraper (testado e confirmado), mas é configurável em
+config["apify_actors"]["mercado_livre"]; se o ator trocado usar outros nomes de
+campo, ajuste config["apify_actors_campos"]["mercado_livre"] (ver comentário em
+config.example.json). Gasto real de ads NÃO é capturável em nenhuma
 plataforma — ver references/fontes-e-limitacoes.md. O que dá para automatizar é preço,
 desconto e posição/visibilidade no Mercado Livre; atividade em Meta Ad Library e Google
 Ads Transparency Center entra via --ads-manual (contagem de anúncios ativos, capturada
@@ -35,7 +38,25 @@ from _fx_neon import FX_CSS, FX_BODY, FX_JS
 from _cosmos import COSMOS_TOKENS_CSS, hero_svg, nebula_strip_svg, planet_svg
 from apify_common import apify_run, get_token, load_json, norm, save_json
 
-ML_ACTOR = "viralanalyzer~mercadolivre-scraper"
+ML_ACTOR_PADRAO = "viralanalyzer~mercadolivre-scraper"
+# nomes de campo do ator PADRÃO (viralanalyzer~mercadolivre-scraper), testado e
+# confirmado. Um ator diferente (trocado em config["apify_actors"]["mercado_livre"])
+# quase certamente espera OUTROS nomes de campo — nunca adivinhar isso: descubra o
+# nome real no painel do Apify (aba "JSON" do Input) e sobrescreva em
+# config["apify_actors_campos"]["mercado_livre"]. Campo de nome errado não dá erro,
+# só traz coleta vazia — pior que travar.
+ML_CAMPOS_PADRAO = {"termo": "searchQuery", "limite": "maxItems"}
+
+
+def montar_payload_ml(config, termo, per_produto):
+    campos = config.get("apify_actors_campos", {}).get("mercado_livre", ML_CAMPOS_PADRAO)
+    payload = {campos["termo"]: termo}
+    if campos.get("limite"):
+        payload[campos["limite"]] = per_produto
+    # campos fixos extras que o ator escolhido exigir (ex.: toggles), sem precisar
+    # de código novo por ator — só entram no request se o config declarar algum
+    payload.update(config.get("apify_actors_extra", {}).get("mercado_livre", {}))
+    return payload
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_HISTORY_DIR = os.path.join(SCRIPT_DIR, "history")
@@ -119,11 +140,13 @@ def collect_snapshot(config, token, produtos_filter, per_produto):
     if produtos_filter:
         produtos = [p for p in produtos if p["nome"] in produtos_filter]
 
+    actor = config.get("apify_actors", {}).get("mercado_livre", ML_ACTOR_PADRAO)
     snapshot, snapshot_proprio = {}, {}
     for prod in produtos:
         termo = prod["termo_busca_ml"]
-        print(f"  buscando '{termo}' no Mercado Livre...", file=sys.stderr)
-        items, err = apify_run(ML_ACTOR, {"searchQuery": termo, "maxItems": per_produto}, token)
+        print(f"  buscando '{termo}' no Mercado Livre (ator {actor})...", file=sys.stderr)
+        payload = montar_payload_ml(config, termo, per_produto)
+        items, err = apify_run(actor, payload, token)
         if err:
             print(f"  ERRO ao buscar '{termo}': {err}", file=sys.stderr)
         por_concorrente = {}

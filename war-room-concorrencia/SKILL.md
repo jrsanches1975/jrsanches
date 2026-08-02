@@ -1124,6 +1124,76 @@ ficariam sem arte — para isso só a API nativa serve); e várias contas gratui
 para contornar limite de plano normalmente contraria os termos do Windsor, então
 as contas podem ser fechadas e a coleta parar sem aviso.
 
+### 24. Ator de Mercado Livre configurável (`apify_actors` / `apify_actors_campos`)
+
+`collect_snapshot()` (dentro de `war_room.py`) lia o ator de Mercado Livre de
+uma constante fixa (`ML_ACTOR`) e **ignorava** `config["apify_actors"]["mercado_livre"]`,
+apesar do comentário no `config.example.json` dizer que dava para trocar por lá —
+bug latente, corrigido em 2026-08-02. Agora:
+
+```jsonc
+"apify_actors": { "mercado_livre": "viralanalyzer~mercadolivre-scraper" },
+"apify_actors_campos": { "mercado_livre": {"termo": "searchQuery", "limite": "maxItems"} },
+"apify_actors_extra":  { "mercado_livre": {} }
+```
+
+`apify_actors_campos.mercado_livre` mapeia os NOMES DE CAMPO que o payload
+manda pro ator — porque atores diferentes esperam campos diferentes, e campo
+com nome errado **não dá erro, só traz coleta vazia** (mesma classe de risco
+que já apareceu com os campos do Windsor). Ao trocar de ator: abra o Input dele
+no painel do Apify, clique em **"JSON"** ao lado de "Form" para ver os nomes
+reais, e só então preencha `termo`/`limite` (e qualquer campo fixo extra em
+`apify_actors_extra`, ex.: toggles) — nunca adivinhar.
+
+**Caso concreto em aberto:** o usuário está avaliando trocar para
+`karamelo/mercadolivre-scraper-brasil-portugues` (vira `karamelo~mercadolivre-scraper-brasil-portugues`
+na chamada da API — Apify usa `~`, a URL da loja usa `/`) contra o atual
+`viralanalyzer~mercadolivre-scraper`, decidindo pelo teste real: qual dos dois
+traz resultado mais apurado para os produtos da Joie. Isso só se decide rodando
+os dois de verdade (nenhum dos dois pode ser testado por aqui — sem
+`APIFY_TOKEN` neste ambiente); depois de rodar, ainda falta confirmar o nome
+real do campo de busca do `karamelo` (visto no formulário como "Nome do
+produto") antes de trocar `apify_actors_campos`.
+
+### 25. Rotina automática sem clicar em nada (Windows Task Scheduler)
+
+O botão "Salvar e rodar agora" (passo 20) dispara uma rodada na hora, mas exige
+o `servidor.py` aberto e alguém clicando. Para rodar sozinho, em intervalo fixo
+(a doc já recomendava "conservador, ex. a cada 6h" — ver passo 25.1), sem
+depender do backend nem de estar na frente do computador:
+
+```powershell
+setx APIFY_TOKEN "apify_api_..."      # uma vez só; abra um terminal NOVO depois
+cd war-room-concorrencia\deploy
+.\agendar-tarefa-windows.ps1          # padrão 6h; -IntervaloHoras N pra outro valor
+```
+
+Isso registra a Tarefa Agendada `WarRoomRodada`, que chama
+`scripts\rodar_rotina.ps1` no intervalo escolhido. Esse script roda
+`war_room.py` com os flags reais que já existirem em `outputs/` (Radar do
+Mercado Livre é **recoletado de verdade** a cada execução — é o único lado
+100% automatizável sem outra sessão; GA4/Meta/Keywords só atualizam quando os
+JSONs em `outputs/` forem atualizados por fora, via Windsor). Log de cada
+rodada em `outputs/rotina.log`.
+
+**Por que `setx` e não `$env:`:** a Tarefa Agendada roda numa sessão nova do
+Windows, que não herda variáveis do seu PowerShell interativo. `$env:APIFY_TOKEN = ...`
+só vale na janela aberta (é o que o botão manual usa hoje); `setx` grava
+permanente no seu usuário, e qualquer processo novo (inclusive a tarefa
+agendada) já nasce com ela.
+
+**Limitação a saber:** sem senha guardada na tarefa, ela só dispara com sua
+sessão do Windows aberta (tela bloqueada tudo bem, desligado/deslogado não).
+Rodar mesmo sem ninguém logado exigiria um servidor sempre ligado — ver
+`deploy/instalar.sh`, o caminho de VPS, decisão à parte.
+
+**Também existe (mas não substitui isto):** o próprio painel do Apify tem uma
+aba **Schedules** por ator, que roda só o ator sozinho, na nuvem, sem depender
+do seu computador. Mas ela só reabastece o dataset do Apify — **não** chama
+`war_room.py` nem atualiza o painel sozinha, porque quem lê o resultado, monta
+os alertas e regera o HTML/XLSX é este script. Útil como complemento (dado
+sempre fresco esperando), não como substituto da tarefa acima.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

@@ -110,12 +110,22 @@
     }
   },
 
-  "_comentario_apify_actors": "IDs de actor usados por war_room.py (Mercado Livre — testado/confirmado), meta_ads.py, google_ads_transparency.py e google_trends.py (estes 3 são BETA, não testados ao vivo — ver SKILL.md e references/fontes-e-limitacoes.md). Troque aqui se o actor default não funcionar no seu teste real, sem precisar editar código.",
+  "_comentario_apify_actors": "IDs de actor usados por war_room.py (Mercado Livre — testado/confirmado), meta_ads.py, google_ads_transparency.py e google_trends.py (estes 3 são BETA, não testados ao vivo — ver SKILL.md e references/fontes-e-limitacoes.md). Troque aqui se o actor default não funcionar no seu teste real, sem precisar editar código. Trocar de ator quase sempre exige TAMBÉM ajustar 'apify_actors_campos' logo abaixo — atores diferentes usam nomes de campo diferentes, e campo com nome errado não dá erro, só traz coleta vazia.",
   "apify_actors": {
     "mercado_livre": "viralanalyzer~mercadolivre-scraper",
     "meta_ads": "apify~facebook-ads-scraper",
     "google_ads_transparency": "unseenuser~google-ads",
     "google_trends": "apify~google-trends-scraper"
+  },
+
+  "_comentario_apify_actors_campos": "Nomes de campo do INPUT do ator de Mercado Livre em uso — 'termo' é o campo de texto da busca, 'limite' é o campo de máximo de itens (opcional; omita a chave 'limite' se o ator não tiver um). Os valores abaixo são os do ator padrão (viralanalyzer~mercadolivre-scraper), já confirmados. Ao trocar de ator, abra o Input dele no painel do Apify, clique em 'JSON' (ao lado de 'Form') para ver os nomes reais, e troque aqui — nunca adivinhar.",
+  "apify_actors_campos": {
+    "mercado_livre": {"termo": "searchQuery", "limite": "maxItems"}
+  },
+
+  "_comentario_apify_actors_extra": "Campos FIXOS extras que um ator possa exigir no input (ex.: toggles como 'modo de ofertas do dia'), além de termo/limite. Ficam de fora por padrão — cada chave aqui vira um campo a mais no payload enviado ao ator.",
+  "apify_actors_extra": {
+    "mercado_livre": {}
   },
 
   "_comentario_trends": "Parâmetros do google_trends.py. trends_termos (opcional) sobrescreve a lista default (marca + apelidos + produtos + concorrentes).",

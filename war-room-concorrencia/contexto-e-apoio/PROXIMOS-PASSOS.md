@@ -185,6 +185,42 @@ python war_room.py --config config.json \
 
 ---
 
+## 6. Rotina automática, sem clicar em nada (2026-08-02)
+
+Você pediu para o Radar do Mercado Livre rodar sozinho, sem esperar você abrir
+o painel e clicar. Criei uma Tarefa Agendada do Windows pra isso — roda
+`war_room.py` de tempos em tempos, recoletando o Mercado Livre de verdade a
+cada vez.
+
+```powershell
+setx APIFY_TOKEN "apify_api_..."          # uma vez só; abra um terminal NOVO depois
+cd war-room-concorrencia\deploy
+.\agendar-tarefa-windows.ps1              # padrão a cada 6h
+```
+
+- [ ] Rodar os dois comandos (o `setx` só se ainda não tiver feito)
+- [ ] Conferir depois de ~10 min: `outputs\rotina.log` deve mostrar uma rodada OK
+- [ ] Saber a limitação: sem senha guardada na tarefa, ela só dispara com sua
+      sessão do Windows aberta (computador desligado/deslogado, não roda)
+
+**Sobre o ator do Apify que você estava olhando** (`karamelo/mercadolivre-scraper-brasil-portugues`,
+$5/1.000 resultados): corrigi um bug que fazia `war_room.py` ignorar o ator
+configurado em `config.json` — agora é de verdade trocável, sem editar código
+(`apify_actors.mercado_livre` + `apify_actors_campos.mercado_livre` para os
+nomes de campo, que são diferentes de ator para ator). Você pediu para testar
+os dois e ficar com o que trouxer resultado mais apurado — isso eu não consigo
+rodar por aqui (sem `APIFY_TOKEN` neste ambiente e sem o campo de busca real do
+`karamelo` confirmado ainda).
+
+- [ ] Rodar uma busca de teste nos dois atores (o atual e o karamelo) para o
+      mesmo produto e comparar quantos concorrentes de verdade aparecem
+- [ ] Se decidir pelo `karamelo`: no Input dele, clicar em **"JSON"** (ao lado
+      de "Form") e me mandar o print — preciso do nome real do campo "Nome do
+      produto" antes de trocar `apify_actors_campos` (nome errado não dá erro,
+      só traz coleta vazia)
+
+---
+
 ## O que saber sobre a escolha do Windsor
 
 Não são defeitos do script — são consequências do caminho, e é melhor você saber

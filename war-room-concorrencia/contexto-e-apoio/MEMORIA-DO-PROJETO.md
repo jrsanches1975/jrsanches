@@ -721,6 +721,42 @@ Livre: `JOIE`.
     e documentar o comando completo para o usuário rodar na máquina dele (ver
     `PROXIMOS-PASSOS.md`).
 
+37. **Rotina automática do Radar (Windows Task Scheduler) + bug do ator fixo
+    (2026-08-02).** Usuário pediu uma rotina para rodar o ator do Apify sozinho,
+    sem esperar clique no botão manual. Print da conversa mostrou que ele estava
+    olhando o ator `karamelo/mercadolivre-scraper-brasil-portugues` no painel do
+    Apify (conta pessoal "Joie Suplement...", $5/1.000 resultados) — **diferente**
+    do que o código usa hoje (`viralanalyzer~mercadolivre-scraper`, campo
+    `searchQuery`/`maxItems`). Ao investigar, achado um bug latente:
+    `collect_snapshot()` em `war_room.py` tinha uma constante fixa `ML_ACTOR` e
+    **ignorava** `config["apify_actors"]["mercado_livre"]`, apesar do comentário
+    no `config.example.json` prometer que era trocável por config, sem editar
+    código. Corrigido: o ator agora vem de config de verdade, e os NOMES DE CAMPO
+    do payload também viraram configuráveis (`apify_actors_campos.mercado_livre`,
+    `apify_actors_extra.mercado_livre`) — porque atores diferentes esperam campos
+    diferentes, e campo com nome errado não dá erro, só traz coleta vazia (mesma
+    classe de risco já vista com os campos do Windsor).
+    Perguntado ao usuário se ele queria trocar de ator ou só automatizar o atual;
+    respondeu "testa e usa o que trouxer as informações mais apuradas" — **não
+    pude testar os dois** (sem `APIFY_TOKEN` neste ambiente, e sem MCP do Apify
+    conectado nesta sessão) nem confirmar o nome real do campo de busca do
+    `karamelo` (visto só no formulário como "Nome do produto", não no JSON) —
+    ambos ficaram como pendência do usuário em `PROXIMOS-PASSOS.md`, item 6.
+    Criados `deploy/agendar-tarefa-windows.ps1` (registra a Tarefa Agendada
+    `WarRoomRodada` via `Register-ScheduledTask`, idempotente, parâmetro
+    `-IntervaloHoras`, default 6h) e `scripts/rodar_rotina.ps1` (roda
+    `war_room.py` com os `--*-json` reais que existirem em `outputs/`, loga em
+    `outputs/rotina.log`, propaga o código de saída). **Achado de plataforma
+    importante:** a Tarefa Agendada roda numa sessão nova do Windows, que NÃO
+    herda `$env:APIFY_TOKEN` de uma janela de PowerShell interativa — só `setx`
+    (gravação permanente por usuário) resolve; documentado nos dois scripts e no
+    checklist, para não virar "token sumiu" sem explicação depois.
+    **Registrado, não implementado:** o painel do Apify tem sua própria aba
+    "Schedules" por ator — reabastece o dataset do Apify sozinha, na nuvem, mas
+    NÃO chama `war_room.py` nem atualiza o painel, porque é o nosso script quem
+    lê o resultado e monta os alertas/HTML. Não é substituto da tarefa do
+    Windows, só um complemento possível.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer
