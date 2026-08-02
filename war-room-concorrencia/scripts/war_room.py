@@ -1437,9 +1437,71 @@ AGENT_STATUS_LABEL = {
 TIPOS_CRUZAMENTO_EFEITO = {"novo_entrante", "queda_preco", "aumento_preco_concorrente",
                            "novo_desconto", "salto_visibilidade_ml", "concorrente_sumiu"}
 
+# nível DEFCON: quanto MENOR o número, maior a gravidade (convenção militar) —
+# mapeado direto da severidade REAL dos alertas desta rodada, nunca decorativo.
+_DEFCON_NIVEIS = {
+    1: {"rotulo": "AMEAÇA CRÍTICA MÚLTIPLA", "cor": "#ff3b5c", "vel": "1.1s"},
+    2: {"rotulo": "AMEAÇA CRÍTICA ATIVA", "cor": "#ff5c7a", "vel": "1.6s"},
+    3: {"rotulo": "ATENÇÃO — REVISAR", "cor": "#ffb200", "vel": "2.4s"},
+    4: {"rotulo": "SINAIS MENORES", "cor": "#55c8ff", "vel": "3.2s"},
+    5: {"rotulo": "NOMINAL — NENHUMA AMEAÇA", "cor": "#3ddc84", "vel": "4.2s"},
+}
+
+
+def _defcon_nivel(n_alta, n_media, n_baixa):
+    if n_alta >= 2:
+        return 1
+    if n_alta == 1:
+        return 2
+    if n_media:
+        return 3
+    if n_baixa:
+        return 4
+    return 5
+
+
+def render_defcon_widget(n_alta, n_media, n_baixa, rodou):
+    """Central de comando visual da aba Agentes: nível DEFCON calculado da
+    severidade REAL dos alertas desta rodada (não decorativo — 5 = nominal, 1 =
+    múltiplas ameaças críticas). O radar gira sem parar (mais rápido quanto pior
+    o nível) — é o "sempre em movimento" pedido; o JS troca a classe .defcon-scanning
+    enquanto uma rodada nova está executando, então o widget também reage ao vivo
+    ao clique de 'Salvar e rodar agora', não só ao recarregar a página."""
+    nivel = _defcon_nivel(n_alta, n_media, n_baixa) if rodou else 5
+    info = _DEFCON_NIVEIS[nivel]
+    total = n_alta + n_media + n_baixa
+    n_blips = min(total, 12)
+    blips = "".join(
+        f'<span class="defcon-blip" style="--ang:{(360 / max(n_blips, 1)) * i:.0f}deg; '
+        f'--delay:{i * .18:.2f}s"></span>'
+        for i in range(n_blips)
+    )
+    aviso = "" if rodou else "<p class=\"defcon-aviso\">Sem rodada processada nesta execução — nível assumido nominal.</p>"
+    return f"""
+<div class="defcon-widget defcon-{nivel}" id="defcon-widget" style="--defcon-cor:{info['cor']}; --defcon-vel:{info['vel']}">
+  <div class="defcon-radar" aria-hidden="true">
+    <div class="defcon-sweep"></div>
+    <div class="defcon-rings"></div>
+    {blips}
+    <div class="defcon-core"></div>
+  </div>
+  <div class="defcon-texto">
+    <span class="defcon-eyebrow">Central de comando — nível de ameaça</span>
+    <div class="defcon-nivel">DEFCON <strong>{nivel}</strong></div>
+    <div class="defcon-rotulo">{info['rotulo']}</div>
+    <div class="defcon-contagem">
+      <span class="dc-item dc-alta">{n_alta} alta(s)</span>
+      <span class="dc-item dc-media">{n_media} média(s)</span>
+      <span class="dc-item dc-baixa">{n_baixa} baixa(s)</span>
+    </div>
+    {aviso}
+  </div>
+</div>"""
+
 
 def render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos, google_shopping_status,
-                        radar_ml=None, alertas_rodada=None, primeira_rodada=False):
+                        radar_ml=None, alertas_rodada=None, primeira_rodada=False,
+                        n_alta=0, n_media=0, n_baixa=0):
     """Aba 'Agentes' — central de status de TODOS os agentes do sistema: os 3 de
     descoberta/recomendação de produto (SKILL.md, passos 11/26/27/28) e os 3 do
     motor principal — vigilância (coleta), cruzamento de efeito (diff + impacto) e
@@ -1588,9 +1650,12 @@ def render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos, googl
                            "off", "Sem dado carregado — rode google_shopping.py e passe em "
                                   "--google-shopping-json"))
 
+    defcon_html = render_defcon_widget(n_alta, n_media, n_baixa, rodou=alertas_rodada is not None)
+
     return f"""
 <section class="agent-grid-wrap">
   <h2>// central de agentes — vigilância, efeito, estratégia e descoberta</h2>
+  {defcon_html}
   <div class="agent-grid">{''.join(cards)}</div>
   <p class="tab-note">Os 3 primeiros cards são o motor principal (o mesmo que gera os battlecards da Visão
   Geral); os 4 seguintes são os agentes de descoberta/recomendação de produto (SKILL.md, passos 11/26/27/28).
@@ -2759,6 +2824,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 
     n_alta = sum(1 for a in alertas_rodada if a["severidade"] == "alta")
     n_media = sum(1 for a in alertas_rodada if a["severidade"] == "media")
+    n_baixa = sum(1 for a in alertas_rodada if a["severidade"] == "baixa")
     if n_alta:
         mc_level, mc_text = "alta", f"{n_alta} alerta(s) crítico(s) — ação imediata recomendada"
     elif n_media:
@@ -2793,7 +2859,8 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     agentes_html = render_agentes_tab(descoberta, descoberta_shopping, descoberta_termos,
                                        google_shopping_status or {"rodou": False},
                                        radar_ml=radar_ml, alertas_rodada=alertas_rodada,
-                                       primeira_rodada=primeira_rodada)
+                                       primeira_rodada=primeira_rodada,
+                                       n_alta=n_alta, n_media=n_media, n_baixa=n_baixa)
     keywords_html = render_keywords_tab(keywords_data)
     historico_html = render_historico_chart(historico)
     selecao_html = render_selecao_manual_tab(config)
@@ -3057,6 +3124,80 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     100% {{ box-shadow: 0 0 0 0 transparent; opacity: 1; }}
   }}
   @media (prefers-reduced-motion: reduce) {{ .agent-pulse {{ animation: none; }} }}
+
+  /* ---------------------------------------------- DEFCON — central de comando */
+  .defcon-widget {{
+    display: flex; align-items: center; gap: 22px; margin: 14px 0 22px;
+    padding: 16px 22px; border-radius: 12px; background: var(--surface-2);
+    border: 1px solid var(--defcon-cor, var(--border-strong));
+    box-shadow: 0 0 0 1px rgba(0,0,0,.2) inset, 0 0 26px -10px var(--defcon-cor, transparent);
+  }}
+  .defcon-radar {{
+    position: relative; flex: 0 0 auto; width: 128px; height: 128px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 45%, #0c1224 0%, #060912 72%, #030509 100%);
+    border: 1px solid rgba(255,255,255,.08); overflow: hidden;
+  }}
+  .defcon-rings {{
+    position: absolute; inset: 0; border-radius: 50%;
+    background:
+      repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 15px, rgba(255,255,255,.05) 16px);
+  }}
+  .defcon-sweep {{
+    position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--defcon-cor) 0deg, transparent 34deg, transparent 360deg);
+    opacity: .65; animation: defcon-spin var(--defcon-vel, 3s) linear infinite;
+    transform-origin: 50% 50%;
+  }}
+  .defcon-core {{
+    position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px;
+    border-radius: 50%; background: var(--defcon-cor); box-shadow: 0 0 10px 2px var(--defcon-cor);
+    animation: defcon-core-pulse 2.4s ease-in-out infinite;
+  }}
+  .defcon-blip {{
+    position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px;
+    border-radius: 50%; background: var(--defcon-cor);
+    transform: rotate(var(--ang)) translate(50px) rotate(calc(-1 * var(--ang)));
+    animation: defcon-blip-pulse 2.6s ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+  }}
+  @keyframes defcon-spin {{ to {{ transform: rotate(360deg); }} }}
+  @keyframes defcon-core-pulse {{
+    0%, 100% {{ opacity: 1; transform: scale(1); }} 50% {{ opacity: .5; transform: scale(1.5); }}
+  }}
+  @keyframes defcon-blip-pulse {{
+    0%, 100% {{ opacity: .35; }} 50% {{ opacity: 1; }}
+  }}
+  @media (prefers-reduced-motion: reduce) {{
+    .defcon-sweep {{ animation: none; opacity: .3; }}
+    .defcon-core, .defcon-blip {{ animation: none; }}
+  }}
+  .defcon-texto {{ display: flex; flex-direction: column; gap: 3px; min-width: 0; }}
+  .defcon-eyebrow {{
+    font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-mute);
+    font-weight: 700;
+  }}
+  .defcon-nivel {{
+    font-size: 1.9rem; font-weight: 800; letter-spacing: .02em; line-height: 1.1;
+    color: var(--defcon-cor); text-shadow: 0 0 18px color-mix(in srgb, var(--defcon-cor) 60%, transparent);
+  }}
+  .defcon-rotulo {{
+    font-size: .92rem; font-weight: 700; color: var(--text); letter-spacing: .03em; margin-bottom: 4px;
+  }}
+  .defcon-contagem {{ display: flex; gap: 8px; flex-wrap: wrap; }}
+  .dc-item {{
+    font-size: .68rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    background: var(--surface-3); border: 1px solid var(--border); color: var(--text-dim);
+  }}
+  .dc-item.dc-alta {{ color: #ff9c96; border-color: rgba(224,66,107,.5); background: var(--critical-bg); }}
+  .dc-item.dc-media {{ color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }}
+  .dc-item.dc-baixa {{ color: #8fe38f; border-color: rgba(12,163,12,.5); background: var(--good-bg); }}
+  .defcon-aviso {{ font-size: .68rem; color: var(--text-mute); margin: 4px 0 0; }}
+  /* estado "escaneando agora" — o JS liga esta classe enquanto uma rodada nova
+     está executando (mesmo polling que já alimenta o log de 'Salvar e rodar
+     agora'), então o widget reage ao vivo ao clique, não só ao recarregar. */
+  .defcon-widget.defcon-scanning .defcon-sweep {{ animation-duration: .6s; opacity: .9; }}
+  .defcon-widget.defcon-scanning .defcon-core {{ animation-duration: .8s; }}
+  .defcon-widget.defcon-scanning {{ box-shadow: 0 0 0 1px rgba(0,0,0,.2) inset, 0 0 34px -6px var(--defcon-cor); }}
 
   .data-table-wrap, .ml-radar-table-wrap {{ overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }}
   table.data-table, table.ml-radar-table {{ width: 100%; border-collapse: collapse; font-size: .82rem; white-space: nowrap; }}
@@ -4001,6 +4142,10 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     elTimer.textContent = Math.round((Date.now() - t0) / 1000) + 's';
   }}
 
+  var defconEl = document.getElementById('defcon-widget');
+  var defconRotuloEl = defconEl ? defconEl.querySelector('.defcon-rotulo') : null;
+  var defconRotuloOriginal = defconRotuloEl ? defconRotuloEl.textContent : '';
+
   function vigiar() {{
     if (vigiando) return;
     vigiando = true;
@@ -4016,6 +4161,12 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     clearInterval(timer);
     timer = setInterval(tique, 1000);
     tique();
+    // widget DEFCON reage ao vivo ao mesmo polling do log — não é um segundo
+    // mecanismo, só um efeito colateral visual do estado já existente.
+    if (defconEl) {{
+      defconEl.classList.add('defcon-scanning');
+      if (defconRotuloEl) defconRotuloEl.textContent = 'ESCANEANDO — coleta em andamento…';
+    }}
 
     (async function laco() {{
       while (true) {{
@@ -4035,6 +4186,14 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
           // só oferece recarregar quando a rodada REALMENTE terminou bem; se
           // falhou, o painel na tela continua sendo o da rodada anterior
           btnRecarregar.hidden = d.estado !== 'ok';
+          if (defconEl) {{
+            defconEl.classList.remove('defcon-scanning');
+            if (defconRotuloEl) {{
+              defconRotuloEl.textContent = d.estado === 'ok'
+                ? 'Coleta concluída — recarregue o painel pra atualizar o nível'
+                : defconRotuloOriginal;
+            }}
+          }}
           break;
         }}
       }}

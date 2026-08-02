@@ -1430,6 +1430,38 @@ efeito "em operação" — acende em qualquer card que não seja `status-off`
 respondem a "mostra os agentes trabalhando E o status": pulso = ativo agora,
 beam = achou algo.
 
+**Widget DEFCON (`render_defcon_widget()`).** Pedido depois de ver a aba
+funcionando pela primeira vez com dado real: "não pode ficar sem graça" e tem
+que "mudar conforme a execução". Fica no topo da aba Agentes, antes dos 7
+cards. Nível calculado da severidade REAL desta rodada (`_defcon_nivel()`,
+convenção militar: 1 = pior, 5 = melhor):
+- `n_alta >= 2` → DEFCON 1 · `n_alta == 1` → DEFCON 2 · `n_media > 0` → DEFCON 3
+- `n_baixa > 0` (sem alta/média) → DEFCON 4 · nada → DEFCON 5 (nominal)
+
+O radar (`.defcon-radar`) gira **sem parar** (`@keyframes defcon-spin`,
+velocidade por nível via `--defcon-vel` — quanto pior o nível, mais rápido) —
+é o "full time"/"não ficar sem graça" pedido, sempre em movimento
+independente de qualquer interação. Os pontos (`.defcon-blip`, um por
+alerta, até 12) pulsam ao redor do núcleo central, que também pulsa
+constantemente (`.defcon-core`). Cor e brilho (`--defcon-cor`) mudam por
+nível (verde → ciano → âmbar → vermelho).
+
+**Reage ao vivo à execução:** o mesmo polling de `/api/rodada` que já
+alimenta o log de "Salvar e rodar agora" (função `vigiar()`) agora também
+liga a classe `.defcon-scanning` no widget (acelera o giro do radar, troca o
+rótulo pra "ESCANEANDO — coleta em andamento…") assim que uma rodada começa,
+e desliga quando termina — nenhum polling novo, só um efeito colateral do
+que já existia. Como o **nível** DEFCON em si é calculado no HTML gerado
+(server-side), ele só atualiza de verdade depois de "recarregar painel" —
+por isso o rótulo, ao concluir, avisa "recarregue o painel pra atualizar o
+nível" em vez de fingir que já atualizou sozinho.
+
+Testado com `examples/ml-simulado-rodada1.json` (linha de base → DEFCON 5) e
+`examples/ml-simulado-rodada2.json` (alertas reais → DEFCON 2), com
+screenshot Playwright dos dois estados, mais uma injeção manual da classe
+`.defcon-scanning` via `page.evaluate` pra confirmar visualmente o estado
+"escaneando".
+
 Cada card tem 3 estados reais, nunca decorativos:
 - `status-off` (borda tracejada, esmaecido) — agente existe, mas o JSON não
   foi passado nesta execução. **Não é erro.**

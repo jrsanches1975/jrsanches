@@ -1333,6 +1333,28 @@ Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
     (1a = linha de base, 2a = sem mudança) e confirmado visualmente via
     screenshot Playwright nos dois estados.
 
+51. **Widget DEFCON na aba Agentes — animação contínua reagindo à execução real
+    (2026-08-02, mesmo dia).** Depois de confirmar (com print real do usuário) que
+    a aba Agentes já estava funcionando com dado real via o botão "Salvar e rodar
+    agora", o usuário pediu uma animação "full time" tipo "modo DEFCON" pra não
+    ficar sem graça, mudando "conforme a execução, assim como a tela de salvar e
+    rodar". Feito: `render_defcon_widget()` no topo da aba Agentes — nível DEFCON
+    (1=pior a 5=nominal) calculado direto de `n_alta`/`n_media`/`n_baixa` REAIS
+    desta rodada (`_defcon_nivel()`), nunca decorativo. Radar em CSS
+    (`@keyframes defcon-spin`) gira sem parar, mais rápido quanto pior o nível;
+    pontos (`.defcon-blip`, 1 por alerta) e núcleo central pulsam continuamente —
+    é o "sempre em movimento" pedido. O mesmo polling de `/api/rodada` que já
+    alimentava o log de "Salvar e rodar agora" (`vigiar()`) agora também liga
+    `.defcon-scanning` (radar acelera, rótulo vira "ESCANEANDO...") assim que uma
+    rodada começa e desliga quando termina — reaproveitando o mecanismo existente,
+    não duplicando polling. Como o nível em si é calculado no HTML gerado
+    (server-side), só atualiza de verdade após "recarregar painel" — o rótulo
+    avisa isso explicitamente ao concluir, em vez de fingir atualização instantânea
+    que não aconteceu. Testado com as duas fixtures de ML simulado (rodada1 = linha
+    de base = DEFCON 5; rodada2 com alertas reais = DEFCON 2, 1 alta + 5 média) e
+    confirmado visualmente via screenshot Playwright nos dois níveis, mais o
+    estado "escaneando" injetado manualmente pra conferir o efeito.
+
 ## Onde estão os detalhes completos
 
 Se precisar de mais profundidade sobre qualquer ponto acima (trechos de
