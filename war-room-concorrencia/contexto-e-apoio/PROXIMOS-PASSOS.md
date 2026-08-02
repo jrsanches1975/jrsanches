@@ -243,6 +243,34 @@ recriar a partir do `config.example.json` atualizado):
 
 ---
 
+## 7. Agentes de produto (2026-08-02)
+
+Dois agentes novos, pedidos por você:
+
+**`descoberta_produtos_shopping.py`** (pronto, já rodou contra seu dado real):
+decide quais produtos vigiar no Google Shopping. Já achou que a campanha real
+`"Shopping - Colageno"` estava rodando sem "Colágeno" estar cadastrado como
+produto — já adicionei como candidato em `config.example.json`.
+- [ ] Revisar `preco_proprio`/`ticket_medio` de "Colágeno" (deixei em branco)
+- [ ] Rodar você mesmo, quando quiser: `python descoberta_produtos_shopping.py
+      --config config.json --own-performance-json ../outputs/own-performance-por-produto.json
+      --out ../outputs/descoberta-shopping.xlsx`
+
+**`google_shopping.py`** (código pronto, mas **sem ator escolhido** — não é
+descuido, foi deliberado): diferente do ator de Mercado Livre, eu não tinha
+confiança suficiente pra apontar um ator real de Google Shopping, então não
+chutei nenhum.
+- [ ] Pesquise "google shopping" na Apify Store (apify.com/store?search=google+shopping)
+- [ ] Escolha um com avaliação/uso razoáveis, rode uma busca de teste pelo
+      painel do Apify (Input → Save & start) pro produto "Whey Protein
+      Isolado" ou outro seu
+- [ ] Cole o resultado real aqui — confirmo os nomes de campo antes de você
+      confiar na coleta (mesmo processo que fizemos com o karamelo)
+- [ ] Depois de confirmado, preencho `config["apify_actors"]["google_shopping"]`
+      com o ator real e o coletor fica pronto pra rodar
+
+---
+
 ## O que saber sobre a escolha do Windsor
 
 Não são defeitos do script — são consequências do caminho, e é melhor você saber

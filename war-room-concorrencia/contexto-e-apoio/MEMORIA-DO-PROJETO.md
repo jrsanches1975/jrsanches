@@ -918,6 +918,41 @@ Livre: `JOIE`.
     do próximo, e só desenhar a aba de orquestração (perguntada pelo usuário)
     depois de ter mais de um agente rodando de verdade.
 
+43. **Coletor de concorrentes no Google Shopping (`google_shopping.py`), BETA
+    SEM ATOR ESCOLHIDO — decisão deliberada (2026-08-02, mesmo dia).** Usuário
+    pediu explicitamente ("sim") pra eu procurar e montar o coletor de
+    concorrentes no Google Shopping, completando a metade que
+    `descoberta_produtos_shopping.py` (entrada 42) deixou em aberto. Construído
+    seguindo o MESMO padrão de `collect_snapshot()` em `war_room.py` (preço,
+    posição, reviews, rating, por concorrente + o próprio), com extração de
+    campo multi-candidato (`CAMPOS_ESPERADOS`, várias chaves plausíveis por
+    campo lógico) no mesmo estilo de `meta_ads.py`.
+    **Decisão que diferencia este de `meta_ads.py`/`google_ads_transparency.py`:**
+    aqueles dois chutaram um ator específico (de descrição pública no Apify
+    Store) mesmo sem testar ao vivo, porque havia alguma informação concreta
+    sobre a existência deles. Para Google Shopping, não havia essa mesma
+    confiança — inventar um nome de ator que talvez nem exista seria pior que
+    não ter coletor nenhum (rodaria, pareceria funcionar, e devolveria erro ou
+    vazio sem dizer o motivo real). Por isso `config["apify_actors"]["google_shopping"]`
+    ficou **vazio de propósito** em `config.example.json`, e o script recusa
+    rodar sem `--actor`/config preenchido, com mensagem de erro explicando por
+    quê — em vez de seguir o precedente de "sempre chutar um default".
+    Criado também `match_competitor_shopping()` — diferente do `match_competitor()`
+    do Radar de ML (que só olha `sellers_ml`, nicknames de Mercado Livre), este
+    olha `nome`/`google_advertiser`/`sellers_ml` do concorrente, porque o nome
+    da loja que aparece no Google Shopping tende a se parecer mais com a marca
+    do que com um nickname específico de ML.
+    Testado com item sintético (claramente rotulado como teste, não dado real)
+    — parsing multi-candidato e casamento de loja confirmados funcionando.
+    **Pendência do usuário:** achar um ator real de Google Shopping na Apify
+    Store (mesmo caminho que funcionou para o `karamelo` — testar e colar o
+    resultado real aqui antes de confiar). **Ainda não ligado a `war_room.py`:**
+    os flags `--simulate-google-shopping*` existentes são de teste/demo, sem
+    selo de "real" na aba Marketplaces — quando o coletor for confirmado,
+    criar flags dedicados (`--google-shopping-json`/`--google-shopping-proprio-json`)
+    em vez de reaproveitar os de simulação, mesmo cuidado já tomado com o
+    Windsor.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

@@ -117,12 +117,13 @@
     }
   },
 
-  "_comentario_apify_actors": "IDs de actor usados por war_room.py (Mercado Livre — testado/confirmado com dado real, 2026-08-02: karamelo/mercadolivre-scraper-brasil-portugues), meta_ads.py, google_ads_transparency.py e google_trends.py (estes 3 são BETA, não testados ao vivo — ver SKILL.md e references/fontes-e-limitacoes.md). Troque aqui se o actor default não funcionar no seu teste real, sem precisar editar código. Trocar de ator quase sempre exige TAMBÉM ajustar 'apify_actors_campos'/'apify_actors_extra'/'apify_actors_formato' logo abaixo — atores diferentes usam nomes de campo diferentes, e campo com nome errado não dá erro, só traz coleta vazia. O ator anterior (viralanalyzer~mercadolivre-scraper) continua suportado — volte pra ele e pra 'apify_actors_formato.mercado_livre': 'viralanalyzer' se precisar reverter.",
+  "_comentario_apify_actors": "IDs de actor usados por war_room.py (Mercado Livre — testado/confirmado com dado real, 2026-08-02: karamelo/mercadolivre-scraper-brasil-portugues), meta_ads.py, google_ads_transparency.py e google_trends.py (estes 3 são BETA, não testados ao vivo — ver SKILL.md e references/fontes-e-limitacoes.md). Troque aqui se o actor default não funcionar no seu teste real, sem precisar editar código. Trocar de ator quase sempre exige TAMBÉM ajustar 'apify_actors_campos'/'apify_actors_extra'/'apify_actors_formato' logo abaixo — atores diferentes usam nomes de campo diferentes, e campo com nome errado não dá erro, só traz coleta vazia. O ator anterior (viralanalyzer~mercadolivre-scraper) continua suportado — volte pra ele e pra 'apify_actors_formato.mercado_livre': 'viralanalyzer' se precisar reverter. 'google_shopping' fica DE PROPÓSITO vazio: diferente dos outros, não chutei nenhum ator (não tenho confiança de que um nome específico exista de verdade) — google_shopping.py exige que você preencha isso depois de achar e testar um na Apify Store (ver o cabeçalho daquele arquivo).",
   "apify_actors": {
     "mercado_livre": "karamelo~mercadolivre-scraper-brasil-portugues",
     "meta_ads": "apify~facebook-ads-scraper",
     "google_ads_transparency": "unseenuser~google-ads",
-    "google_trends": "apify~google-trends-scraper"
+    "google_trends": "apify~google-trends-scraper",
+    "google_shopping": ""
   },
 
   "_comentario_apify_actors_campos": "Nomes de campo do INPUT do ator de Mercado Livre em uso — 'termo' é o campo de texto da busca (confirmado pelo JSON real do Input do karamelo: a chave é 'keyword', não o texto do rótulo 'Nome do produto'). 'limite' (campo de máximo de ITENS) fica de fora aqui porque o karamelo pagina por NÚMERO DE PÁGINAS, não por contagem de item — esse controle vai em 'apify_actors_extra' abaixo, não dá pra derivar de 'per_produto' de forma confiável. Ao trocar de ator de novo: abra o Input dele no painel do Apify, clique em 'JSON' (ao lado de 'Form') para ver os nomes reais, e troque aqui — nunca adivinhar.",

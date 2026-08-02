@@ -1266,6 +1266,49 @@ campanha Shopping real), e só desenhar a aba de orquestração depois de ter
 pelo menos um rodando de verdade, pra saber o que ela realmente precisa
 mostrar. Este é o primeiro.
 
+### 27. Coletor de concorrentes no Google Shopping (`google_shopping.py`) — BETA, sem ator escolhido
+
+Metade que faltava do passo 26: agora que se sabe QUAIS produtos vigiar no
+Shopping, este script coletaria os CONCORRENTES lá — mesmo formato de saída
+do Radar de ML (`{produto: {concorrente: {...}}}` + `{produto: {...}}` do
+próprio), reaproveitando `_num()` pra preço em formato BR e um casador de
+loja mais amplo que o do ML (`match_competitor_shopping()`, que olha
+`nome`/`google_advertiser`/`sellers_ml` do concorrente, porque o nome da loja
+no Shopping tende a se parecer mais com a marca do que com um nickname de ML).
+
+**Diferença deliberada dos outros BETA deste projeto:** `meta_ads.py` e
+`google_ads_transparency.py` chutaram um ator específico (de descrição
+pública no Apify Store), mesmo sem testar ao vivo. Para Google Shopping eu
+não tenho essa confiança — nenhum ator de Google Shopping foi sugerido aqui,
+de propósito. `config["apify_actors"]["google_shopping"]` fica **vazio** e o
+script recusa rodar sem ele (`--actor` ou config), com uma mensagem de erro
+clara em vez de tentar um nome que talvez nem exista.
+
+**Como achar e testar um ator** (mesmo caminho que funcionou para o
+`karamelo` de Mercado Livre):
+1. Pesquise "google shopping" na Apify Store
+2. Escolha um com avaliação/uso razoáveis
+3. Rode uma busca de teste pelo painel do Apify e cole o resultado real aqui —
+   os nomes de campo (`CAMPOS_ESPERADOS`, com várias chaves candidatas por
+   campo lógico) são confirmados contra o dado real antes de confiar em
+   qualquer preço/posição exibido
+4. Preencha `config["apify_actors"]["google_shopping"]` com o ator confirmado
+
+```bash
+python google_shopping.py --config config.json --actor SEU_ATOR_TESTADO \
+    --token $APIFY_TOKEN --out ../outputs/google-shopping.json \
+    --out-proprio ../outputs/google-shopping-proprio.json --debug-raw
+```
+
+**Ainda não ligado a `war_room.py`:** os flags existentes
+`--simulate-google-shopping`/`--simulate-google-shopping-proprio` são para
+teste/demo (a aba Marketplaces não os distingue de dado real com um selo,
+diferente de Meta Ads/Keywords). Quando este coletor estiver confirmado com
+ator real, o passo certo é criar flags dedicados
+`--google-shopping-json`/`--google-shopping-proprio-json` em vez de
+reaproveitar os de simulação — mesmo cuidado já tomado com o Windsor (nunca
+usar o caminho de teste pra dado de verdade).
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —
