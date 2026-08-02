@@ -1,0 +1,93 @@
+{
+  "_comentario": "AMOSTRA DE FORMATO da resposta de /act_<id>/insights?level=ad da Marketing API. Serve para testar o parser de meta_ads_api.py sem rede. Os NÚMEROS SÃO INVENTADOS e não representam a conta da Joie — o que importa aqui é a FORMA: todo número vem como string, conversões vivem dentro de actions/action_values, e campos podem faltar.",
+  "data": [
+    {
+      "campaign_id": "23851234567890123",
+      "campaign_name": "[[Conv]] - [Colágeno] - Carrossel",
+      "adset_name": "Lookalike 1% compradores",
+      "ad_id": "23852234567890001",
+      "ad_name": "Carrossel v3 - antes e depois",
+      "spend": "1284.53",
+      "impressions": "148392",
+      "clicks": "3241",
+      "ctr": "2.184",
+      "cpm": "8.6564",
+      "cpc": "0.3963",
+      "frequency": "1.8699",
+      "reach": "79354",
+      "actions": [
+        {"action_type": "link_click", "value": "3102"},
+        {"action_type": "add_to_cart", "value": "412"},
+        {"action_type": "omni_purchase", "value": "58"}
+      ],
+      "action_values": [
+        {"action_type": "add_to_cart", "value": "58120.00"},
+        {"action_type": "omni_purchase", "value": "31240.50"}
+      ],
+      "date_start": "2026-07-03",
+      "date_stop": "2026-08-01"
+    },
+    {
+      "campaign_id": "23851234567890124",
+      "campaign_name": "[[Trafego]] - [Creatina] - Video",
+      "adset_name": "Interesse suplementos",
+      "ad_id": "23852234567890002",
+      "ad_name": "Video 15s vertical",
+      "spend": "742.10",
+      "impressions": "96117",
+      "clicks": "1508",
+      "ctr": "1.5689",
+      "cpm": "7.7208",
+      "cpc": "0.4921",
+      "frequency": "1.4102",
+      "reach": "68159",
+      "actions": [
+        {"action_type": "link_click", "value": "1455"},
+        {"action_type": "video_view", "value": "24817"},
+        {"action_type": "offsite_conversion.fb_pixel_purchase", "value": "12"}
+      ],
+      "action_values": [
+        {"action_type": "offsite_conversion.fb_pixel_purchase", "value": "5388.00"}
+      ],
+      "date_start": "2026-07-03",
+      "date_stop": "2026-08-01"
+    },
+    {
+      "campaign_id": "23851234567890125",
+      "campaign_name": "[[Reconhecimento]] - [Marca] - Estatico",
+      "adset_name": "Amplo BR",
+      "ad_id": "23852234567890003",
+      "ad_name": "Estatico institucional",
+      "spend": "310.00",
+      "impressions": "204553",
+      "clicks": "0",
+      "frequency": "2.9911",
+      "reach": "68387",
+      "actions": [
+        {"action_type": "post_engagement", "value": "1204"}
+      ],
+      "date_start": "2026-07-03",
+      "date_stop": "2026-08-01"
+    },
+    {
+      "campaign_id": "23851234567890126",
+      "campaign_name": "[[Conv]] - [Whey] - Colecao",
+      "adset_name": "Retargeting 14d",
+      "ad_id": "23852234567890004",
+      "ad_name": "Colecao whey",
+      "impressions": "8140",
+      "clicks": "203",
+      "actions": [
+        {"action_type": "omni_purchase", "value": "7"}
+      ],
+      "action_values": [
+        {"action_type": "omni_purchase", "value": "3781.00"}
+      ],
+      "date_start": "2026-07-03",
+      "date_stop": "2026-08-01"
+    }
+  ],
+  "paging": {
+    "cursors": {"before": "MAZDZD", "after": "MjQZD"}
+  }
+}

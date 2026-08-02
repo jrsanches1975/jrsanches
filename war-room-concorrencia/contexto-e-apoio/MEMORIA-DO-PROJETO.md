@@ -545,6 +545,39 @@ Livre: `JOIE`.
       ~1min no botão, log por consulta à API em vez de linha a linha, e histórico
       via commit. Estimativa de trabalho: meio dia.
 
+32. **Opção 3 escolhida e iniciada (2026-08-02): coletores próprios, sem Windsor.**
+    O usuário disse "faz o passo 3". Criado `scripts/meta_ads_api.py`, que fala
+    direto com a Marketing API da Meta (só `urllib`, sem SDK) e produz os dois
+    arquivos que `meta_ads_performance.py` já consome (`--plataforma` e
+    `--criativos`). Guia de token em `references/meta-api-setup.md`; documentado
+    como passo 21 do `SKILL.md`.
+    **Verificações de rede feitas neste ambiente (não repetir):**
+    `graph.facebook.com` → **bloqueado** (curl não completa);
+    `googleads.googleapis.com` → **responde** (404 na raiz, que é o normal para
+    raiz de API). Ou seja: a camada HTTP da Meta não pôde ser testada aqui, mas a
+    do Google Ads provavelmente poderá.
+    **Testado com fixture** (`examples/meta-api-insights-bruto.json` e
+    `meta-api-ads-bruto.json`, formato copiado da Graph API, valores inventados):
+    número vindo como string, conversão aninhada em `actions`, gasto ausente
+    virando `None` (e não zero, que faria o ROAS explodir), zero real de cliques
+    preservado, anúncio sem criativo descartado, e a cadeia completa até
+    `meta_ads_performance.py` gerando CTR/CPM/CPC/ROAS e os cards de criativo.
+    **Bugs meus achados nos testes:** (a) o resumo imprimia `R$ 2.336.63` porque
+    eu trocava `,` por `.` de forma ingênua — o MESMO erro de separador que
+    corrompeu a planilha de Auction Insights; corrigido com troca em três passos
+    (`_brl`). (b) no modo arquivo a saída se declarava `"origem": "Meta Marketing
+    API"`, o que faria uma fixture de teste passar por coleta real adiante no
+    pipeline; agora declara `"ARQUIVO DE TESTE"` e `"simulado": true`.
+    **Confirmado que NÃO é bug:** os formatadores do `war_room.py` usam
+    `isinstance`, então zero medido sai como `0,0%` e não `n/d` — a distinção
+    entre "medido zero" e "não medido" está correta nas duas direções.
+    **Próximo passo (não feito ainda):** o coletor do **Google Ads**. Ele exige um
+    **developer token** aprovado pelo Google, e essa aprovação é assíncrona (dias)
+    — o usuário precisa iniciar o pedido em `ads.google.com` → Ferramentas → Centro
+    de API para não virar gargalo. A API é bem mais complexa que a da Meta (OAuth2
+    com refresh token + consultas GAQL), e existe a opção de usar `urllib` contra a
+    REST da Google Ads API em vez do SDK pesado.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

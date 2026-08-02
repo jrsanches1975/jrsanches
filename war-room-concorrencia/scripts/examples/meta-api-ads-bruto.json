@@ -1,0 +1,51 @@
+{
+  "_comentario": "AMOSTRA DE FORMATO da resposta de /act_<id>/ads?fields=...creative{...}. Serve para testar o parser de criativos de meta_ads_api.py sem rede. Conteúdo INVENTADO — o que importa é a forma: o creative vem aninhado, thumbnail_url e image_url são alternativos, e há anúncio sem nenhum ativo legível (que o parser deve descartar).",
+  "data": [
+    {
+      "id": "23852234567890001",
+      "name": "Carrossel v3 - antes e depois",
+      "effective_status": "ACTIVE",
+      "preview_shareable_link": "https://www.facebook.com/ads/api/preview_iframe.php?d=EXEMPLO1",
+      "creative": {
+        "id": "23853000000000001",
+        "title": "Colágeno Verisol 300g",
+        "body": "Pele firme em 90 dias. Frete grátis acima de R$ 149.",
+        "thumbnail_url": "https://scontent.example/exemplo-carrossel.jpg",
+        "object_type": "SHARE"
+      }
+    },
+    {
+      "id": "23852234567890002",
+      "name": "Video 15s vertical",
+      "effective_status": "ACTIVE",
+      "preview_shareable_link": "https://www.facebook.com/ads/api/preview_iframe.php?d=EXEMPLO2",
+      "creative": {
+        "id": "23853000000000002",
+        "body": "Creatina monohidratada pura. 300g rendem 100 doses.",
+        "image_url": "https://scontent.example/exemplo-video-thumb.jpg",
+        "object_type": "VIDEO"
+      }
+    },
+    {
+      "id": "23852234567890003",
+      "name": "Estatico institucional",
+      "effective_status": "PAUSED",
+      "preview_shareable_link": "https://www.facebook.com/ads/api/preview_iframe.php?d=EXEMPLO3",
+      "creative": {
+        "id": "23853000000000003",
+        "title": "Joie Suplementos",
+        "thumbnail_url": "https://scontent.example/exemplo-estatico.jpg",
+        "object_type": "PHOTO"
+      }
+    },
+    {
+      "id": "23852234567890099",
+      "name": "Anuncio sem ativo legivel",
+      "effective_status": "ARCHIVED",
+      "creative": {
+        "id": "23853000000000099",
+        "object_type": "UNKNOWN"
+      }
+    }
+  ]
+}

@@ -933,6 +933,70 @@ Verificado com navegador real nos dois modos: inclusão → gravação no
 "salvar sem mexer em nada" é **idempotente** (nenhum item ou campo perdido, as 25
 outras chaves do config intactas).
 
+### 21. Coletor próprio do Meta Ads (`meta_ads_api.py`) — sem Windsor
+
+Fala direto com a Marketing API da Meta, contornando o limite de 1 conector do
+plano Free do Windsor (a vaga é da GA4). Traz o que a GA4 não vê: gasto,
+impressões, cliques, CTR, CPM, CPC, frequência, alcance, compras e receita pelo
+pixel, e os criativos (imagem, título, corpo, link de preview).
+
+Ler a **própria** conta de anúncio **não exige Revisão de App** — revisão só é
+necessária para dados de terceiros. O passo a passo do token está em
+`references/meta-api-setup.md`; resumo: usuário de sistema no Gerenciador de
+Negócios, escopos `ads_read` + `read_insights`, validade "nunca expira",
+permissão só de leitura na conta. Token do Explorador da API **não serve**: expira
+em 1-2h.
+
+```bash
+export META_ACCESS_TOKEN='EAAG...'
+export META_AD_ACCOUNT_ID='act_1234567890'
+
+cd scripts
+python meta_ads_api.py --dias 30 \
+    --out ../outputs/meta-insights.json \
+    --criativos-out ../outputs/meta-criativos.json
+
+# depois, direto para as abas do war room:
+python meta_ads_performance.py --ga4-campanhas examples/ga4-real/ga4-campanhas.json \
+    --plataforma ../outputs/meta-insights.json --criativos ../outputs/meta-criativos.json \
+    --out ../outputs/meta-ads.json
+```
+
+Só biblioteca padrão (`urllib`) — nada de SDK. Pede insight no nível de **anúncio**
+por padrão, porque dá para agregar por campanha depois, mas não dá para desagregar
+o que já vier somado. Segue `paging.next` até o fim (a Graph API pagina em ~25 e
+ignorar isso truncaria a conta em silêncio).
+
+**Cuidados que o script trata explicitamente:**
+
+1. **Todo número vem como string** na Graph API (`"spend": "1284.53"`). Sem
+   conversão, as somas concatenariam texto.
+2. **Conversão vive dentro de `actions`/`action_values`**, e o nome muda por conta.
+   Tenta `omni_purchase`, `purchase`, `offsite_conversion.fb_pixel_purchase` e
+   **imprime qual usou** — escolher em silêncio esconderia divergência contra o
+   Gerenciador.
+3. **Ausente é `None`, nunca 0.** Uma linha sem campo `spend` não vira gasto zero
+   (que faria o ROAS explodir); e um zero real de cliques é preservado como zero.
+4. **Erro da Meta sai verbatim**, com código e subcódigo, e com a tradução do que
+   fazer (190 = token expirado, 200/403 = falta escopo ou ativo). Recuo progressivo
+   em 17/613/429/5xx.
+5. **`--debug-raw`** imprime o primeiro item bruto de cada endpoint. Use na
+   primeira execução real: a Meta muda nome de campo entre versões.
+6. **`--versao-api`** é flag porque versões da Graph API saem de suporte a cada
+   ~2 anos.
+
+**Estado de teste (importante):** o parse e a agregação foram **testados** com
+resposta salva em `examples/meta-api-insights-bruto.json` e
+`examples/meta-api-ads-bruto.json`, cobrindo número como texto, conversão
+aninhada, gasto ausente, zero real e anúncio sem criativo. A camada **HTTP não
+pôde ser testada**: `graph.facebook.com` está bloqueado pela rede do ambiente
+(verificado). Daí o `--debug-raw` e o pedido de conferir os totais contra o
+Gerenciador antes de apresentar a alguém.
+
+**Modo arquivo é honesto sobre si:** rodando com `--resposta-insights`, a saída se
+declara `"origem": "ARQUIVO DE TESTE..."` e `"simulado": true`, para uma fixture
+não passar por coleta real mais adiante no pipeline.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —
