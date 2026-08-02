@@ -405,7 +405,7 @@ def diff_precos(old_snap, new_snap, config, playbook, own_perf=None):
                 if salto_posicao:
                     motivo.append(f"subiu da posição {pos_antiga} para {pos_nova}")
                 if salto_reviews:
-                    motivo.append(f"reviews de {rev_antigo} para {rev_novo}")
+                    motivo.append(f"reviews de {rev_antigo:.0f} para {rev_novo:.0f}")
                 alertas.append(make_alert(
                     "salto_visibilidade_ml", "default", produto, conc,
                     f"{conc} ganhou visibilidade em '{produto}': " + " e ".join(motivo) + ".",
@@ -1161,11 +1161,12 @@ def render_ml_radar(radar_ml):
             classe = "radar-proprio" if e["proprio"] else "radar-concorrente"
             preco = f"R$ {e['price']:.2f}" if e.get("price") is not None else "—"
             desconto = f"{e['discount_pct']:.0f}%" if e.get("discount_pct") else "—"
+            reviews = f"{e['reviews']:.0f}" if e.get("reviews") is not None else "—"
             ads = {"sim": "SIM", "nao": "não", "desconhecido": "n/d"}.get(e.get("patrocinado", "desconhecido"))
             linhas.append(f"""
         <tr class="{classe}">
           <td>{produto}</td><td class="quem">{quem}</td><td>#{e.get('position', '—')}</td>
-          <td>{preco}</td><td>{desconto}</td><td>{e.get('reviews', '—')}</td>
+          <td>{preco}</td><td>{desconto}</td><td>{reviews}</td>
           <td>{e.get('rating', '—')}</td><td>{'sim' if e.get('frete_gratis') else 'não'}</td>
           <td class="ads-flag">{ads}</td>
         </tr>""")
@@ -1448,11 +1449,12 @@ def render_marketplaces_tab(marketplaces):
                 classe = "radar-proprio" if e["proprio"] else "radar-concorrente"
                 preco = f"R$ {e['price']:.2f}" if e.get("price") is not None else "—"
                 desconto = f"{e['discount_pct']:.0f}%" if e.get("discount_pct") else "—"
+                reviews = f"{e['reviews']:.0f}" if e.get("reviews") is not None else "—"
                 ads = {"sim": "SIM", "nao": "não", "desconhecido": "n/d"}.get(e.get("patrocinado", "desconhecido"), "n/d")
                 linhas.append(f"""
             <tr class="{classe}">
               <td>{produto}</td><td class="quem">{quem}</td><td>#{e.get('position', '—')}</td>
-              <td>{preco}</td><td>{desconto}</td><td>{e.get('reviews', '—')}</td>
+              <td>{preco}</td><td>{desconto}</td><td>{reviews}</td>
               <td>{e.get('rating', '—')}</td><td>{'sim' if e.get('frete_gratis') else 'não'}</td>
               <td class="ads-flag">{ads}</td>
             </tr>""")
