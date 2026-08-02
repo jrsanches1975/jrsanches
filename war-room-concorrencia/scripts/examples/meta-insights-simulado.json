@@ -1,0 +1,65 @@
+{
+ "_comentario": "SIMULADO — o conector `facebook` do Windsor.ai está desconectado nesta integração. Gasto/impressões/cliques/CTR/CPM abaixo são ilustrativos do FORMATO, não da conta. Rodar meta_ads_performance.py com --simulado para o relatório avisar.",
+ "result": [
+  {
+   "ad_id": "6712001",
+   "campaign_name": "🟩 - [[Conv]] - [Padrão] - Catálago",
+   "adset_name": "BR 25-45 interesse suplementos",
+   "effective_status": "ACTIVE",
+   "spend": 3184.5,
+   "impressions": 214300,
+   "clicks": 1902,
+   "frequency": 2.4,
+   "purchases": 0,
+   "purchase_value": 0
+  },
+  {
+   "ad_id": "6712004",
+   "campaign_name": "🟩 - [[Conv]] - [Whey] - [Vídeo] - Whey Silk Protein 2",
+   "adset_name": "Lookalike 1% compradores",
+   "effective_status": "ACTIVE",
+   "spend": 1420.8,
+   "impressions": 96500,
+   "clicks": 742,
+   "frequency": 1.9,
+   "purchases": 1,
+   "purchase_value": 121.52
+  },
+  {
+   "ad_id": "6712002",
+   "campaign_name": "🟩 - [[Conv]] - [Kit HEPRO] - Carrossel",
+   "adset_name": "Remarketing 30d carrinho",
+   "effective_status": "ACTIVE",
+   "spend": 689.2,
+   "impressions": 41200,
+   "clicks": 388,
+   "frequency": 3.1,
+   "purchases": 0,
+   "purchase_value": 0
+  },
+  {
+   "ad_id": "6712003",
+   "campaign_name": "🟩 - [[Conv]] - [Colágeno] - Vídeo 1",
+   "adset_name": "BR mulheres 30-55",
+   "effective_status": "ACTIVE",
+   "spend": 912.4,
+   "impressions": 73800,
+   "clicks": 455,
+   "frequency": 2.2,
+   "purchases": 0,
+   "purchase_value": 0
+  },
+  {
+   "ad_id": "6712005",
+   "campaign_name": "🟩 - [[Tráfego]] - [Padrão] - Catálogo",
+   "adset_name": "Interesse amplo",
+   "effective_status": "ACTIVE",
+   "spend": 1876.3,
+   "impressions": 338900,
+   "clicks": 2610,
+   "frequency": 1.6,
+   "purchases": 0,
+   "purchase_value": 0
+  }
+ ]
+}

@@ -44,7 +44,7 @@
 
   /* --- cabeçalho no estilo "capa técnica": eyebrow em pill, título bicolor, selo circular --- */
   header.top { max-width: 1240px; margin: 0 auto; padding: 34px 28px 22px; position: relative; z-index: 1; }
-  .head-grid { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 26px; }
+  .head-grid { position: relative; z-index: 2; max-width: 640px; }
   .pill-badge {
     display: inline-flex; align-items: center; gap: 9px; padding: 6px 15px; border-radius: 999px;
     border: 1px solid var(--border-strong); color: var(--accent-strong);
@@ -58,15 +58,17 @@
   .rule { height: 1px; width: 190px; margin: 18px 0 16px; background: linear-gradient(90deg, var(--accent), transparent); }
   .cover-sub { margin: 0; font-size: .95rem; color: var(--text-dim); max-width: 46ch; line-height: 1.55; }
   .cover-sub b { color: var(--accent-strong); font-weight: 600; }
-  .head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 18px; }
+  .head-right {
+    display: flex; align-items: center; gap: 26px; flex-wrap: wrap; margin-top: 22px;
+  }
   .seal { width: 142px; height: 142px; flex: none; }
   .seal-ring { fill: none; stroke: var(--border-strong); stroke-width: 1; }
   .seal-text { fill: var(--accent-strong); font-size: 7.6px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
   .seal-value { fill: var(--text); font-size: 21px; font-weight: 800; text-anchor: middle; }
   .seal-label { fill: var(--text-mute); font-size: 7.2px; font-weight: 700; letter-spacing: .16em; text-anchor: middle; text-transform: uppercase; }
   .seal-tick { stroke: var(--border-strong); stroke-width: 1; }
-  .top-stats { display: flex; flex-wrap: wrap; gap: 26px; justify-content: flex-end; }
-  .top-stat { text-align: right; }
+  .top-stats { display: flex; flex-wrap: wrap; gap: 26px; }
+  .top-stat { text-align: left; }
   .top-stat-label { display: block; font-size: .6rem; text-transform: uppercase; letter-spacing: .14em; color: var(--text-mute); font-weight: 700; }
   .top-stat-value { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 
@@ -375,6 +377,254 @@
 
   a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+
+  :root {
+    --violet: #8b5cf6; --violet-soft: rgba(139,92,246,.16);
+    --magenta: #d946ef; --cyan: #22d3ee; --indigo: #6366f1;
+    --grad-hero: linear-gradient(96deg, #a78bfa 0%, #d946ef 52%, #22d3ee 100%);
+    --grad-cta: linear-gradient(96deg, #8b5cf6, #d946ef);
+    --grad-line: linear-gradient(90deg, transparent, #8b5cf6, #d946ef, #22d3ee, transparent);
+  }
+  /* título com gradiente cósmico (a linha de cima fica branca, a de baixo pinta) */
+  .cosmos-grad {
+    background: var(--grad-hero); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  /* moldura de vidro com halo — usada nas seções e nos cards de destaque */
+  .cosmos-frame { position: relative; }
+  .cosmos-frame::before {
+    content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+    background: var(--grad-line); opacity: .28;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; padding: 1px;
+  }
+  /* divisor de seção no estilo da referência (cantos recortados + régua) */
+  .cosmos-divider {
+    position: relative; height: 1px; margin: 34px 0 26px; background: var(--grad-line); opacity: .5;
+  }
+  .cosmos-divider::before, .cosmos-divider::after {
+    content: ""; position: absolute; top: -5px; width: 11px; height: 11px;
+    border-top: 1px solid var(--violet); opacity: .8;
+  }
+  .cosmos-divider::before { left: 0; border-left: 1px solid var(--violet); }
+  .cosmos-divider::after { right: 0; border-right: 1px solid var(--violet); }
+  /* arte de fundo posicionada */
+  .cosmos-hero-art {
+    position: absolute; right: -4%; top: -14%; width: min(58%, 720px); pointer-events: none;
+    z-index: 0; opacity: .95;
+  }
+  .cosmos-hero-art svg { width: 100%; height: auto; display: block; }
+  .cosmos-orb {
+    position: absolute; pointer-events: none; z-index: 0; opacity: .5;
+  }
+  @media (max-width: 900px) { .cosmos-hero-art { display: none; } }
+
+  /* posicionamento da arte no hero: ocupa a direita, sem cruzar a coluna de texto */
+  .cosmos-hero-art {
+    right: -6%; top: -20%; width: min(52%, 660px); opacity: .9;
+  }
+  @media (max-width: 1180px) { .cosmos-hero-art { opacity: .45; } }
+
+  /* ------------------------------------------------- medidas a serem tomadas */
+  .medida-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
+  .medida {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 10px; position: relative;
+  }
+  .medida-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .medida-num {
+    width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: none;
+    background: var(--grad-cta); color: #fff; font-size: .76rem; font-weight: 800;
+  }
+  .medida-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .medida-tag {
+    font-size: .58rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-mute);
+  }
+  .medida-tag.t-imp { color: #f0abfc; border-color: rgba(217,70,239,.45); background: rgba(217,70,239,.12); }
+  .medida-tag.t-esf { color: #a5f3fc; border-color: rgba(34,211,238,.4); background: rgba(34,211,238,.1); }
+  .medida-acao { font-size: .95rem; font-weight: 700; line-height: 1.35; }
+  .medida-bloco { border-left: 2px solid var(--border-strong); padding-left: 11px; }
+  .medida-rot {
+    display: block; font-size: .58rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--violet); margin-bottom: 3px;
+  }
+  .medida-bloco p { margin: 0; font-size: .8rem; color: var(--text-dim); line-height: 1.55; }
+  .medida-meta {
+    margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; gap: 10px; font-size: .72rem; color: var(--text-mute);
+  }
+  .medida-meta strong { color: var(--cyan); font-weight: 700; text-align: right; }
+  .medida.imp-alto { border-color: rgba(217,70,239,.35); }
+
+  /* -------------------------------------------------------- criativos (cards) */
+  .crea-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 14px; }
+  .crea-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .crea-img { position: relative; aspect-ratio: 1 / 1; background: var(--surface-2); overflow: hidden; }
+  .crea-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .crea-img.crea-sem {
+    display: grid; place-content: center; text-align: center; gap: 4px; aspect-ratio: 16 / 7;
+    border-bottom: 1px dashed var(--border-strong);
+  }
+  .crea-sem span { font-size: .76rem; color: var(--text-dim); font-weight: 600; }
+  .crea-sem small { font-size: .64rem; color: var(--text-mute); }
+  .crea-body { padding: 13px 15px 15px; display: flex; flex-direction: column; gap: 6px; }
+  .crea-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .crea-formato {
+    font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--violet); background: var(--violet-soft); border: 1px solid rgba(139,92,246,.4);
+    padding: 3px 8px; border-radius: 999px;
+  }
+  .crea-link { font-size: .66rem; text-decoration: none; white-space: nowrap; }
+  .crea-nome { font-size: .86rem; font-weight: 700; line-height: 1.3; }
+  .crea-sub { font-size: .66rem; color: var(--text-mute); word-break: break-word; }
+  .crea-corpo { margin: 2px 0 0; font-size: .74rem; color: var(--text-dim); line-height: 1.5; }
+  .crea-metricas {
+    margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
+  }
+  .crea-m { display: flex; justify-content: space-between; gap: 8px; font-size: .72rem; }
+  .crea-m span { color: var(--text-mute); }
+  .crea-m strong { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* --------------------------------------------------------- metas / evolução */
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 13px; }
+  .meta-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px 17px;
+    border-top: 2px solid var(--border-strong);
+  }
+  .meta-card.st-ok { border-top-color: var(--good); }
+  .meta-card.st-warn { border-top-color: var(--warning); }
+  .meta-card.st-bad { border-top-color: var(--critical); }
+  .meta-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .meta-rotulo {
+    font-size: .6rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: var(--text-mute);
+  }
+  .meta-status {
+    font-size: .58rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-mute);
+    white-space: nowrap;
+  }
+  .meta-status.st-ok { color: #8fe38f; border-color: rgba(12,163,12,.5); background: var(--good-bg); }
+  .meta-status.st-warn { color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }
+  .meta-status.st-bad { color: #ff9c96; border-color: rgba(224,66,107,.5); background: var(--critical-bg); }
+  .meta-valores { display: flex; align-items: baseline; gap: 7px; margin-bottom: 10px; }
+  .meta-real { font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .meta-alvo { font-size: .82rem; color: var(--text-mute); font-variant-numeric: tabular-nums; }
+  .meta-track {
+    position: relative; height: 8px; background: rgba(255,255,255,.06); border-radius: 5px; margin-bottom: 9px;
+  }
+  .meta-bar {
+    height: 100%; width: var(--w); border-radius: 5px; background: var(--grad-cta);
+    box-shadow: 0 0 14px -2px rgba(139,92,246,.85);
+    animation: ga4-grow 1s cubic-bezier(.2,.8,.3,1) both;
+  }
+  .st-ok .meta-bar { background: linear-gradient(90deg, #0ca30c, #22d3ee); box-shadow: 0 0 14px -2px rgba(34,211,238,.8); }
+  .st-bad .meta-bar { background: linear-gradient(90deg, #e0426b, #d946ef); box-shadow: 0 0 14px -2px rgba(224,66,107,.85); }
+  .meta-ritmo {
+    position: absolute; top: -4px; bottom: -4px; width: 2px; background: #fff; opacity: .8;
+    border-radius: 2px; box-shadow: 0 0 8px rgba(255,255,255,.8);
+  }
+  .meta-foot { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .meta-pct { font-size: .72rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .meta-extra { font-size: .68rem; color: var(--text-mute); text-align: right; }
+  .meta-mini { display: inline-flex; align-items: center; gap: 7px; min-width: 96px; }
+  .meta-mini i {
+    display: block; height: 5px; width: var(--w); border-radius: 3px; background: var(--grad-cta);
+    min-width: 3px; flex: none;
+  }
+  .meta-mini.st-ok i { background: linear-gradient(90deg, #0ca30c, #22d3ee); }
+  .meta-mini.st-bad i { background: linear-gradient(90deg, #e0426b, #d946ef); }
+  .meta-mini b { font-size: .7rem; font-variant-numeric: tabular-nums; }
+  .meta-mini-nd { font-size: .7rem; color: var(--text-mute); }
+  .ev-area { fill: url(#ev-area-grad); opacity: .32; }
+  .ev-real { fill: none; stroke: var(--cyan); stroke-width: 2.4; stroke-linejoin: round; }
+  .ev-meta { fill: none; stroke: #f0abfc; stroke-width: 2; stroke-dasharray: 6 4; opacity: .9; }
+  .ev-dot { fill: var(--cyan); stroke: #0a0518; stroke-width: 1.4; cursor: crosshair; }
+  .leg-swatch.sw-real { background: var(--cyan); }
+  .leg-swatch.sw-metaline { background: #f0abfc; }
+
+  /* ---------------------------------------------------------------- alavancas */
+  .alav-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 13px; }
+  .alav {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px 17px;
+  }
+  .alav-var {
+    font-size: .6rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--text-mute); margin-bottom: 9px;
+  }
+  .alav-nums { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+  .alav-de { font-size: 1rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .alav-seta { color: var(--violet); font-weight: 800; }
+  .alav-para {
+    font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums;
+    background: var(--grad-hero); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .alav-delta { font-size: .74rem; font-weight: 700; color: #f0abfc; margin-top: 3px; }
+  .alav-leitura { margin: 9px 0 0; font-size: .76rem; color: var(--text-dim); line-height: 1.55; }
+
+  /* ---------------------------------------------------------------- simulador */
+  .sim-wrap {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px;
+  }
+  .sim-head {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .sim-titulo { font-size: .95rem; font-weight: 800; }
+  .sim-sub { font-size: .74rem; color: var(--text-mute); margin-top: 3px; }
+  .sim-grid { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(260px, 1.1fr); gap: 22px; }
+  .sim-controles { display: flex; flex-direction: column; gap: 16px; }
+  .sim-ctl { display: flex; flex-direction: column; gap: 6px; }
+  .sim-ctl-top {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    font-size: .72rem; font-weight: 700; color: var(--text-dim);
+  }
+  .sim-ctl-top output {
+    font-size: .9rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--cyan);
+  }
+  .sim-ctl-base { font-size: .66rem; color: var(--text-mute); }
+  .sim-ctl-base b { color: var(--text-dim); }
+  .sim-ctl input[type="range"] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 4px;
+    background: linear-gradient(90deg, rgba(255,255,255,.1), rgba(139,92,246,.5)); outline: none;
+  }
+  .sim-ctl input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; cursor: grab;
+    background: #a855f7; border: 2px solid #0a0518; box-shadow: 0 0 12px rgba(139,92,246,.9);
+  }
+  .sim-ctl input[type="range"]::-moz-range-thumb {
+    width: 15px; height: 15px; border-radius: 50%; cursor: grab; border: 2px solid #0a0518;
+    background: #a855f7; box-shadow: 0 0 12px rgba(139,92,246,.9);
+  }
+  .sim-saida { display: flex; flex-direction: column; gap: 12px; }
+  .sim-res {
+    display: flex; flex-direction: column; gap: 2px; padding: 11px 14px; border-radius: 10px;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }
+  .sim-res-rot {
+    font-size: .58rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-mute);
+  }
+  .sim-res-val {
+    font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums;
+    background: var(--grad-hero); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sim-res-sub { font-size: .7rem; color: var(--text-dim); }
+  .sim-res-sub.ok { color: #8fe38f; }
+  .sim-res-sub.bad { color: #ff9c96; }
+  .sim-svg { width: 100%; height: auto; }
+  .sim-bar-real { fill: #22d3ee; opacity: .85; }
+  .sim-bar-cen { fill: #a855f7; }
+  .sim-lbl { fill: #93a8c4; font-size: 10px; font-family: 'Sora', sans-serif; }
+  .sim-val { fill: #fff; font-size: 11px; font-weight: 700; font-family: 'Sora', sans-serif; }
+  .sim-meta-line { stroke: #f0abfc; stroke-width: 2; stroke-dasharray: 5 3; }
+  @media (max-width: 780px) { .sim-grid { grid-template-columns: 1fr; } }
 
   /* ------------------------------------------------------------ GA4 · Jornada */
   .ga4-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 12px; }
@@ -849,10 +1099,93 @@
 </div>
 
 <header class="top">
+  <div class="cosmos-hero-art"><svg viewBox="0 0 760 560" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="cx-neb1" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity=".55"/>
+      <stop offset="45%" stop-color="#7c3aed" stop-opacity=".28"/>
+      <stop offset="100%" stop-color="#4c1d95" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cx-neb2" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#f0abfc" stop-opacity=".42"/>
+      <stop offset="55%" stop-color="#d946ef" stop-opacity=".18"/>
+      <stop offset="100%" stop-color="#a21caf" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cx-neb3" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#67e8f9" stop-opacity=".34"/>
+      <stop offset="60%" stop-color="#0891b2" stop-opacity=".14"/>
+      <stop offset="100%" stop-color="#164e63" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cx-disk" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity=".05"/>
+      <stop offset="18%" stop-color="#818cf8" stop-opacity=".55"/>
+      <stop offset="42%" stop-color="#f5d0fe" stop-opacity=".95"/>
+      <stop offset="58%" stop-color="#fdba74" stop-opacity=".9"/>
+      <stop offset="80%" stop-color="#c026d3" stop-opacity=".5"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity=".05"/>
+    </linearGradient>
+    <linearGradient id="cx-disk2" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0"/>
+      <stop offset="35%" stop-color="#fef3c7" stop-opacity=".85"/>
+      <stop offset="65%" stop-color="#fbcfe8" stop-opacity=".7"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cx-comet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="70%" stop-color="#a5f3fc" stop-opacity=".65"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity=".95"/>
+    </linearGradient>
+    <radialGradient id="cx-glow" cx="50%" cy="50%">
+      <stop offset="0%" stop-color="#fff" stop-opacity=".9"/>
+      <stop offset="35%" stop-color="#e9d5ff" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="cx-blur"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="cx-blur-s"><feGaussianBlur stdDeviation="2.4"/></filter>
+  </defs>
+
+  <!-- nuvens de nebulosa -->
+  <ellipse cx="416.0" cy="204.0" rx="364.8" ry="224.0" fill="url(#cx-neb1)"/>
+  <ellipse cx="576.0" cy="314.0" rx="258.40000000000003" ry="156.8" fill="url(#cx-neb2)"/>
+  <ellipse cx="286.0" cy="354.0" rx="228.0" ry="134.4" fill="url(#cx-neb3)"/>
+
+  <!-- estrelas -->
+  <g><circle cx="700.7" cy="239.4" r="1.61" fill="#fff" opacity="0.46"/><circle cx="357.4" cy="98.7" r="0.66" fill="#fff" opacity="0.94"/><circle cx="101.4" cy="348.9" r="0.27" fill="#fff" opacity="0.41"/><circle cx="500.0" cy="420.4" r="1.19" fill="#fff" opacity="0.65"/><circle cx="667.2" cy="362.4" r="1.43" fill="#fff" opacity="0.28"/><circle cx="466.4" cy="158.9" r="0.76" fill="#fff" opacity="0.59"/><g opacity="0.35"><circle cx="656.5" cy="99.5" r="1.53" fill="#fff"/><path d="M656.5 91.8V107.1M648.8 99.5H664.1" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="323.4" cy="378.8" r="1.44" fill="#fff" opacity="0.47"/><circle cx="589.4" cy="156.2" r="1.23" fill="#fff" opacity="0.81"/><circle cx="367.1" cy="462.8" r="1.04" fill="#fff" opacity="0.71"/><circle cx="86.7" cy="267.7" r="1.49" fill="#fff" opacity="0.95"/><circle cx="531.7" cy="1.8" r="1.49" fill="#fff" opacity="0.42"/><circle cx="265.2" cy="524.9" r="1.46" fill="#fff" opacity="0.76"/><circle cx="349.5" cy="56.7" r="0.86" fill="#fff" opacity="0.62"/><circle cx="214.9" cy="201.9" r="1.46" fill="#fff" opacity="0.77"/><circle cx="488.7" cy="547.2" r="0.73" fill="#fff" opacity="0.59"/><circle cx="331.7" cy="383.1" r="0.66" fill="#fff" opacity="0.72"/><circle cx="538.4" cy="386.7" r="0.43" fill="#fff" opacity="0.74"/><circle cx="174.3" cy="77.5" r="1.12" fill="#fff" opacity="0.54"/><g opacity="0.75"><circle cx="251.6" cy="424.8" r="1.50" fill="#fff"/><path d="M251.6 417.3V432.3M244.1 424.8H259.1" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="77.1" cy="435.3" r="1.29" fill="#fff" opacity="0.41"/><circle cx="231.5" cy="484.6" r="0.82" fill="#fff" opacity="0.50"/><circle cx="691.5" cy="529.6" r="0.59" fill="#fff" opacity="0.48"/><circle cx="207.4" cy="124.9" r="1.42" fill="#fff" opacity="0.49"/><circle cx="209.2" cy="146.4" r="1.69" fill="#fff" opacity="0.36"/><circle cx="133.4" cy="189.8" r="1.15" fill="#fff" opacity="0.26"/><g opacity="0.56"><circle cx="346.3" cy="229.3" r="0.45" fill="#fff"/><path d="M346.3 227.0V231.6M344.1 229.3H348.6" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="745.0" cy="368.7" r="1.67" fill="#fff" opacity="0.25"/><circle cx="105.9" cy="135.6" r="1.17" fill="#fff" opacity="0.77"/><circle cx="147.6" cy="468.7" r="0.59" fill="#fff" opacity="0.34"/><circle cx="505.4" cy="134.7" r="0.62" fill="#fff" opacity="0.56"/><circle cx="512.2" cy="322.8" r="1.16" fill="#fff" opacity="0.94"/><circle cx="735.2" cy="107.9" r="0.80" fill="#fff" opacity="0.48"/><circle cx="206.3" cy="255.9" r="1.50" fill="#fff" opacity="0.59"/><g opacity="0.35"><circle cx="284.6" cy="469.6" r="1.45" fill="#fff"/><path d="M284.6 462.4V476.9M277.4 469.6H291.8" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><g opacity="0.46"><circle cx="548.5" cy="201.8" r="1.06" fill="#fff"/><path d="M548.5 196.5V207.1M543.2 201.8H553.8" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="489.9" cy="73.6" r="1.56" fill="#fff" opacity="0.51"/><circle cx="600.0" cy="157.4" r="0.43" fill="#fff" opacity="0.45"/><circle cx="517.3" cy="282.3" r="0.64" fill="#fff" opacity="0.74"/><g opacity="0.41"><circle cx="687.4" cy="539.3" r="1.45" fill="#fff"/><path d="M687.4 532.0V546.5M680.1 539.3H694.6" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="443.4" cy="9.2" r="0.33" fill="#fff" opacity="0.52"/><circle cx="168.8" cy="120.9" r="0.89" fill="#fff" opacity="0.92"/><circle cx="365.0" cy="197.0" r="1.33" fill="#fff" opacity="0.60"/><circle cx="76.2" cy="211.6" r="1.10" fill="#fff" opacity="0.27"/><circle cx="193.7" cy="112.8" r="0.33" fill="#fff" opacity="0.41"/><circle cx="215.0" cy="293.5" r="1.40" fill="#fff" opacity="0.73"/><circle cx="225.9" cy="291.1" r="0.91" fill="#fff" opacity="0.25"/><circle cx="367.4" cy="56.1" r="1.67" fill="#fff" opacity="0.53"/><circle cx="40.7" cy="165.3" r="0.67" fill="#fff" opacity="0.79"/><circle cx="340.3" cy="10.4" r="0.37" fill="#fff" opacity="0.61"/><circle cx="657.4" cy="428.8" r="1.28" fill="#fff" opacity="0.43"/><circle cx="631.1" cy="165.5" r="0.27" fill="#fff" opacity="0.63"/><circle cx="543.7" cy="150.9" r="0.95" fill="#fff" opacity="0.69"/><g opacity="0.36"><circle cx="146.3" cy="217.2" r="1.31" fill="#fff"/><path d="M146.3 210.7V223.8M139.8 217.2H152.8" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="330.4" cy="26.0" r="1.40" fill="#fff" opacity="0.82"/><circle cx="20.7" cy="503.4" r="0.33" fill="#fff" opacity="0.67"/><circle cx="5.5" cy="88.9" r="0.58" fill="#fff" opacity="0.34"/><circle cx="602.8" cy="347.6" r="1.39" fill="#fff" opacity="0.43"/><circle cx="209.7" cy="97.4" r="0.64" fill="#fff" opacity="0.53"/><circle cx="282.0" cy="200.4" r="0.50" fill="#fff" opacity="0.90"/><circle cx="688.9" cy="109.2" r="0.35" fill="#fff" opacity="0.88"/><circle cx="22.0" cy="559.2" r="0.89" fill="#fff" opacity="0.53"/><circle cx="257.6" cy="78.9" r="0.75" fill="#fff" opacity="0.34"/><circle cx="578.9" cy="135.3" r="0.69" fill="#fff" opacity="0.47"/><circle cx="751.7" cy="404.4" r="0.96" fill="#fff" opacity="0.47"/><circle cx="481.5" cy="351.0" r="1.46" fill="#fff" opacity="0.51"/><circle cx="417.8" cy="117.3" r="0.70" fill="#fff" opacity="0.75"/><circle cx="284.3" cy="243.5" r="1.44" fill="#fff" opacity="0.54"/><circle cx="187.1" cy="411.2" r="1.28" fill="#fff" opacity="0.49"/><circle cx="637.6" cy="543.2" r="0.85" fill="#fff" opacity="0.42"/><circle cx="533.6" cy="200.6" r="0.36" fill="#fff" opacity="0.53"/><g opacity="0.59"><circle cx="690.5" cy="74.7" r="1.15" fill="#fff"/><path d="M690.5 69.0V80.5M684.7 74.7H696.2" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="35.9" cy="212.1" r="0.32" fill="#fff" opacity="0.25"/><circle cx="649.3" cy="202.8" r="1.51" fill="#fff" opacity="0.65"/><circle cx="319.8" cy="101.0" r="1.58" fill="#fff" opacity="0.32"/><circle cx="6.9" cy="202.7" r="0.52" fill="#fff" opacity="0.93"/><circle cx="355.1" cy="152.2" r="1.19" fill="#fff" opacity="0.82"/><circle cx="473.9" cy="538.7" r="1.65" fill="#fff" opacity="0.48"/><circle cx="121.1" cy="462.4" r="1.51" fill="#fff" opacity="0.50"/><circle cx="719.8" cy="129.4" r="0.49" fill="#fff" opacity="0.77"/><circle cx="531.5" cy="541.9" r="1.21" fill="#fff" opacity="0.57"/><circle cx="537.5" cy="65.8" r="1.19" fill="#fff" opacity="0.94"/><circle cx="535.9" cy="46.3" r="1.14" fill="#fff" opacity="0.84"/><circle cx="123.0" cy="366.6" r="0.32" fill="#fff" opacity="0.58"/><circle cx="584.7" cy="238.3" r="1.31" fill="#fff" opacity="0.51"/><circle cx="479.1" cy="344.1" r="1.70" fill="#fff" opacity="0.33"/><circle cx="121.1" cy="107.5" r="1.58" fill="#fff" opacity="0.72"/><circle cx="571.1" cy="416.5" r="1.37" fill="#fff" opacity="0.45"/><circle cx="206.7" cy="458.0" r="0.74" fill="#fff" opacity="0.94"/><circle cx="411.0" cy="432.0" r="1.35" fill="#fff" opacity="0.46"/><circle cx="652.6" cy="272.3" r="0.42" fill="#fff" opacity="0.71"/><circle cx="387.3" cy="334.9" r="0.78" fill="#fff" opacity="0.25"/><circle cx="263.8" cy="294.9" r="1.13" fill="#fff" opacity="0.74"/><circle cx="396.8" cy="479.2" r="1.28" fill="#fff" opacity="0.45"/><circle cx="160.3" cy="252.5" r="1.27" fill="#fff" opacity="0.57"/><circle cx="456.9" cy="398.4" r="1.71" fill="#fff" opacity="0.90"/><circle cx="467.8" cy="372.3" r="1.16" fill="#fff" opacity="0.45"/><circle cx="307.8" cy="439.7" r="0.49" fill="#fff" opacity="0.56"/><circle cx="692.2" cy="166.1" r="0.73" fill="#fff" opacity="0.79"/><circle cx="356.7" cy="398.9" r="1.69" fill="#fff" opacity="0.80"/><circle cx="221.7" cy="546.4" r="1.07" fill="#fff" opacity="0.57"/><g opacity="0.62"><circle cx="318.7" cy="328.2" r="0.32" fill="#fff"/><path d="M318.7 326.7V329.8M317.1 328.2H320.2" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="383.2" cy="359.2" r="0.48" fill="#fff" opacity="0.78"/><circle cx="52.7" cy="367.7" r="0.83" fill="#fff" opacity="0.68"/><circle cx="147.4" cy="248.9" r="1.55" fill="#fff" opacity="0.81"/><circle cx="404.9" cy="322.2" r="1.34" fill="#fff" opacity="0.58"/><circle cx="587.6" cy="219.6" r="1.23" fill="#fff" opacity="0.70"/><circle cx="17.1" cy="331.4" r="0.48" fill="#fff" opacity="0.44"/><circle cx="660.1" cy="265.0" r="1.12" fill="#fff" opacity="0.56"/><circle cx="622.0" cy="412.6" r="0.47" fill="#fff" opacity="0.71"/><circle cx="688.5" cy="236.2" r="0.65" fill="#fff" opacity="0.77"/><circle cx="595.2" cy="342.7" r="0.93" fill="#fff" opacity="0.45"/><circle cx="417.7" cy="537.7" r="0.50" fill="#fff" opacity="0.80"/><circle cx="528.2" cy="144.8" r="0.93" fill="#fff" opacity="0.92"/><circle cx="701.8" cy="75.7" r="1.59" fill="#fff" opacity="0.82"/><circle cx="314.7" cy="67.7" r="0.40" fill="#fff" opacity="0.79"/><circle cx="128.9" cy="69.9" r="1.63" fill="#fff" opacity="0.72"/><circle cx="292.3" cy="393.6" r="1.01" fill="#fff" opacity="0.40"/><circle cx="251.8" cy="290.0" r="1.71" fill="#fff" opacity="0.26"/><circle cx="46.7" cy="292.9" r="0.87" fill="#fff" opacity="0.36"/><circle cx="109.0" cy="239.2" r="0.89" fill="#fff" opacity="0.48"/><circle cx="327.3" cy="433.0" r="1.31" fill="#fff" opacity="0.70"/><circle cx="352.2" cy="425.2" r="0.74" fill="#fff" opacity="0.56"/><circle cx="552.3" cy="35.0" r="0.42" fill="#fff" opacity="0.49"/><circle cx="107.0" cy="235.9" r="1.58" fill="#fff" opacity="0.50"/><circle cx="471.1" cy="85.3" r="0.56" fill="#fff" opacity="0.46"/><g opacity="0.60"><circle cx="372.3" cy="27.1" r="1.12" fill="#fff"/><path d="M372.3 21.5V32.7M366.7 27.1H377.8" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="323.5" cy="13.9" r="0.26" fill="#fff" opacity="0.43"/><circle cx="432.7" cy="497.8" r="1.74" fill="#fff" opacity="0.43"/><circle cx="116.2" cy="210.1" r="0.72" fill="#fff" opacity="0.68"/><g opacity="0.83"><circle cx="420.4" cy="353.1" r="0.64" fill="#fff"/><path d="M420.4 349.9V356.3M417.1 353.1H423.6" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="251.0" cy="13.6" r="1.48" fill="#fff" opacity="0.33"/><circle cx="747.9" cy="53.2" r="0.46" fill="#fff" opacity="0.74"/><circle cx="308.7" cy="117.4" r="1.56" fill="#fff" opacity="0.87"/><circle cx="4.9" cy="405.2" r="0.90" fill="#fff" opacity="0.58"/><circle cx="750.3" cy="332.8" r="0.36" fill="#fff" opacity="0.63"/><circle cx="109.7" cy="286.3" r="1.09" fill="#fff" opacity="0.89"/><circle cx="98.3" cy="285.5" r="1.01" fill="#fff" opacity="0.75"/><circle cx="166.3" cy="215.2" r="1.65" fill="#fff" opacity="0.75"/><circle cx="156.3" cy="446.7" r="0.58" fill="#fff" opacity="0.93"/><circle cx="710.8" cy="475.8" r="0.70" fill="#fff" opacity="0.68"/><circle cx="321.4" cy="8.1" r="1.13" fill="#fff" opacity="0.56"/><g opacity="0.46"><circle cx="697.4" cy="515.1" r="0.32" fill="#fff"/><path d="M697.4 513.5V516.7M695.8 515.1H699.0" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="538.9" cy="44.0" r="0.33" fill="#fff" opacity="0.37"/><circle cx="663.8" cy="419.9" r="0.99" fill="#fff" opacity="0.75"/><circle cx="256.3" cy="31.8" r="1.33" fill="#fff" opacity="0.51"/><circle cx="408.3" cy="525.0" r="1.43" fill="#fff" opacity="0.66"/><circle cx="109.6" cy="40.7" r="1.13" fill="#fff" opacity="0.67"/><circle cx="316.0" cy="540.9" r="1.69" fill="#fff" opacity="0.44"/><circle cx="334.5" cy="366.7" r="1.21" fill="#fff" opacity="0.95"/><circle cx="412.1" cy="351.9" r="1.03" fill="#fff" opacity="0.36"/><circle cx="411.9" cy="333.7" r="0.75" fill="#fff" opacity="0.45"/><circle cx="599.8" cy="220.2" r="1.01" fill="#fff" opacity="0.80"/><circle cx="147.5" cy="533.1" r="0.73" fill="#fff" opacity="0.86"/><g opacity="0.74"><circle cx="147.2" cy="209.8" r="0.43" fill="#fff"/><path d="M147.2 207.7V211.9M145.1 209.8H149.4" stroke="#fff" stroke-width=".5" stroke-linecap="round" opacity=".55"/></g><circle cx="624.7" cy="295.8" r="0.67" fill="#fff" opacity="0.91"/><circle cx="426.0" cy="438.0" r="0.28" fill="#fff" opacity="0.66"/><circle cx="370.2" cy="266.5" r="0.51" fill="#fff" opacity="0.61"/><circle cx="553.3" cy="156.6" r="0.87" fill="#fff" opacity="0.58"/><circle cx="332.1" cy="456.0" r="0.94" fill="#fff" opacity="0.34"/><circle cx="506.6" cy="269.2" r="1.31" fill="#fff" opacity="0.40"/><circle cx="124.1" cy="102.9" r="0.49" fill="#fff" opacity="0.86"/><circle cx="316.2" cy="397.4" r="0.43" fill="#fff" opacity="0.35"/><circle cx="569.1" cy="166.1" r="0.84" fill="#fff" opacity="0.94"/><circle cx="91.2" cy="27.8" r="0.97" fill="#fff" opacity="0.60"/><circle cx="679.4" cy="427.8" r="1.28" fill="#fff" opacity="0.73"/><circle cx="359.0" cy="248.2" r="1.68" fill="#fff" opacity="0.58"/><circle cx="175.8" cy="337.7" r="0.67" fill="#fff" opacity="0.63"/><circle cx="86.1" cy="53.5" r="0.32" fill="#fff" opacity="0.54"/><circle cx="178.3" cy="91.3" r="0.33" fill="#fff" opacity="0.55"/><circle cx="215.0" cy="292.8" r="0.63" fill="#fff" opacity="0.69"/><circle cx="70.4" cy="450.0" r="0.71" fill="#fff" opacity="0.93"/><circle cx="560.4" cy="91.3" r="1.03" fill="#fff" opacity="0.42"/><circle cx="160.4" cy="450.5" r="0.89" fill="#fff" opacity="0.29"/><circle cx="698.3" cy="224.4" r="1.18" fill="#fff" opacity="0.52"/><circle cx="312.3" cy="33.7" r="1.57" fill="#fff" opacity="0.85"/><circle cx="25.9" cy="18.3" r="0.45" fill="#fff" opacity="0.41"/><circle cx="212.3" cy="263.6" r="0.33" fill="#fff" opacity="0.46"/><circle cx="309.7" cy="264.8" r="0.34" fill="#fff" opacity="0.42"/><circle cx="287.8" cy="550.4" r="0.42" fill="#fff" opacity="0.89"/><circle cx="457.1" cy="148.9" r="0.27" fill="#fff" opacity="0.47"/><circle cx="0.8" cy="176.9" r="1.21" fill="#fff" opacity="0.68"/><circle cx="552.8" cy="334.0" r="0.41" fill="#fff" opacity="0.69"/><circle cx="567.4" cy="512.5" r="0.97" fill="#fff" opacity="0.32"/><circle cx="357.8" cy="191.5" r="0.85" fill="#fff" opacity="0.90"/><circle cx="213.5" cy="547.5" r="1.30" fill="#fff" opacity="0.73"/><circle cx="757.2" cy="382.3" r="0.70" fill="#fff" opacity="0.31"/><circle cx="48.4" cy="485.1" r="1.60" fill="#fff" opacity="0.66"/><circle cx="359.8" cy="129.4" r="0.85" fill="#fff" opacity="0.62"/><circle cx="385.4" cy="144.5" r="1.35" fill="#fff" opacity="0.67"/></g>
+
+  <!-- disco de acreção: elipses achatadas em perspectiva -->
+  <g transform="translate(456.0 224.0) rotate(-22)">
+    <ellipse rx="252" ry="74" fill="none" stroke="url(#cx-disk)" stroke-width="30" opacity=".5" filter="url(#cx-blur)"/>
+    <ellipse rx="234" ry="62" fill="none" stroke="url(#cx-disk)" stroke-width="15" opacity=".92"/>
+    <ellipse rx="206" ry="47" fill="none" stroke="url(#cx-disk2)" stroke-width="7" opacity=".85"/>
+    <ellipse rx="182" ry="35" fill="none" stroke="#fff7ed" stroke-width="2.2" opacity=".5"/>
+    <!-- halo de fóton -->
+    <circle r="96" fill="none" stroke="#fde68a" stroke-width="2" opacity=".45" filter="url(#cx-blur-s)"/>
+    <circle r="88" fill="none" stroke="#fff" stroke-width="1.1" opacity=".55"/>
+    <!-- horizonte de eventos -->
+    <circle r="82" fill="#04010c"/>
+    <circle r="82" fill="none" stroke="#c4b5fd" stroke-width=".8" opacity=".35"/>
+  </g>
+
+  <!-- planeta secundário -->
+  <g transform="translate(684.0 336.0)">
+    <circle r="30" fill="url(#cx-glow)" opacity=".5"/>
+    <circle r="21" fill="#150b2e"/>
+    <path d="M-21 0a21 21 0 0 1 42 0" fill="#3b1f6b" opacity=".85"/>
+    <circle r="21" fill="none" stroke="#a78bfa" stroke-width=".7" opacity=".5"/>
+  </g>
+
+  <!-- cometa -->
+  <g transform="translate(562.4 448.0) rotate(38)">
+    <path d="M-190 0 L0 0" stroke="url(#cx-comet)" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M-120 0 L0 0" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".8"/>
+    <circle r="18" fill="url(#cx-glow)"/>
+    <circle r="4.2" fill="#fff"/>
+  </g>
+</svg></div>
   <div class="head-grid">
     <div>
-      <span class="pill-badge">War Room · Inteligência Competitiva · 2026-08-01</span>
-      <h1 class="cover-title">Joie<em>Monitoramento Competitivo</em></h1>
+      <span class="pill-badge">War Room · Inteligência Competitiva · 2026-08-02</span>
+      <h1 class="cover-title">Joie<em class="cosmos-grad">Monitoramento Competitivo</em></h1>
       <div class="rule"></div>
       <p class="cover-sub">Preço, desconto e posição da concorrência em marketplaces, cruzados com o
       <b>desempenho real</b> das nossas campanhas — com <b>diagnóstico antes de qualquer ação</b>.</p>
@@ -879,7 +1212,7 @@
         <text x="64" y="106" class="seal-label">dado real</text>
       </svg>
       <div class="top-stats">
-        <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">2026-08-01 10:55 UTC</span></div>
+        <div class="top-stat"><span class="top-stat-label">Última varredura</span><span class="top-stat-value">2026-08-02 02:50 UTC</span></div>
         <div class="top-stat"><span class="top-stat-label">Alertas na rodada</span><span class="top-stat-value" data-count="6">6</span></div>
       </div>
     </div>
@@ -917,7 +1250,9 @@
   <button class="tab-btn active" data-tab="visao-geral" role="tab" aria-selected="true">Visão Geral</button>
   <button class="tab-btn" data-tab="marketplaces" role="tab" aria-selected="false">Marketplaces</button>
   <button class="tab-btn" data-tab="concorrentes" role="tab" aria-selected="false">Concorrentes</button>
+  <button class="tab-btn" data-tab="metas" role="tab" aria-selected="false">Metas &amp; Evolução</button>
   <button class="tab-btn" data-tab="ga4" role="tab" aria-selected="false">GA4 · Jornada</button>
+  <button class="tab-btn" data-tab="meta-ads" role="tab" aria-selected="false">Meta Ads</button>
   <button class="tab-btn" data-tab="keywords" role="tab" aria-selected="false">Keywords &amp; Leilão</button>
   <button class="tab-btn" data-tab="historico" role="tab" aria-selected="false">Histórico Preço × Ads</button>
   <button class="tab-btn" data-tab="selecao" role="tab" aria-selected="false">Seleção Manual</button>
@@ -1020,7 +1355,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Price-match seletivo só nos SKUs mais expostos, não na linha toda</li><li>Reforçar prova social (reviews/garantia) para justificar não seguir a queda</li><li>Campanha de retenção/e-mail para base já convertida</li><li>Checar se é liquidação temporária antes de comprometer margem de forma permanente</li></ul>
       <div class="kpis"><span class="kpi">Margem de contribuição</span><span class="kpi">ROAS</span><span class="kpi">CAC</span><span class="kpi">Share of search/Buy Box</span><span class="kpi">Taxa de conversão</span><span class="kpi">Ticket médio</span></div>
-      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.05s" data-alerta-idx="1"
              aria-label="Battlecard Faciderm contra Black Skull — abrir detalhe">
@@ -1038,7 +1373,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Cupom-espelho de curta duração no produto equivalente</li><li>Destacar frete grátis/parcelamento se não puder cobrir o desconto</li><li>Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado</li></ul>
       <div class="kpis"><span class="kpi">CTR</span><span class="kpi">Taxa de conversão</span><span class="kpi">CAC no período do cupom</span><span class="kpi">ROAS da campanha ativa</span></div>
-      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.10s" data-alerta-idx="2"
              aria-label="Battlecard Faciderm contra Growth Supplements — abrir detalhe">
@@ -1056,7 +1391,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas</li><li>Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta</li></ul>
       <div class="kpis"><span class="kpi">Share of search</span><span class="kpi">Posição média</span><span class="kpi">Taxa de conversão</span></div>
-      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-faciderm" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.15s" data-alerta-idx="3"
              aria-label="Battlecard Amaze contra Black Skull — abrir detalhe">
@@ -1074,7 +1409,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)</li><li>Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa</li><li>Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento</li></ul>
       <div class="kpis"><span class="kpi">Posição média na busca</span><span class="kpi">CTR</span><span class="kpi">Taxa de conversão</span><span class="kpi">Impression share (Mercado Ads)</span></div>
-      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.20s" data-alerta-idx="4"
              aria-label="Battlecard Amaze contra Growth Supplements — abrir detalhe">
@@ -1092,7 +1427,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã</li><li>Não reduzir preço proativamente — a demanda já não tem para onde ir</li></ul>
       <div class="kpis"><span class="kpi">Share of search</span><span class="kpi">Volume/conversão do SKU equivalente</span><span class="kpi">ROAS</span></div>
-      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/growth-amaze" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article>
     <article class="card sev-media" style="--d:0.25s" data-alerta-idx="5"
              aria-label="Battlecard Linha Joie Fit contra Black Skull — abrir detalhe">
@@ -1110,7 +1445,7 @@
       <p class="label">// estratégia imediata</p>
       <ul><li>Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura</li><li>Atualizar comparativos de preço em conteúdo/anúncio</li></ul>
       <div class="kpis"><span class="kpi">Share of search/impressões</span><span class="kpi">ROAS</span><span class="kpi">CAC</span></div>
-      <div class="foot"><span>2026-08-01 10:55 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-whey" target="_blank" rel="noopener">◈ ver evidência</a></div>
+      <div class="foot"><span>2026-08-02 02:50 UTC</span><a href="https://mercadolivre.com.br/simulado/black-skull-whey" target="_blank" rel="noopener">◈ ver evidência</a></div>
     </article></div>
     </section>
     <p class="caveat">Investimento real (R$) em ads não é dado público em nenhuma plataforma — os sinais de
@@ -1421,12 +1756,290 @@ coletado" em vez de inventar posição/preço.</p></section>
 dado sai do somatório em vez de virar 0 (ver metodologia completa em descoberta.xlsx / SKILL.md, passo 11).</p></section>
   </div>
 
+  <div class="tab-panel" data-tab="metas">
+    
+<section>
+  <h2>Metas do período — 02/07 a 31/07/2026 (30 dias)</h2>
+  
+<div class="meta-grid">
+    <div class="meta-card st-bad">
+      <div class="meta-top">
+        <span class="meta-rotulo">Faturamento</span>
+        <span class="meta-status st-bad">fora do ritmo</span>
+      </div>
+      <div class="meta-valores">
+        <span class="meta-real">R$ 111.184</span>
+        <span class="meta-alvo">/ R$ 150.000</span>
+      </div>
+      <div class="meta-track">
+        <div class="meta-bar" style="--w:74.1%"></div><span class="meta-ritmo" style="left:96.8%" title="ritmo ideal até hoje"></span>
+      </div>
+      <div class="meta-foot">
+        <span class="meta-pct">74% da meta</span>
+        <span class="meta-extra">faltam R$ 38.816 · projeção R$ 114.890 · precisa R$ 38.816/dia</span>
+      </div>
+    </div>
+    <div class="meta-card st-bad">
+      <div class="meta-top">
+        <span class="meta-rotulo">Unidades vendidas</span>
+        <span class="meta-status st-bad">fora do ritmo</span>
+      </div>
+      <div class="meta-valores">
+        <span class="meta-real">199</span>
+        <span class="meta-alvo">/ 280</span>
+      </div>
+      <div class="meta-track">
+        <div class="meta-bar" style="--w:71.1%"></div><span class="meta-ritmo" style="left:96.8%" title="ritmo ideal até hoje"></span>
+      </div>
+      <div class="meta-foot">
+        <span class="meta-pct">71% da meta</span>
+        <span class="meta-extra">faltam 81 · projeção 206 · precisa 81/dia</span>
+      </div>
+    </div>
+    <div class="meta-card st-ok">
+      <div class="meta-top">
+        <span class="meta-rotulo">Ticket médio</span>
+        <span class="meta-status st-ok">no alvo</span>
+      </div>
+      <div class="meta-valores">
+        <span class="meta-real">R$ 558,71</span>
+        <span class="meta-alvo">/ R$ 540,00</span>
+      </div>
+      <div class="meta-track">
+        <div class="meta-bar" style="--w:100.0%"></div>
+      </div>
+      <div class="meta-foot">
+        <span class="meta-pct">103% da meta</span>
+        <span class="meta-extra">receita ÷ compras</span>
+      </div>
+    </div>
+    <div class="meta-card st-warn">
+      <div class="meta-top">
+        <span class="meta-rotulo">Sessões</span>
+        <span class="meta-status st-warn">atenção</span>
+      </div>
+      <div class="meta-valores">
+        <span class="meta-real">20.310</span>
+        <span class="meta-alvo">/ 24.000</span>
+      </div>
+      <div class="meta-track">
+        <div class="meta-bar" style="--w:84.6%"></div><span class="meta-ritmo" style="left:96.8%" title="ritmo ideal até hoje"></span>
+      </div>
+      <div class="meta-foot">
+        <span class="meta-pct">85% da meta</span>
+        <span class="meta-extra">faltam 3.690 · projeção 20.987 · precisa 3.690/dia</span>
+      </div>
+    </div>
+    <div class="meta-card st-bad">
+      <div class="meta-top">
+        <span class="meta-rotulo">Taxa de conversão</span>
+        <span class="meta-status st-bad">abaixo</span>
+      </div>
+      <div class="meta-valores">
+        <span class="meta-real">0.98%</span>
+        <span class="meta-alvo">/ 1.25%</span>
+      </div>
+      <div class="meta-track">
+        <div class="meta-bar" style="--w:78.4%"></div>
+      </div>
+      <div class="meta-foot">
+        <span class="meta-pct">78% da meta</span>
+        <span class="meta-extra">faltam 0.27%</span>
+      </div>
+    </div>
+    <div class="meta-card st-warn">
+      <div class="meta-top">
+        <span class="meta-rotulo">Receita por sessão</span>
+        <span class="meta-status st-warn">atenção</span>
+      </div>
+      <div class="meta-valores">
+        <span class="meta-real">R$ 5,47</span>
+        <span class="meta-alvo">/ R$ 6,25</span>
+      </div>
+      <div class="meta-track">
+        <div class="meta-bar" style="--w:87.6%"></div>
+      </div>
+      <div class="meta-foot">
+        <span class="meta-pct">88% da meta</span>
+        <span class="meta-extra">faltam R$ 0,78</span>
+      </div>
+    </div></div>
+<p class="tab-note">Dia <strong>30</strong> de <strong>31</strong> do período. O traço vertical na
+barra é o <strong>ritmo ideal até hoje</strong> (meta distribuída linearmente) — estar atrás dele significa
+fora do ritmo mesmo com a barra crescendo. "Projeção" mantém o ritmo médio observado: é
+<strong>premissa</strong>, não previsão. Ticket médio, conversão e receita/sessão não são acumuláveis, então
+não têm linha de ritmo nem projeção.</p>
+</section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Evolução × meta</h2>
+  
+<div class="ga4-serie-card">
+  <div class="hist-chart-head">
+    <span class="hist-chart-title">Evolução acumulada <span class="vs">× meta</span></span>
+    <span class="hist-chart-legend">
+      <span class="leg-item"><span class="leg-swatch sw-real"></span>realizado (medido)</span>
+      <span class="leg-item"><span class="leg-swatch sw-metaline"></span>linha de meta</span>
+    </span>
+  </div>
+  <svg viewBox="0 0 980 300" class="ga4-serie-svg hist-chart-svg" role="img"
+       aria-label="Faturamento acumulado medido contra a linha de meta do período">
+    <line class="ga4-grid" x1="66" y1="18.0" x2="960" y2="18.0" /><line class="ga4-grid" x1="66" y1="78.5" x2="960" y2="78.5" /><line class="ga4-grid" x1="66" y1="139.0" x2="960" y2="139.0" /><line class="ga4-grid" x1="66" y1="199.5" x2="960" y2="199.5" /><line class="ga4-grid" x1="66" y1="260.0" x2="960" y2="260.0" />
+    <path class="ev-area" d="M 66.0,260.0 L 66.0,248.7 L 96.8,244.0 L 127.7,239.6 L 158.5,235.6 L 189.3,230.6 L 220.1,223.6 L 251.0,214.4 L 281.8,201.1 L 312.6,196.6 L 343.4,195.7 L 374.3,191.4 L 405.1,185.5 L 435.9,170.8 L 466.8,169.2 L 497.6,163.8 L 528.4,161.4 L 559.2,156.2 L 590.1,155.5 L 620.9,152.9 L 651.7,140.6 L 682.6,132.6 L 713.4,132.3 L 744.2,129.7 L 775.0,128.7 L 805.9,127.2 L 836.7,122.6 L 867.5,115.5 L 898.3,104.0 L 929.2,89.1 L 960.0,85.8 L 960.0,260.0 Z" />
+    <polyline class="ev-meta" points="66.0,252.4 96.8,244.8 127.7,237.3 158.5,229.7 189.3,222.1 220.1,214.5 251.0,206.9 281.8,199.3 312.6,191.8 343.4,184.2 374.3,176.6 405.1,169.0 435.9,161.4 466.8,153.8 497.6,146.3 528.4,138.7 559.2,131.1 590.1,123.5 620.9,115.9 651.7,108.3 682.6,100.8 713.4,93.2 744.2,85.6 775.0,78.0 805.9,70.4 836.7,62.9 867.5,55.3 898.3,47.7 929.2,40.1 960.0,32.5" />
+    <polyline class="ev-real hist-linha" points="66.0,248.7 96.8,244.0 127.7,239.6 158.5,235.6 189.3,230.6 220.1,223.6 251.0,214.4 281.8,201.1 312.6,196.6 343.4,195.7 374.3,191.4 405.1,185.5 435.9,170.8 466.8,169.2 497.6,163.8 528.4,161.4 559.2,156.2 590.1,155.5 620.9,152.9 651.7,140.6 682.6,132.6 713.4,132.3 744.2,129.7 775.0,128.7 805.9,127.2 836.7,122.6 867.5,115.5 898.3,104.0 929.2,89.1 960.0,85.8" />
+    <circle class="ev-dot" cx="66.0" cy="248.7" r="3.2"><title>2026-07-02 (dia 1) — acumulado R$ 7.182 — meta do dia R$ 4.839 — receita do dia R$ 7.182</title></circle><circle class="ev-dot" cx="96.8" cy="244.0" r="3.2"><title>2026-07-03 (dia 2) — acumulado R$ 10.220 — meta do dia R$ 9.677 — receita do dia R$ 3.038</title></circle><circle class="ev-dot" cx="127.7" cy="239.6" r="3.2"><title>2026-07-04 (dia 3) — acumulado R$ 13.049 — meta do dia R$ 14.516 — receita do dia R$ 2.829</title></circle><circle class="ev-dot" cx="158.5" cy="235.6" r="3.2"><title>2026-07-05 (dia 4) — acumulado R$ 15.562 — meta do dia R$ 19.355 — receita do dia R$ 2.512</title></circle><circle class="ev-dot" cx="189.3" cy="230.6" r="3.2"><title>2026-07-06 (dia 5) — acumulado R$ 18.756 — meta do dia R$ 24.194 — receita do dia R$ 3.195</title></circle><circle class="ev-dot" cx="220.1" cy="223.6" r="3.2"><title>2026-07-07 (dia 6) — acumulado R$ 23.237 — meta do dia R$ 29.032 — receita do dia R$ 4.480</title></circle><circle class="ev-dot" cx="251.0" cy="214.4" r="3.2"><title>2026-07-08 (dia 7) — acumulado R$ 29.099 — meta do dia R$ 33.871 — receita do dia R$ 5.863</title></circle><circle class="ev-dot" cx="281.8" cy="201.1" r="3.2"><title>2026-07-09 (dia 8) — acumulado R$ 37.582 — meta do dia R$ 38.710 — receita do dia R$ 8.483</title></circle><circle class="ev-dot" cx="312.6" cy="196.6" r="3.2"><title>2026-07-10 (dia 9) — acumulado R$ 40.479 — meta do dia R$ 43.548 — receita do dia R$ 2.897</title></circle><circle class="ev-dot" cx="343.4" cy="195.7" r="3.2"><title>2026-07-11 (dia 10) — acumulado R$ 41.003 — meta do dia R$ 48.387 — receita do dia R$ 524</title></circle><circle class="ev-dot" cx="374.3" cy="191.4" r="3.2"><title>2026-07-12 (dia 11) — acumulado R$ 43.765 — meta do dia R$ 53.226 — receita do dia R$ 2.762</title></circle><circle class="ev-dot" cx="405.1" cy="185.5" r="3.2"><title>2026-07-13 (dia 12) — acumulado R$ 47.527 — meta do dia R$ 58.065 — receita do dia R$ 3.762</title></circle><circle class="ev-dot" cx="435.9" cy="170.8" r="3.2"><title>2026-07-14 (dia 13) — acumulado R$ 56.896 — meta do dia R$ 62.903 — receita do dia R$ 9.369</title></circle><circle class="ev-dot" cx="466.8" cy="169.2" r="3.2"><title>2026-07-15 (dia 14) — acumulado R$ 57.946 — meta do dia R$ 67.742 — receita do dia R$ 1.050</title></circle><circle class="ev-dot" cx="497.6" cy="163.8" r="3.2"><title>2026-07-16 (dia 15) — acumulado R$ 61.387 — meta do dia R$ 72.581 — receita do dia R$ 3.441</title></circle><circle class="ev-dot" cx="528.4" cy="161.4" r="3.2"><title>2026-07-17 (dia 16) — acumulado R$ 62.909 — meta do dia R$ 77.419 — receita do dia R$ 1.521</title></circle><circle class="ev-dot" cx="559.2" cy="156.2" r="3.2"><title>2026-07-18 (dia 17) — acumulado R$ 66.251 — meta do dia R$ 82.258 — receita do dia R$ 3.343</title></circle><circle class="ev-dot" cx="590.1" cy="155.5" r="3.2"><title>2026-07-19 (dia 18) — acumulado R$ 66.688 — meta do dia R$ 87.097 — receita do dia R$ 437</title></circle><circle class="ev-dot" cx="620.9" cy="152.9" r="3.2"><title>2026-07-20 (dia 19) — acumulado R$ 68.363 — meta do dia R$ 91.935 — receita do dia R$ 1.674</title></circle><circle class="ev-dot" cx="651.7" cy="140.6" r="3.2"><title>2026-07-21 (dia 20) — acumulado R$ 76.204 — meta do dia R$ 96.774 — receita do dia R$ 7.841</title></circle><circle class="ev-dot" cx="682.6" cy="132.6" r="3.2"><title>2026-07-22 (dia 21) — acumulado R$ 81.272 — meta do dia R$ 101.613 — receita do dia R$ 5.068</title></circle><circle class="ev-dot" cx="713.4" cy="132.3" r="3.2"><title>2026-07-23 (dia 22) — acumulado R$ 81.502 — meta do dia R$ 106.452 — receita do dia R$ 230</title></circle><circle class="ev-dot" cx="744.2" cy="129.7" r="3.2"><title>2026-07-24 (dia 23) — acumulado R$ 83.143 — meta do dia R$ 111.290 — receita do dia R$ 1.641</title></circle><circle class="ev-dot" cx="775.0" cy="128.7" r="3.2"><title>2026-07-25 (dia 24) — acumulado R$ 83.768 — meta do dia R$ 116.129 — receita do dia R$ 625</title></circle><circle class="ev-dot" cx="805.9" cy="127.2" r="3.2"><title>2026-07-26 (dia 25) — acumulado R$ 84.735 — meta do dia R$ 120.968 — receita do dia R$ 967</title></circle><circle class="ev-dot" cx="836.7" cy="122.6" r="3.2"><title>2026-07-27 (dia 26) — acumulado R$ 87.669 — meta do dia R$ 125.806 — receita do dia R$ 2.935</title></circle><circle class="ev-dot" cx="867.5" cy="115.5" r="3.2"><title>2026-07-28 (dia 27) — acumulado R$ 92.192 — meta do dia R$ 130.645 — receita do dia R$ 4.522</title></circle><circle class="ev-dot" cx="898.3" cy="104.0" r="3.2"><title>2026-07-29 (dia 28) — acumulado R$ 99.562 — meta do dia R$ 135.484 — receita do dia R$ 7.370</title></circle><circle class="ev-dot" cx="929.2" cy="89.1" r="3.2"><title>2026-07-30 (dia 29) — acumulado R$ 109.087 — meta do dia R$ 140.323 — receita do dia R$ 9.525</title></circle><circle class="ev-dot" cx="960.0" cy="85.8" r="3.2"><title>2026-07-31 (dia 30) — acumulado R$ 111.184 — meta do dia R$ 145.161 — receita do dia R$ 2.097</title></circle><text class="eixo-label" x="58" y="264.0" text-anchor="end">R$ 0</text><text class="eixo-label" x="58" y="143.0" text-anchor="end">R$ 72.581</text><text class="eixo-label" x="58" y="22.0" text-anchor="end">R$ 145.161</text><text class="eixo-label" x="66.0" y="288" text-anchor="middle">07-02</text><text class="eixo-label" x="374.3" y="288" text-anchor="middle">07-12</text><text class="eixo-label" x="682.6" y="288" text-anchor="middle">07-22</text><text class="eixo-label" x="960.0" y="288" text-anchor="middle">07-31</text>
+  </svg>
+</div>
+</section>
+<section>
+  <h2>O que precisa mudar para bater a meta</h2>
+  
+<div class="alav-grid">
+    <div class="alav">
+      <div class="alav-var">Tráfego (sessões)</div>
+      <div class="alav-nums">
+        <span class="alav-de">20.310</span>
+        <span class="alav-seta">→</span>
+        <span class="alav-para">27.401</span>
+      </div>
+      <div class="alav-delta">+34.9%</div>
+      <p class="alav-leitura">Mantendo conversão (0.98%) e ticket (559) atuais, faltam ~7,091 sessões no período.</p>
+    </div>
+    <div class="alav">
+      <div class="alav-var">Taxa de conversão</div>
+      <div class="alav-nums">
+        <span class="alav-de">0.98%</span>
+        <span class="alav-seta">→</span>
+        <span class="alav-para">1.32%</span>
+      </div>
+      <div class="alav-delta">+34.9%</div>
+      <p class="alav-leitura">Com o mesmo tráfego e ticket, a conversão precisaria ir de 0.98% para 1.32%.</p>
+    </div>
+    <div class="alav">
+      <div class="alav-var">Ticket médio</div>
+      <div class="alav-nums">
+        <span class="alav-de">R$ 559</span>
+        <span class="alav-seta">→</span>
+        <span class="alav-para">R$ 754</span>
+      </div>
+      <div class="alav-delta">+34.9%</div>
+      <p class="alav-leitura">Com o mesmo número de compras (199), o ticket precisaria ir de R$ 559 para R$ 754.</p>
+    </div></div>
+<p class="tab-note">Cada alavanca considera as outras duas <strong>constantes</strong> — é aritmética reversa
+sobre o realizado, para dar ordem de grandeza e priorizar. Na prática elas se movem juntas (mais tráfego
+frio geralmente derruba conversão), então trate como piso do esforço, não como plano fechado.</p>
+</section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Planejamento — simule o cenário</h2>
+  
+<div class="sim-wrap cosmos-frame">
+  <div class="sim-head">
+    <div>
+      <div class="sim-titulo">Simulador de planejamento</div>
+      <div class="sim-sub">Mexa nas premissas e veja a projeção mudar contra a meta, ao vivo.</div>
+    </div>
+    <button class="btn btn-mini" id="sim-reset" type="button">↺ voltar ao realizado</button>
+  </div>
+  <div class="sim-grid">
+    <div class="sim-controles">
+      <label class="sim-ctl">
+        <span class="sim-ctl-top">Tráfego (sessões) <output id="out-sess"></output></span>
+        <input type="range" id="in-sess" min="-50" max="150" value="0" step="1">
+        <span class="sim-ctl-base">realizado: <b id="base-sess"></b></span>
+      </label>
+      <label class="sim-ctl">
+        <span class="sim-ctl-top">Taxa de conversão <output id="out-conv"></output></span>
+        <input type="range" id="in-conv" min="-50" max="250" value="0" step="1">
+        <span class="sim-ctl-base">realizado: <b id="base-conv"></b></span>
+      </label>
+      <label class="sim-ctl">
+        <span class="sim-ctl-top">Ticket médio <output id="out-tick"></output></span>
+        <input type="range" id="in-tick" min="-40" max="120" value="0" step="1">
+        <span class="sim-ctl-base">realizado: <b id="base-tick"></b></span>
+      </label>
+    </div>
+    <div class="sim-saida">
+      <div class="sim-res">
+        <span class="sim-res-rot">Faturamento no cenário</span>
+        <span class="sim-res-val" id="sim-fat">—</span>
+        <span class="sim-res-sub" id="sim-fat-vs">—</span>
+      </div>
+      <div class="sim-res">
+        <span class="sim-res-rot">Unidades no cenário</span>
+        <span class="sim-res-val" id="sim-un">—</span>
+        <span class="sim-res-sub" id="sim-un-vs">—</span>
+      </div>
+      <svg viewBox="0 0 420 150" class="sim-svg" role="img" aria-label="Comparação do cenário com a meta">
+        <g id="sim-bars"></g>
+      </svg>
+    </div>
+  </div>
+  <p class="tab-note">A barra "realizado" é <strong>dado medido</strong>. "Cenário" é
+  <strong>projeção sob a premissa que você escolheu</strong> (faturamento = sessões × conversão × ticket) —
+  não é previsão: não tem sazonalidade, saturação de canal nem limite de verba embutidos. Serve para
+  dimensionar o esforço necessário, não para prometer resultado.</p>
+  <script id="sim-base" type="application/json">{"sessions": 20310, "tx_conversao": 0.009798129000492367, "ticket_medio": 558.7140201005025, "receita": 111184.09, "compras": 199, "meta_faturamento": 150000, "meta_unidades": 280}</script>
+</div>
+</section>
+<section>
+  <h2>Metas por produto</h2>
+  
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Produto</th><th>Unidades (real / meta)</th><th>% un.</th>
+    <th>Faturamento (real / meta)</th><th>% fat.</th><th>Ticket médio</th></tr></thead>
+    <tbody>
+        <tr>
+          <td class="quem">Faciderm</td>
+          <td>58 / 90</td>
+          <td><span class="meta-mini st-bad"><i style="--w:64.4%"></i><b>64%</b></span></td>
+          <td>R$ 31.240 / R$ 48.000</td>
+          <td><span class="meta-mini st-bad"><i style="--w:65.1%"></i><b>65%</b></span></td>
+          <td>R$ 539</td>
+        </tr>
+        <tr>
+          <td class="quem">Linha Joie Fit</td>
+          <td>52 / 80</td>
+          <td><span class="meta-mini st-bad"><i style="--w:65.0%"></i><b>65%</b></span></td>
+          <td>R$ 27.613 / R$ 45.000</td>
+          <td><span class="meta-mini st-bad"><i style="--w:61.4%"></i><b>61%</b></span></td>
+          <td>R$ 531</td>
+        </tr>
+        <tr>
+          <td class="quem">Amaze</td>
+          <td>41 / 70</td>
+          <td><span class="meta-mini st-bad"><i style="--w:58.6%"></i><b>59%</b></span></td>
+          <td>R$ 18.904 / R$ 32.000</td>
+          <td><span class="meta-mini st-bad"><i style="--w:59.1%"></i><b>59%</b></span></td>
+          <td>R$ 461</td>
+        </tr>
+        <tr>
+          <td class="quem">Creatina Joie</td>
+          <td>19 / 40</td>
+          <td><span class="meta-mini st-bad"><i style="--w:47.5%"></i><b>48%</b></span></td>
+          <td>R$ 9.820 / R$ 25.000</td>
+          <td><span class="meta-mini st-bad"><i style="--w:39.3%"></i><b>39%</b></span></td>
+          <td>R$ 517</td>
+        </tr></tbody>
+  </table>
+</div><p class="tab-note">Unidades e faturamento por produto vêm do arquivo que você informou (ERP/loja), não da GA4.</p>
+</section>
+  </div>
+
   <div class="tab-panel" data-tab="ga4">
     <svg width="0" height="0" aria-hidden="true" style="position:absolute">
-      <defs><linearGradient id="ga4-area-grad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#1187f0" stop-opacity=".85" />
-        <stop offset="100%" stop-color="#1187f0" stop-opacity="0" />
-      </linearGradient></defs>
+      <defs>
+        <linearGradient id="ga4-area-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8b5cf6" stop-opacity=".85" />
+          <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient id="ev-area-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#22d3ee" stop-opacity=".55" />
+          <stop offset="100%" stop-color="#22d3ee" stop-opacity="0" />
+        </linearGradient>
+      </defs>
     </svg>
     
 <section>
@@ -1512,6 +2125,81 @@ dado sai do somatório em vez de virar 0 (ver metodologia completa em descoberta
       <p class="ga4-diag-detalhe">82% dos compradores do período compraram pela primeira vez (155 de 188). Quanto mais alto, mais o faturamento depende de aquisição paga e menos de base.</p>
     </div></div>
 </section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Medidas a serem tomadas</h2>
+  
+<div class="medida-grid">
+    <div class="medida imp-alto">
+      <div class="medida-top">
+        <span class="medida-num">1</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto alto</span>
+          <span class="medida-tag t-esf">esforço médio</span>
+        </div>
+      </div>
+      <div class="medida-acao">Corrigir a etapa 'Checkout' — maior vazamento do funil</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>Só 17.8% da etapa anterior chega em 'Checkout': 2,446 pessoas perdidas no período. Ganho aqui é mais barato que comprar tráfego novo.</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Reduzir campos do checkout, mostrar frete e prazo ANTES da última etapa, oferecer PIX com desconto, salvar carrinho e disparar recuperação em 1h/24h. Medir novamente a passagem carrinho→checkout depois de cada mudança, uma por vez.</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Unidades vendidas / Faturamento</strong></div>
+    </div>
+    <div class="medida imp-alto">
+      <div class="medida-top">
+        <span class="medida-num">2</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto alto</span>
+          <span class="medida-tag t-esf">esforço baixo</span>
+        </div>
+      </div>
+      <div class="medida-acao">Auditar rastreamento dos canais com volume e zero compra</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>Paid Shopping: 943 sessões, 0 compra(s). Volume alto com zero conversão é sintoma de tag/atribuição antes de ser sintoma de audiência.</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Validar disparo do evento purchase nessas origens, checar se a UTM não sobrescreve o canal e comparar com o relatório da plataforma de origem antes de cortar verba.</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Faturamento</strong></div>
+    </div>
+    <div class="medida imp-alto">
+      <div class="medida-top">
+        <span class="medida-num">3</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto alto</span>
+          <span class="medida-tag t-esf">esforço médio</span>
+        </div>
+      </div>
+      <div class="medida-acao">Recuperar as landing pages que recebem tráfego e não vendem</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>9 página(s) somam 1,914 sessões sem nenhuma compra. Maiores: /garrafa-copa-joie/p (493); /colageno-verisol-em-po---sabor-frutas-vermelhas-450g/p (293); (sem página) (288)</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Ir uma a uma pela ordem de sessão perdida: conferir preço/estoque visíveis, imagem, botão de compra acima da dobra no mobile, e se a promessa do anúncio bate com a página. Página com muito add-to-cart e zero compra aponta problema DEPOIS do carrinho.</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Taxa de conversão</strong></div>
+    </div>
+    <div class="medida imp-alto">
+      <div class="medida-top">
+        <span class="medida-num">4</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto alto</span>
+          <span class="medida-tag t-esf">esforço médio</span>
+        </div>
+      </div>
+      <div class="medida-acao">Priorizar correções de mobile</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>Mobile converte 0.87% contra 1.61% do desktop, com 17,375 sessões. Igualar as duas taxas valeria ~129 compra(s) no período.</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Medir Core Web Vitals no 4G, reduzir peso de imagem, botão de compra fixo, checkout em uma coluna e teclado numérico nos campos de número.</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Taxa de conversão / Faturamento</strong></div>
+    </div>
+    <div class="medida imp-medio">
+      <div class="medida-top">
+        <span class="medida-num">5</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto médio</span>
+          <span class="medida-tag t-esf">esforço baixo</span>
+        </div>
+      </div>
+      <div class="medida-acao">Montar recompra para reduzir dependência de aquisição</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>82% dos compradores são de primeira compra: o faturamento está apoiado em mídia paga, não em base.</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Fluxo de pós-compra por e-mail/WhatsApp na janela de recompra do produto (suplemento tem ciclo previsível), com oferta de assinatura ou kit de reposição.</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Faturamento / Ticket médio</strong></div>
+    </div></div>
+<p class="tab-note">Prioridade = ordem sugerida por impacto sobre a meta ÷ esforço. Toda medida é
+<strong>recomendação</strong>: nenhuma ação de escrita (verba, campanha, preço) é executada sem sua
+autorização explícita e específica.</p>
+</section>
+<div class="cosmos-divider"></div>
 <section>
   <h2>Funil de compra — jornada completa</h2>
   <div class="ga4-funil">
@@ -1570,6 +2258,265 @@ dado sai do somatório em vez de virar 0 (ver metodologia completa em descoberta
         </div>
         <div class="ga4-funil-foot"><span class="ga4-funil-desc">purchase</span><span class="ga4-funil-passagem">37.7% da etapa anterior · −329 perdidos</span></div>
       </div></div>
+</section>
+<section>
+  <h2>Campanhas e criativos</h2>
+  
+<h3 class="descoberta-produto">Criativos anexados</h3>
+<div class="crea-grid">
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20400%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231d4ed8%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2322d3ee%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22248.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%22108%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2278%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%231d4ed8%22%20text-anchor%3D%22middle%22%3ENOVO%20SABOR%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22224%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3EWhey%20Silk%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22254%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3EProtein%20900g%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22328%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22354%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%231d4ed8%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22380%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Whey Silk Protein — novo sabor" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Vídeo 1:1 (20s)</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712004" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Whey Silk Protein — novo sabor</div>
+        <div class="crea-sub">🟩 - [[Conv]] - [Whey] - [Vídeo] - Whey Silk Protein 2</div>
+        <p class="crea-corpo">24g de proteína por dose. Textura sedosa, zero açúcar.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Sessões</span><strong>156</strong></div><div class="crea-m"><span>Engajamento</span><strong>27.6%</strong></div><div class="crea-m"><span>Carrinho</span><strong>12</strong></div><div class="crea-m"><span>Compras</span><strong>1</strong></div><div class="crea-m"><span>Conversão</span><strong>0.64%</strong></div><div class="crea-m"><span>Receita</span><strong>R$ 122</strong></div></div>
+      </div>
+    </div>
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20400%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237c3aed%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23d946ef%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22248.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%22108%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2278%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%237c3aed%22%20text-anchor%3D%22middle%22%3ELAN%C3%87AMENTO%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22224%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3EFaciderm%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22254%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3ECol%C3%A1geno%20%2B%20Vitamina%20C%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22328%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22354%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%237c3aed%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22380%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Faciderm — pele firme em 30 dias" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Imagem única 1:1</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712001" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Faciderm — pele firme em 30 dias</div>
+        <div class="crea-sub">🟩 - [[Conv]] - [Padrão] - Catálago</div>
+        <p class="crea-corpo">Colágeno hidrolisado + Vitamina C. Frete grátis acima de R$149.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Sessões</span><strong>551</strong></div><div class="crea-m"><span>Engajamento</span><strong>18.1%</strong></div><div class="crea-m"><span>Carrinho</span><strong>67</strong></div><div class="crea-m"><span>Compras</span><strong>0</strong></div><div class="crea-m"><span>Conversão</span><strong>0.00%</strong></div><div class="crea-m"><span>Receita</span><strong>R$ 0</strong></div></div>
+      </div>
+    </div>
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20400%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%230891b2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%236366f1%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22248.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%2291%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2269%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%230891b2%22%20text-anchor%3D%22middle%22%3EKIT%20-20%25%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22224%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3EKit%20HEPRO%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22254%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3EWhey%20%2B%20Creatina%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22328%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22354%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%230891b2%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22380%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Kit HEPRO com 20% OFF" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Carrossel 3 cards</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712002" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Kit HEPRO com 20% OFF</div>
+        <div class="crea-sub">🟩 - [[Conv]] - [Kit HEPRO] - Carrossel</div>
+        <p class="crea-corpo">Whey isolado + creatina monohidratada. Leve os dois e economize.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Sessões</span><strong>65</strong></div><div class="crea-m"><span>Engajamento</span><strong>20.0%</strong></div><div class="crea-m"><span>Carrinho</span><strong>4</strong></div><div class="crea-m"><span>Compras</span><strong>0</strong></div><div class="crea-m"><span>Conversão</span><strong>0.00%</strong></div><div class="crea-m"><span>Receita</span><strong>R$ 0</strong></div></div>
+      </div>
+    </div>
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20500%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23be185d%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f59e0b%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22500%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22500%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22310.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%22125%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2287%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%23be185d%22%20text-anchor%3D%22middle%22%3EMAIS%20VENDIDO%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22280%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3ECol%C3%A1geno%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22310%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3EVerisol%C2%AE%20450g%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22428%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22454%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%23be185d%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22480%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Colágeno Verisol em pó" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Vídeo 9:16 (15s)</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712003" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Colágeno Verisol em pó</div>
+        <div class="crea-sub">🟩 - [[Conv]] - [Colágeno] - Vídeo 1</div>
+        <p class="crea-corpo">Sabor frutas vermelhas. 450g rende 60 doses.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Sessões</span><strong>94</strong></div><div class="crea-m"><span>Engajamento</span><strong>24.5%</strong></div><div class="crea-m"><span>Carrinho</span><strong>4</strong></div><div class="crea-m"><span>Compras</span><strong>0</strong></div><div class="crea-m"><span>Conversão</span><strong>0.00%</strong></div><div class="crea-m"><span>Receita</span><strong>R$ 0</strong></div></div>
+      </div>
+    </div>
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20400%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%234c1d95%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%237c3aed%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22248.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%2291%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2269%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%234c1d95%22%20text-anchor%3D%22middle%22%3ECAT%C3%81LOGO%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22224%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3ECat%C3%A1logo%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22254%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3ELinha%20completa%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22328%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22354%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%234c1d95%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22380%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Linha completa Joie" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Catálogo dinâmico</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712005" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Linha completa Joie</div>
+        <div class="crea-sub">🟩 - [[Tráfego]] - [Padrão] - Catálogo</div>
+        <p class="crea-corpo">Suplementos com laudo e procedência. Confira o catálogo.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Sessões</span><strong>616</strong></div><div class="crea-m"><span>Engajamento</span><strong>10.5%</strong></div><div class="crea-m"><span>Carrinho</span><strong>0</strong></div><div class="crea-m"><span>Compras</span><strong>0</strong></div><div class="crea-m"><span>Conversão</span><strong>0.00%</strong></div><div class="crea-m"><span>Receita</span><strong>R$ 0</strong></div></div>
+      </div>
+    </div></div>
+<h3 class="descoberta-produto" style="margin-top:22px">Todas as campanhas</h3>
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Campanha</th><th>Origem / mídia</th><th>Sessões</th><th>Engajamento</th>
+    <th>Carrinho</th><th>Compras</th><th>Conversão</th><th>Receita</th><th>R$/sessão</th></tr></thead>
+    <tbody>
+        <tr>
+          <td class="quem">(direct) </td>
+          <td>(direct) / (none)</td>
+          <td>2.891</td><td>27.1%</td>
+          <td>504</td><td>43</td>
+          <td>1.49%</td><td>R$ 30.442</td>
+          <td>R$ 10,53</td>
+        </tr>
+        <tr>
+          <td class="quem">Pmax - Faciderm. <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>1.895</td><td>47.3%</td>
+          <td>286</td><td>26</td>
+          <td>1.37%</td><td>R$ 15.292</td>
+          <td>R$ 8,07</td>
+        </tr>
+        <tr>
+          <td class="quem">Pmax - Todos os Produtos. <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>2.119</td><td>47.9%</td>
+          <td>316</td><td>26</td>
+          <td>1.23%</td><td>R$ 9.887</td>
+          <td>R$ 4,67</td>
+        </tr>
+        <tr>
+          <td class="quem">Pmax - Amaze. <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>976</td><td>53.4%</td>
+          <td>179</td><td>17</td>
+          <td>1.74%</td><td>R$ 9.843</td>
+          <td>R$ 10,08</td>
+        </tr>
+        <tr>
+          <td class="quem">(organic) </td>
+          <td>google / organic</td>
+          <td>1.589</td><td>61.9%</td>
+          <td>216</td><td>19</td>
+          <td>1.20%</td><td>R$ 8.974</td>
+          <td>R$ 5,65</td>
+        </tr>
+        <tr>
+          <td class="quem">Brand. <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>952</td><td>65.5%</td>
+          <td>232</td><td>17</td>
+          <td>1.79%</td><td>R$ 5.853</td>
+          <td>R$ 6,15</td>
+        </tr>
+        <tr>
+          <td class="quem">(referral) </td>
+          <td>joiesuplementoshelp.zendesk.com / referral</td>
+          <td>98</td><td>76.5%</td>
+          <td>160</td><td>7</td>
+          <td>7.14%</td><td>R$ 5.829</td>
+          <td>R$ 59,48</td>
+        </tr>
+        <tr>
+          <td class="quem">(referral) </td>
+          <td>l.wl.co / referral</td>
+          <td>240</td><td>48.3%</td>
+          <td>48</td><td>9</td>
+          <td>3.75%</td><td>R$ 4.649</td>
+          <td>R$ 19,37</td>
+        </tr>
+        <tr>
+          <td class="quem">Pmax - Linha Joie Fit <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>759</td><td>56.3%</td>
+          <td>70</td><td>9</td>
+          <td>1.19%</td><td>R$ 3.553</td>
+          <td>R$ 4,68</td>
+        </tr>
+        <tr>
+          <td class="quem">joie_garrafas </td>
+          <td>utm / (not set)</td>
+          <td>60</td><td>48.3%</td>
+          <td>14</td><td>2</td>
+          <td>3.33%</td><td>R$ 3.222</td>
+          <td>R$ 53,69</td>
+        </tr>
+        <tr>
+          <td class="quem">(organic) </td>
+          <td>bing / organic</td>
+          <td>76</td><td>73.7%</td>
+          <td>20</td><td>3</td>
+          <td>3.95%</td><td>R$ 2.233</td>
+          <td>R$ 29,38</td>
+        </tr>
+        <tr>
+          <td class="quem">(not set) </td>
+          <td>(not set) / (not set)</td>
+          <td>477</td><td>12.2%</td>
+          <td>102</td><td>4</td>
+          <td>0.84%</td><td>R$ 2.220</td>
+          <td>R$ 4,65</td>
+        </tr>
+        <tr>
+          <td class="quem">Search. <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>365</td><td>57.5%</td>
+          <td>48</td><td>4</td>
+          <td>1.10%</td><td>R$ 2.104</td>
+          <td>R$ 5,77</td>
+        </tr>
+        <tr>
+          <td class="quem">Search - Linha Joie Fit <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>338</td><td>46.5%</td>
+          <td>12</td><td>2</td>
+          <td>0.59%</td><td>R$ 1.749</td>
+          <td>R$ 5,18</td>
+        </tr>
+        <tr>
+          <td class="quem">(not set) </td>
+          <td>catalogo / banner front</td>
+          <td>106</td><td>51.9%</td>
+          <td>14</td><td>2</td>
+          <td>1.89%</td><td>R$ 1.704</td>
+          <td>R$ 16,07</td>
+        </tr>
+        <tr>
+          <td class="quem">(referral) </td>
+          <td>ig / social</td>
+          <td>265</td><td>74.7%</td>
+          <td>60</td><td>2</td>
+          <td>0.75%</td><td>R$ 393</td>
+          <td>R$ 1,48</td>
+        </tr>
+        <tr>
+          <td class="quem">(cross-network) </td>
+          <td>(data not available) / (data not available)</td>
+          <td>269</td><td>69.5%</td>
+          <td>14</td><td>1</td>
+          <td>0.37%</td><td>R$ 218</td>
+          <td>R$ 0,81</td>
+        </tr>
+        <tr>
+          <td class="quem">Shopping - Colageno <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>943</td><td>41.1%</td>
+          <td>449</td><td>0</td>
+          <td>0.00%</td><td>R$ 0</td>
+          <td>R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="quem">🟩 - [[Conv]] - [Colágeno] - Carrossel <span class="ga4-badge q-testar">pago</span></td>
+          <td>Facebook / cpc</td>
+          <td>86</td><td>20.9%</td>
+          <td>4</td><td>0</td>
+          <td>0.00%</td><td>R$ 0</td>
+          <td>R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="quem">🟩 - [[Conv]] - [Copa com a Joie] - IMGU 2 <span class="ga4-badge q-testar">pago</span></td>
+          <td>Facebook / cpc</td>
+          <td>65</td><td>13.9%</td>
+          <td>0</td><td>0</td>
+          <td>0.00%</td><td>R$ 0</td>
+          <td>R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="quem">🟩 - [[Tráfego]] - [Linha Joie Fit] - [Carrossel] - Whey Silk Protein <span class="ga4-badge q-testar">pago</span></td>
+          <td>Facebook / cpc</td>
+          <td>413</td><td>18.6%</td>
+          <td>2</td><td>0</td>
+          <td>0.00%</td><td>R$ 0</td>
+          <td>R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="quem">🟩+-+[[Conv]]+-+[Colágeno]+-+Catálago <span class="ga4-badge q-testar">pago</span></td>
+          <td>Facebook / cpc</td>
+          <td>61</td><td>11.5%</td>
+          <td>0</td><td>0</td>
+          <td>0.00%</td><td>R$ 0</td>
+          <td>R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="quem">(referral) </td>
+          <td>facebook.com / referral</td>
+          <td>96</td><td>65.6%</td>
+          <td>0</td><td>0</td>
+          <td>0.00%</td><td>R$ 0</td>
+          <td>R$ 0,00</td>
+        </tr>
+        <tr>
+          <td class="quem">Geração de demanda - Capitais <span class="ga4-badge q-testar">pago</span></td>
+          <td>google / cpc</td>
+          <td>2.875</td><td>27.2%</td>
+          <td>10</td><td>0</td>
+          <td>0.00%</td><td>R$ 0</td>
+          <td>R$ 0,00</td>
+        </tr></tbody>
+  </table>
+</div>
+<p class="tab-note">As métricas são da GA4 (lado do site) e são medidas. <strong>A imagem do criativo não
+vem da GA4</strong> — vem do Meta/Google (ou de um mapa manual) e é anexada por nome de campanha; onde não
+houver, o card avisa em vez de mostrar um placeholder passando por criativo real.</p>
 </section>
 <section>
   <h2>Evolução diária</h2>
@@ -1976,6 +2923,343 @@ nunca zero disfarçado. Limitação conhecida: a GA4 aceita no máximo 10 métri
 coleta é feita em blocos (ver ga4_jornada.py).</p>
   </div>
 
+  <div class="tab-panel" data-tab="meta-ads">
+    
+<div class="tab-aviso">⚠ O lado da plataforma (gasto, impressões, cliques, CTR, CPM e as imagens de criativo) é <strong>SIMULADO</strong> — serve para mostrar o formato. Só as métricas de sessão/compra/receita, vindas da GA4, são reais.</div>
+<section>
+  <h2>Visão Meta Ads — 02/07 a 31/07/2026 (30 dias)</h2>
+  <div class="ga4-kpi-grid">
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Campanhas Meta</div>
+      <div class="ga4-kpi-value" data-count="10" data-count-dec="0" data-count-suf="">10</div>
+      <div class="ga4-kpi-sub">identificadas via UTM na GA4</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Sessões</div>
+      <div class="ga4-kpi-value" data-count="2372" data-count-dec="0" data-count-suf="">2.372</div>
+      <div class="ga4-kpi-sub">tráfego vindo do Meta</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Compras</div>
+      <div class="ga4-kpi-value" data-count="3" data-count-dec="0" data-count-suf="">3</div>
+      <div class="ga4-kpi-sub">conversão 0.13%</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Receita</div>
+      <div class="ga4-kpi-value">R$ 515</div>
+      <div class="ga4-kpi-sub">ticket R$ 172</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Engajamento médio</div>
+      <div class="ga4-kpi-value">24.0%</div>
+      <div class="ga4-kpi-sub">entre as campanhas Meta</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Gasto (simulado)</div>
+      <div class="ga4-kpi-value">R$ 8.083</div>
+      <div class="ga4-kpi-sub">lado da plataforma</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">Impressões (simulado)</div>
+      <div class="ga4-kpi-value">764.700</div>
+      <div class="ga4-kpi-sub">lado da plataforma</div>
+    </div>
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">ROAS cruzado (simulado)</div>
+      <div class="ga4-kpi-value">0.06×</div>
+      <div class="ga4-kpi-sub">receita GA4 ÷ gasto plataforma</div>
+    </div></div>
+</section>
+<section>
+  <h2>Diagnóstico</h2>
+  <div class="ga4-diag-grid">
+    <div class="ga4-diag sev-alta">
+      <span class="ga4-diag-nivel">Prioridade alta</span>
+      <div class="ga4-diag-titulo">Maior vazamento do funil Meta: Add ao carrinho</div>
+      <p class="ga4-diag-detalhe">Só 6.5% da etapa anterior chega em 'Add ao carrinho' (153 de 2,372).</p>
+    </div>
+    <div class="ga4-diag sev-alta">
+      <span class="ga4-diag-nivel">Prioridade alta</span>
+      <div class="ga4-diag-titulo">3 campanha(s) Meta com tráfego e nenhuma compra</div>
+      <p class="ga4-diag-detalhe">Maiores: [[Tráfego]] - [Padrão] - Catálogo (616 sessões, engaj. 10.5%); [[Conv]] - [Padrão] - Catálago (551 sessões, engaj. 18.1%); [[Tráfego]] - [Linha Joie Fit] - [Carrossel] - Whey Silk Protein (413 sessões, engaj. 18.6%). Ordene por sessão desperdiçada, não por número de campanhas.</p>
+    </div>
+    <div class="ga4-diag sev-alta">
+      <span class="ga4-diag-nivel">Prioridade alta</span>
+      <div class="ga4-diag-titulo">3 campanha(s) com engajamento abaixo de 20%</div>
+      <p class="ga4-diag-detalhe">Sinal clássico de clique sem intenção — criativo prometendo algo que a página não entrega, ou público frio recebendo oferta de fundo de funil. [[Tráfego]] - [Padrão] - Catálogo (10.5%); [[Conv]] - [Padrão] - Catálago (18.1%); [[Tráfego]] - [Linha Joie Fit] - [Carrossel] - Whey Silk Protein (18.6%)</p>
+    </div>
+    <div class="ga4-diag sev-media">
+      <span class="ga4-diag-nivel">Atenção</span>
+      <div class="ga4-diag-titulo">Comparação por objetivo de campanha</div>
+      <p class="ga4-diag-detalhe">conv: 1,078 sess → 1 compra(s) (0.09%) · tráfego: 1,029 sess → 0 compra(s) (0.00%). Verba em objetivo de tráfego que não converte é candidata a realocação.</p>
+    </div></div>
+</section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Medidas a serem tomadas</h2>
+  
+<div class="medida-grid">
+    <div class="medida imp-alto">
+      <div class="medida-top">
+        <span class="medida-num">1</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto alto</span>
+          <span class="medida-tag t-esf">esforço baixo</span>
+        </div>
+      </div>
+      <div class="medida-acao">Auditar rastreamento das campanhas sem compra antes de mexer em verba</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>3 campanha(s) somam 1,580 sessões e zero compra. Volume alto com zero conversão costuma ser tag/UTM/atribuição, não público ruim — cortar verba antes de checar pode matar campanha que na verdade converte.</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Conferir se o pixel dispara purchase nessas landing pages, se a UTM não está sobrescrevendo o canal, e comparar com o relatório da própria plataforma.</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Unidades vendidas / Faturamento</strong></div>
+    </div>
+    <div class="medida imp-alto">
+      <div class="medida-top">
+        <span class="medida-num">2</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto alto</span>
+          <span class="medida-tag t-esf">esforço médio</span>
+        </div>
+      </div>
+      <div class="medida-acao">Realinhar criativo × página de destino nas campanhas de engajamento baixo</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>3 campanha(s) com menos de 20% de sessões engajadas: o clique acontece mas a pessoa não reconhece a oferta na página.</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Fazer o criativo e a dobra da página falarem a MESMA promessa (mesmo produto, mesmo preço, mesma imagem). Testar levar direto para a página do produto em vez do catálogo.</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Taxa de conversão</strong></div>
+    </div>
+    <div class="medida imp-alto">
+      <div class="medida-top">
+        <span class="medida-num">3</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto alto</span>
+          <span class="medida-tag t-esf">esforço médio</span>
+        </div>
+      </div>
+      <div class="medida-acao">Atacar a etapa 'Add ao carrinho' do funil Meta</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>É onde a passagem é a menor (6.5%), com 2,219 pessoas perdidas. Corrigir aqui rende mais que trazer tráfego novo.</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Se for checkout: reduzir campos, mostrar frete/prazo antes, oferecer PIX. Se for carrinho: prova social e escassez na página do produto. Rodar remarketing só para quem chegou nessa etapa.</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Unidades vendidas / Faturamento</strong></div>
+    </div>
+    <div class="medida imp-medio">
+      <div class="medida-top">
+        <span class="medida-num">4</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto médio</span>
+          <span class="medida-tag t-esf">esforço baixo</span>
+        </div>
+      </div>
+      <div class="medida-acao">Reavaliar as campanhas com objetivo de tráfego</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>Objetivo de tráfego somou 1,029 sessões e 0 compra(s) no período.</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>Tráfego serve para topo de funil e aquecimento de público — se o KPI cobrado é venda, migrar verba para objetivo de conversão e usar tráfego só para alimentar remarketing, com meta própria (custo por sessão engajada).</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>Faturamento</strong></div>
+    </div></div>
+<p class="tab-note">Prioridade = ordem sugerida por impacto sobre a meta ÷ esforço. Toda medida é
+<strong>recomendação</strong>: nenhuma ação de escrita (verba, campanha, preço) é executada sem sua
+autorização explícita e específica.</p>
+</section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Funil das campanhas Meta (lado do site)</h2>
+  <div class="ga4-funil">
+      <div class="ga4-funil-linha">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">1. Sessões do Meta</span>
+          <span class="ga4-funil-valor">2.372</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:100.00%"></div>
+          <span class="ga4-funil-topo">100.0% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">tráfego que chegou pelas campanhas Meta (UTM)</span></div>
+      </div>
+      <div class="ga4-funil-linha vazamento">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">2. Add ao carrinho</span>
+          <span class="ga4-funil-valor">153</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:6.45%"></div>
+          <span class="ga4-funil-topo">6.5% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">add_to_cart</span><span class="ga4-funil-passagem vazamento">6.5% da etapa anterior · −2.219 perdidos</span></div>
+      </div>
+      <div class="ga4-funil-linha">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">3. Checkout</span>
+          <span class="ga4-funil-valor">16</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:2.50%"></div>
+          <span class="ga4-funil-topo">0.7% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">begin_checkout</span><span class="ga4-funil-passagem">10.5% da etapa anterior · −137 perdidos</span></div>
+      </div>
+      <div class="ga4-funil-linha">
+        <div class="ga4-funil-head">
+          <span class="ga4-funil-nome">4. Compra</span>
+          <span class="ga4-funil-valor">3</span>
+        </div>
+        <div class="ga4-funil-track">
+          <div class="ga4-funil-bar" style="--w:2.50%"></div>
+          <span class="ga4-funil-topo">0.1% do topo</span>
+        </div>
+        <div class="ga4-funil-foot"><span class="ga4-funil-desc">purchase</span><span class="ga4-funil-passagem">18.8% da etapa anterior · −13 perdidos</span></div>
+      </div></div>
+</section>
+<section>
+  <h2>Campanhas Meta — desempenho medido na GA4</h2>
+  
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Campanha</th><th>Produto</th><th>Formato</th><th>Sessões</th><th>Engajamento</th>
+    <th>Carrinho</th><th>Checkout</th><th>Compras</th><th>Conversão</th><th>Receita</th></tr></thead>
+    <tbody>
+        <tr>
+          <td class="quem">[[Tráfego]] - [Padrão] - Catálogo <span class="ga4-badge q-testar">Tráfego</span></td>
+          <td>Padrão</td><td>Catálogo</td>
+          <td>616</td><td>10.5%</td>
+          <td>0</td><td>0</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">[[Conv]] - [Padrão] - Catálago <span class="ga4-badge q-testar">Conv</span></td>
+          <td>Padrão</td><td>Catálago</td>
+          <td>551</td><td>18.1%</td>
+          <td>67</td><td>3</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">[[Tráfego]] - [Linha Joie Fit] - [Carrossel] - Whey Silk Protein <span class="ga4-badge q-testar">Tráfego</span></td>
+          <td>Linha Joie Fit</td><td>Carrossel</td>
+          <td>413</td><td>18.6%</td>
+          <td>2</td><td>0</td>
+          <td>0 <span class="ga4-badge q-corrigir">sem compra</span></td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">referral) </td>
+          <td>—</td><td>(referral)</td>
+          <td>265</td><td>74.7%</td>
+          <td>60</td><td>9</td>
+          <td>2 </td>
+          <td>0.75%</td><td>R$ 393</td>
+        </tr>
+        <tr>
+          <td class="quem">[[Conv]] - [Whey] - [Vídeo] - Whey Silk Protein 2 <span class="ga4-badge q-testar">Conv</span></td>
+          <td>Whey</td><td>Vídeo</td>
+          <td>156</td><td>27.6%</td>
+          <td>12</td><td>1</td>
+          <td>1 </td>
+          <td>0.64%</td><td>R$ 122</td>
+        </tr>
+        <tr>
+          <td class="quem">[[Conv]] - [Colágeno] - Vídeo 1 <span class="ga4-badge q-testar">Conv</span></td>
+          <td>Colágeno</td><td>Vídeo 1</td>
+          <td>94</td><td>24.5%</td>
+          <td>4</td><td>1</td>
+          <td>0 </td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">[[Conv]] - [Colágeno] - Carrossel <span class="ga4-badge q-testar">Conv</span></td>
+          <td>Colágeno</td><td>Carrossel</td>
+          <td>86</td><td>20.9%</td>
+          <td>4</td><td>0</td>
+          <td>0 </td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">[[Conv]] - [Kit HEPRO] - Carrossel <span class="ga4-badge q-testar">Conv</span></td>
+          <td>Kit HEPRO</td><td>Carrossel</td>
+          <td>65</td><td>20.0%</td>
+          <td>4</td><td>2</td>
+          <td>0 </td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">[[Conv]] - [Copa com a Joie] - IMGU 2 <span class="ga4-badge q-testar">Conv</span></td>
+          <td>Copa com a Joie</td><td>IMGU 2</td>
+          <td>65</td><td>13.9%</td>
+          <td>0</td><td>0</td>
+          <td>0 </td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr>
+        <tr>
+          <td class="quem">[[Conv]] - [Colágeno] - Catálago <span class="ga4-badge q-testar">Conv</span></td>
+          <td>Colágeno</td><td>Catálago</td>
+          <td>61</td><td>11.5%</td>
+          <td>0</td><td>0</td>
+          <td>0 </td>
+          <td>0.00%</td><td>R$ 0</td>
+        </tr></tbody>
+  </table>
+</div>
+<p class="tab-note">Produto, objetivo e formato saem do <strong>padrão de nomenclatura</strong> das suas
+campanhas (ex.: <code>[[Conv]] - [Colágeno] - Carrossel</code>) — onde o padrão não existe, aparece "—" em
+vez de chute. Estes números são da GA4 (lado do site): reais, mas <strong>sem gasto, impressão, clique nem
+CTR</strong>, que a GA4 não vê.</p>
+</section>
+
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Criativos e desempenho na plataforma (simulado)</h2>
+  <div class="crea-grid">
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20400%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%237c3aed%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23d946ef%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22248.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%22108%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2278%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%237c3aed%22%20text-anchor%3D%22middle%22%3ELAN%C3%87AMENTO%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22224%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3EFaciderm%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22254%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3ECol%C3%A1geno%20%2B%20Vitamina%20C%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22328%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22354%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%237c3aed%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22380%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Faciderm — pele firme em 30 dias" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Imagem única 1:1</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712001" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Faciderm — pele firme em 30 dias</div>
+        <div class="crea-sub">[[Conv]] - [Padrão] - Catálago</div>
+        <p class="crea-corpo">Colágeno hidrolisado + Vitamina C. Frete grátis acima de R$149.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Gasto</span><strong>R$ 3.184</strong></div><div class="crea-m"><span>Impressões</span><strong>214.300</strong></div><div class="crea-m"><span>Cliques</span><strong>1.902</strong></div><div class="crea-m"><span>CTR</span><strong>0.89%</strong></div><div class="crea-m"><span>CPC</span><strong>R$ 1,67</strong></div><div class="crea-m"><span>CPM</span><strong>R$ 14,86</strong></div><div class="crea-m"><span>Frequência</span><strong>2.4×</strong></div><div class="crea-m"><span>Compras (plat.)</span><strong>n/d</strong></div></div>
+      </div>
+    </div>
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20400%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%234c1d95%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%237c3aed%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22248.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%2291%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2269%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%234c1d95%22%20text-anchor%3D%22middle%22%3ECAT%C3%81LOGO%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22224%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3ECat%C3%A1logo%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22254%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3ELinha%20completa%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22328%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22354%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%234c1d95%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22380%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Linha completa Joie" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Catálogo dinâmico</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712005" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Linha completa Joie</div>
+        <div class="crea-sub">[[Tráfego]] - [Padrão] - Catálogo</div>
+        <p class="crea-corpo">Suplementos com laudo e procedência. Confira o catálogo.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Gasto</span><strong>R$ 1.876</strong></div><div class="crea-m"><span>Impressões</span><strong>338.900</strong></div><div class="crea-m"><span>Cliques</span><strong>2.610</strong></div><div class="crea-m"><span>CTR</span><strong>0.77%</strong></div><div class="crea-m"><span>CPC</span><strong>R$ 0,72</strong></div><div class="crea-m"><span>CPM</span><strong>R$ 5,54</strong></div><div class="crea-m"><span>Frequência</span><strong>1.6×</strong></div><div class="crea-m"><span>Compras (plat.)</span><strong>n/d</strong></div></div>
+      </div>
+    </div>
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20400%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231d4ed8%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2322d3ee%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22248.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%22108%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2278%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%231d4ed8%22%20text-anchor%3D%22middle%22%3ENOVO%20SABOR%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22224%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3EWhey%20Silk%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22254%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3EProtein%20900g%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22328%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22354%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%231d4ed8%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22380%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Whey Silk Protein — novo sabor" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Vídeo 1:1 (20s)</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712004" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Whey Silk Protein — novo sabor</div>
+        <div class="crea-sub">[[Conv]] - [Whey] - [Vídeo] - Whey Silk Protein 2</div>
+        <p class="crea-corpo">24g de proteína por dose. Textura sedosa, zero açúcar.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Gasto</span><strong>R$ 1.421</strong></div><div class="crea-m"><span>Impressões</span><strong>96.500</strong></div><div class="crea-m"><span>Cliques</span><strong>742</strong></div><div class="crea-m"><span>CTR</span><strong>0.77%</strong></div><div class="crea-m"><span>CPC</span><strong>R$ 1,91</strong></div><div class="crea-m"><span>CPM</span><strong>R$ 14,72</strong></div><div class="crea-m"><span>Frequência</span><strong>1.9×</strong></div><div class="crea-m"><span>Compras (plat.)</span><strong>1</strong></div></div>
+      </div>
+    </div>
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20500%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23be185d%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f59e0b%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22500%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22500%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22310.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%22125%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2287%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%23be185d%22%20text-anchor%3D%22middle%22%3EMAIS%20VENDIDO%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22280%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3ECol%C3%A1geno%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22310%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3EVerisol%C2%AE%20450g%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22428%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22454%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%23be185d%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22480%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Colágeno Verisol em pó" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Vídeo 9:16 (15s)</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712003" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Colágeno Verisol em pó</div>
+        <div class="crea-sub">[[Conv]] - [Colágeno] - Vídeo 1</div>
+        <p class="crea-corpo">Sabor frutas vermelhas. 450g rende 60 doses.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Gasto</span><strong>R$ 912</strong></div><div class="crea-m"><span>Impressões</span><strong>73.800</strong></div><div class="crea-m"><span>Cliques</span><strong>455</strong></div><div class="crea-m"><span>CTR</span><strong>0.62%</strong></div><div class="crea-m"><span>CPC</span><strong>R$ 2,01</strong></div><div class="crea-m"><span>CPM</span><strong>R$ 12,36</strong></div><div class="crea-m"><span>Frequência</span><strong>2.2×</strong></div><div class="crea-m"><span>Compras (plat.)</span><strong>n/d</strong></div></div>
+      </div>
+    </div>
+    <div class="crea-card cosmos-frame">
+      <div class="crea-img"><img src="data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20400%20400%22%3E%0A%3Cdefs%3E%0A%20%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%230891b2%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%236366f1%22/%3E%3C/linearGradient%3E%0A%20%3CradialGradient%20id%3D%22r%22%20cx%3D%2270%25%22%20cy%3D%2225%25%22%3E%0A%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.35%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Crect%20width%3D%22400%22%20height%3D%22400%22%20fill%3D%22url%28%23r%29%22/%3E%0A%3Ccircle%20cx%3D%22288.0%22%20cy%3D%22248.0%22%20r%3D%22104.0%22%20fill%3D%22%23fff%22%20opacity%3D%22.13%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2224%22%20width%3D%2291%22%20height%3D%2226%22%20rx%3D%2213%22%20fill%3D%22%23fff%22%20opacity%3D%22.92%22/%3E%0A%3Ctext%20x%3D%2269%22%20y%3D%2242%22%20font-family%3D%22sans-serif%22%20font-size%3D%2212%22%20font-weight%3D%22700%22%0A%20fill%3D%22%230891b2%22%20text-anchor%3D%22middle%22%3EKIT%20-20%25%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22224%22%20font-family%3D%22sans-serif%22%20font-size%3D%2234%22%20font-weight%3D%22800%22%20fill%3D%22%23fff%22%3EKit%20HEPRO%3C/text%3E%0A%3Ctext%20x%3D%2224%22%20y%3D%22254%22%20font-family%3D%22sans-serif%22%20font-size%3D%2215%22%20fill%3D%22%23fff%22%20opacity%3D%22.9%22%3EWhey%20%2B%20Creatina%3C/text%3E%0A%3Crect%20x%3D%2224%22%20y%3D%22328%22%20width%3D%22150%22%20height%3D%2240%22%20rx%3D%2220%22%20fill%3D%22%23fff%22/%3E%0A%3Ctext%20x%3D%2299%22%20y%3D%22354%22%20font-family%3D%22sans-serif%22%20font-size%3D%2214%22%20font-weight%3D%22700%22%20fill%3D%22%230891b2%22%0A%20text-anchor%3D%22middle%22%3ECOMPRAR%3C/text%3E%0A%3Ctext%20x%3D%22376%22%20y%3D%22380%22%20font-family%3D%22sans-serif%22%20font-size%3D%229%22%20fill%3D%22%23fff%22%20opacity%3D%22.55%22%0A%20text-anchor%3D%22end%22%3EMOCKUP%20SIMULADO%3C/text%3E%0A%3C/svg%3E" alt="Criativo de Kit HEPRO com 20% OFF" loading="lazy"></div>
+      <div class="crea-body">
+        <div class="crea-head"><span class="crea-formato">Carrossel 3 cards</span><a class="crea-link" href="https://facebook.com/ads/library/?id=6712002" target="_blank" rel="noopener">ver anúncio ↗</a></div>
+        <div class="crea-nome">Kit HEPRO com 20% OFF</div>
+        <div class="crea-sub">[[Conv]] - [Kit HEPRO] - Carrossel</div>
+        <p class="crea-corpo">Whey isolado + creatina monohidratada. Leve os dois e economize.</p>
+        <div class="crea-metricas"><div class="crea-m"><span>Gasto</span><strong>R$ 689</strong></div><div class="crea-m"><span>Impressões</span><strong>41.200</strong></div><div class="crea-m"><span>Cliques</span><strong>388</strong></div><div class="crea-m"><span>CTR</span><strong>0.94%</strong></div><div class="crea-m"><span>CPC</span><strong>R$ 1,78</strong></div><div class="crea-m"><span>CPM</span><strong>R$ 16,73</strong></div><div class="crea-m"><span>Frequência</span><strong>3.1×</strong></div><div class="crea-m"><span>Compras (plat.)</span><strong>n/d</strong></div></div>
+      </div>
+    </div></div>
+  <p class="tab-note">Gasto, impressões, cliques, CTR, CPM e frequência só existem do lado da plataforma.
+  <strong>Frequência acima de ~3× no mesmo público costuma indicar fadiga de criativo</strong> — é o momento
+  de rodar variação nova em vez de subir verba.</p>
+</section>
+  </div>
+
   <div class="tab-panel" data-tab="keywords">
     <section><h2>Relação completa de keywords das campanhas + valor do leilão</h2>
 <div class="tab-aviso">⚠ Dado SIMULADO — o Google Ads ainda não está conectado no Windsor.ai desta integração. Ver references/fontes-e-limitacoes.md.</div>
@@ -2255,7 +3539,7 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
   }
 
   function montarConfigAtualizado() {
-    var novo = {"marca": "Joie", "produtos_monitorados": [{"nome": "Faciderm", "termo_busca_ml": "sérum facial vitamina c", "preco_proprio": 149.9, "ticket_medio": 149.9, "campanhas_google_ads": ["Faciderm"], "campanhas_meta_ads": ["Faciderm"], "atributos": {"categoria": "sérum facial", "ingrediente_principal": "vitamina c", "formato": "líquido", "tamanho": "30ml"}}, {"nome": "Amaze", "termo_busca_ml": "polivitamínico feminino", "preco_proprio": 99.9, "ticket_medio": 99.9, "campanhas_google_ads": ["Amaze"], "campanhas_meta_ads": ["Amaze"], "atributos": {"categoria": "polivitamínico", "publico": "feminino", "formato": "cápsulas", "tamanho": "60 cápsulas"}}, {"nome": "Linha Joie Fit", "termo_busca_ml": "whey protein isolado", "preco_proprio": 129.9, "ticket_medio": 129.9, "campanhas_google_ads": ["Joie Fit"], "campanhas_meta_ads": ["Joie Fit"], "atributos": {"categoria": "whey protein", "tipo": "isolado", "formato": "pó", "tamanho": "900g"}}], "produtos_candidatos_manual": [{"nome": "Creatina Joie", "termo_busca_ml": "creatina monohidratada 300g", "atributos": {"categoria": "creatina", "formato": "pó", "tamanho": "300g"}}], "concorrentes": [{"nome": "Black Skull", "sellers_ml": ["BLACK SKULL", "BLACKSKULL OFICIAL"], "dominio_site": "blackskull.com.br", "meta_page": "Black Skull", "google_advertiser": "Black Skull"}, {"nome": "Growth Supplements", "sellers_ml": ["GROWTH SUPPLEMENTS"], "dominio_site": "growthsupplements.com.br", "meta_page": "Growth Supplements", "google_advertiser": "Growth Supplements"}], "candidatos_concorrentes_manual": [{"nome": "Max Titanium", "dominio_site": "maxtitanium.com.br", "sellers_ml": ["MAX TITANIUM OFICIAL"]}], "official_domains": ["joie-suplementos.com"], "official_sellers": ["JOIE"], "limiares": {"queda_preco_leve_pct": 5, "queda_preco_moderada_pct": 15, "aumento_preco_leve_pct": 5, "aumento_preco_moderado_pct": 15, "salto_posicao_min": 3, "crescimento_reviews_pct": 15, "aumento_ads_min_unidades": 3}, "elasticidade_estimada": -1.5, "cadencia_sugerida_horas": 6, "apify_actors": {"mercado_livre": "viralanalyzer~mercadolivre-scraper", "meta_ads": "apify~facebook-ads-scraper", "google_ads_transparency": "unseenuser~google-ads", "google_trends": "apify~google-trends-scraper"}, "trends_geo": "BR", "trends_timeframe": "today 1-m", "pesos_relevancia": {"preco": 0.3, "autoridade_marca": 0.25, "presenca_ads": 0.2, "vendas_marketplace": 0.25, "kpis_redes_sociais": 0.0}};
+    var novo = {"marca": "Joie", "produtos_monitorados": [{"nome": "Faciderm", "termo_busca_ml": "sérum facial vitamina c", "preco_proprio": 149.9, "ticket_medio": 149.9, "campanhas_google_ads": ["Faciderm"], "campanhas_meta_ads": ["Faciderm"], "atributos": {"categoria": "sérum facial", "ingrediente_principal": "vitamina c", "formato": "líquido", "tamanho": "30ml"}}, {"nome": "Amaze", "termo_busca_ml": "polivitamínico feminino", "preco_proprio": 99.9, "ticket_medio": 99.9, "campanhas_google_ads": ["Amaze"], "campanhas_meta_ads": ["Amaze"], "atributos": {"categoria": "polivitamínico", "publico": "feminino", "formato": "cápsulas", "tamanho": "60 cápsulas"}}, {"nome": "Linha Joie Fit", "termo_busca_ml": "whey protein isolado", "preco_proprio": 129.9, "ticket_medio": 129.9, "campanhas_google_ads": ["Joie Fit"], "campanhas_meta_ads": ["Joie Fit"], "atributos": {"categoria": "whey protein", "tipo": "isolado", "formato": "pó", "tamanho": "900g"}}], "produtos_candidatos_manual": [{"nome": "Creatina Joie", "termo_busca_ml": "creatina monohidratada 300g", "atributos": {"categoria": "creatina", "formato": "pó", "tamanho": "300g"}}], "concorrentes": [{"nome": "Black Skull", "sellers_ml": ["BLACK SKULL", "BLACKSKULL OFICIAL"], "dominio_site": "blackskull.com.br", "meta_page": "Black Skull", "google_advertiser": "Black Skull"}, {"nome": "Growth Supplements", "sellers_ml": ["GROWTH SUPPLEMENTS"], "dominio_site": "growthsupplements.com.br", "meta_page": "Growth Supplements", "google_advertiser": "Growth Supplements"}], "candidatos_concorrentes_manual": [{"nome": "Max Titanium", "dominio_site": "maxtitanium.com.br", "sellers_ml": ["MAX TITANIUM OFICIAL"]}], "official_domains": ["joie-suplementos.com"], "official_sellers": ["JOIE"], "limiares": {"queda_preco_leve_pct": 5, "queda_preco_moderada_pct": 15, "aumento_preco_leve_pct": 5, "aumento_preco_moderado_pct": 15, "salto_posicao_min": 3, "crescimento_reviews_pct": 15, "aumento_ads_min_unidades": 3}, "elasticidade_estimada": -1.5, "cadencia_sugerida_horas": 6, "metas": {"faturamento": 150000, "unidades": 280, "ticket_medio": 540, "sessoes": 24000, "tx_conversao": 0.0125, "receita_por_sessao": 6.25, "produtos": {"Faciderm": {"unidades": 90, "faturamento": 48000}, "Amaze": {"unidades": 70, "faturamento": 32000}, "Linha Joie Fit": {"unidades": 80, "faturamento": 45000}, "Creatina Joie": {"unidades": 40, "faturamento": 25000}}}, "apify_actors": {"mercado_livre": "viralanalyzer~mercadolivre-scraper", "meta_ads": "apify~facebook-ads-scraper", "google_ads_transparency": "unseenuser~google-ads", "google_trends": "apify~google-trends-scraper"}, "trends_geo": "BR", "trends_timeframe": "today 1-m", "pesos_relevancia": {"preco": 0.3, "autoridade_marca": 0.25, "presenca_ads": 0.2, "vendas_marketplace": 0.25, "kpis_redes_sociais": 0.0}};
     novo.produtos_monitorados = produtos.filter(function (p) { return p.monitorando; }).map(limpo);
     novo.produtos_candidatos_manual = produtos.filter(function (p) { return !p.monitorando; }).map(limpo);
     novo.concorrentes = concorrentes.filter(function (c) { return c.monitorando; }).map(limpo);
@@ -2282,7 +3566,99 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
   render();
 })();
 </script>
-<script id="fx-alertas-data" type="application/json">[{"severidade": "alta", "nivel": "agressiva", "tipo": "queda_preco", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull baixou o preço de 'Faciderm' de R$ 89.90 para R$ 71.90 (-20.0%).", "impacto_concorrencia": "Sinal de liquidação de estoque, novo substituto ou guerra de preço deliberada. Risco alto de canibalização no curto prazo.", "impacto_volume": "Estimativa por elasticidade deve ser tratada como piso — quedas agressivas convertem desproporcionalmente mais (efeito ancoragem). Estimativa: +30.0% de deslocamento de demanda (a seu favor), usando elasticidade configurada (-1.5) x variação de preço observada (-20.0%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 104.90, ROAS 5.00, CTR 6.47% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Price-match seletivo só nos SKUs mais expostos, não na linha toda", "Reforçar prova social (reviews/garantia) para justificar não seguir a queda", "Campanha de retenção/e-mail para base já convertida", "Checar se é liquidação temporária antes de comprometer margem de forma permanente"], "kpis": ["Margem de contribuição", "ROAS", "CAC", "Share of search/Buy Box", "Taxa de conversão", "Ticket médio"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "aguardando_autorizacao"}, {"severidade": "media", "nivel": "default", "tipo": "novo_desconto", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull passou a oferecer 20% de desconto em 'Faciderm' (antes 0%).", "impacto_concorrencia": "Desconto por tempo limitado costuma converter mais rápido que uma baixa de preço permanente (efeito urgência).", "impacto_volume": "Tratar como a queda de preço equivalente, com efeito concentrado na janela do cupom (não distribuído).", "estrategia": ["Cupom-espelho de curta duração no produto equivalente", "Destacar frete grátis/parcelamento se não puder cobrir o desconto", "Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado"], "kpis": ["CTR", "Taxa de conversão", "CAC no período do cupom", "ROAS da campanha ativa"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "novo_entrante", "produto": "Faciderm", "concorrente": "Growth Supplements", "resumo": "Growth Supplements apareceu pela 1a vez na busca de 'Faciderm' (posição 2).", "impacto_concorrencia": "Aumento da concorrência direta no mesmo termo de busca; dilui share entre mais players.", "impacto_volume": "Risco difuso, maior quanto mais barato/melhor avaliado for o novo entrante.", "estrategia": ["Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas", "Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta"], "kpis": ["Share of search", "Posição média", "Taxa de conversão"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-faciderm", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "salto_visibilidade_ml", "produto": "Amaze", "concorrente": "Black Skull", "resumo": "Black Skull ganhou visibilidade em 'Amaze': subiu da posição 4 para 1 e reviews de 60 para 95.", "impacto_concorrencia": "Mais impressões para o concorrente no mesmo termo; nas primeiras posições do ML o CTR cai muito rápido por posição perdida.", "impacto_volume": "Correlacionado com perda de share of search; não quantificável com precisão sem dados de leilão — tratar como alerta de atenção.", "estrategia": ["Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)", "Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa", "Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento"], "kpis": ["Posição média na busca", "CTR", "Taxa de conversão", "Impression share (Mercado Ads)"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-amaze", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "concorrente_sumiu", "produto": "Amaze", "concorrente": "Growth Supplements", "resumo": "Growth Supplements sumiu da busca de 'Amaze' (estava na posição 1). Hipótese: ruptura de estoque ou pausa de campanha — não confirmado.", "impacto_concorrencia": "Janela de oportunidade temporária — menos competição direta pelo termo/posição.", "impacto_volume": "Oportunidade de ganho de share enquanto durar; não é permanente até confirmar (pode ser reposição de estoque em dias).", "estrategia": ["Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã", "Não reduzir preço proativamente — a demanda já não tem para onde ir"], "kpis": ["Share of search", "Volume/conversão do SKU equivalente", "ROAS"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-amaze", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "moderada", "tipo": "aumento_preco_concorrente", "produto": "Linha Joie Fit", "concorrente": "Black Skull", "resumo": "Black Skull subiu o preço de 'Linha Joie Fit' de R$ 119.90 para R$ 129.90 (+8.3%).", "impacto_concorrencia": "Janela real de oportunidade para ganhar posição/Buy Box e volume sem sacrificar margem.", "impacto_volume": "Ganho potencial relevante (ver estimativa por elasticidade, sentido positivo). Estimativa: -12.5% de deslocamento de demanda (a favor do concorrente), usando elasticidade configurada (-1.5) x variação de preço observada (+8.3%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 134.49, ROAS 3.55, CTR 2.29% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura", "Atualizar comparativos de preço em conteúdo/anúncio"], "kpis": ["Share of search/impressões", "ROAS", "CAC"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-whey", "data": "2026-08-01 10:55 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}]</script>
+<script id="fx-alertas-data" type="application/json">[{"severidade": "alta", "nivel": "agressiva", "tipo": "queda_preco", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull baixou o preço de 'Faciderm' de R$ 89.90 para R$ 71.90 (-20.0%).", "impacto_concorrencia": "Sinal de liquidação de estoque, novo substituto ou guerra de preço deliberada. Risco alto de canibalização no curto prazo.", "impacto_volume": "Estimativa por elasticidade deve ser tratada como piso — quedas agressivas convertem desproporcionalmente mais (efeito ancoragem). Estimativa: +30.0% de deslocamento de demanda (a seu favor), usando elasticidade configurada (-1.5) x variação de preço observada (-20.0%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 104.90, ROAS 5.00, CTR 6.47% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Price-match seletivo só nos SKUs mais expostos, não na linha toda", "Reforçar prova social (reviews/garantia) para justificar não seguir a queda", "Campanha de retenção/e-mail para base já convertida", "Checar se é liquidação temporária antes de comprometer margem de forma permanente"], "kpis": ["Margem de contribuição", "ROAS", "CAC", "Share of search/Buy Box", "Taxa de conversão", "Ticket médio"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "aguardando_autorizacao"}, {"severidade": "media", "nivel": "default", "tipo": "novo_desconto", "produto": "Faciderm", "concorrente": "Black Skull", "resumo": "Black Skull passou a oferecer 20% de desconto em 'Faciderm' (antes 0%).", "impacto_concorrencia": "Desconto por tempo limitado costuma converter mais rápido que uma baixa de preço permanente (efeito urgência).", "impacto_volume": "Tratar como a queda de preço equivalente, com efeito concentrado na janela do cupom (não distribuído).", "estrategia": ["Cupom-espelho de curta duração no produto equivalente", "Destacar frete grátis/parcelamento se não puder cobrir o desconto", "Se o cupom for sazonal (Black Friday etc.), sincronizar campanha própria à mesma data em vez de reagir isolado"], "kpis": ["CTR", "Taxa de conversão", "CAC no período do cupom", "ROAS da campanha ativa"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-faciderm", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "novo_entrante", "produto": "Faciderm", "concorrente": "Growth Supplements", "resumo": "Growth Supplements apareceu pela 1a vez na busca de 'Faciderm' (posição 2).", "impacto_concorrencia": "Aumento da concorrência direta no mesmo termo de busca; dilui share entre mais players.", "impacto_volume": "Risco difuso, maior quanto mais barato/melhor avaliado for o novo entrante.", "estrategia": ["Cadastrar o novo concorrente no config.json para monitorar nas próximas rodadas", "Avaliar se ele compete por preço, marca ou diferencial de produto para calibrar a resposta"], "kpis": ["Share of search", "Posição média", "Taxa de conversão"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-faciderm", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "salto_visibilidade_ml", "produto": "Amaze", "concorrente": "Black Skull", "resumo": "Black Skull ganhou visibilidade em 'Amaze': subiu da posição 4 para 1 e reviews de 60 para 95.", "impacto_concorrencia": "Mais impressões para o concorrente no mesmo termo; nas primeiras posições do ML o CTR cai muito rápido por posição perdida.", "impacto_volume": "Correlacionado com perda de share of search; não quantificável com precisão sem dados de leilão — tratar como alerta de atenção.", "estrategia": ["Revisar ficha do produto próprio (título, imagens, reviews, perguntas respondidas)", "Considerar aumentar lance de Mercado Ads no termo, se já houver campanha ativa", "Checar se o concorrente lançou promoção/frete que também ajuda o ranqueamento"], "kpis": ["Posição média na busca", "CTR", "Taxa de conversão", "Impression share (Mercado Ads)"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-amaze", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "default", "tipo": "concorrente_sumiu", "produto": "Amaze", "concorrente": "Growth Supplements", "resumo": "Growth Supplements sumiu da busca de 'Amaze' (estava na posição 1). Hipótese: ruptura de estoque ou pausa de campanha — não confirmado.", "impacto_concorrencia": "Janela de oportunidade temporária — menos competição direta pelo termo/posição.", "impacto_volume": "Oportunidade de ganho de share enquanto durar; não é permanente até confirmar (pode ser reposição de estoque em dias).", "estrategia": ["Aumentar temporariamente investimento em mídia no termo/SKU equivalente para capturar a demanda órfã", "Não reduzir preço proativamente — a demanda já não tem para onde ir"], "kpis": ["Share of search", "Volume/conversão do SKU equivalente", "ROAS"], "evidencia_url": "https://mercadolivre.com.br/simulado/growth-amaze", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Marketplace (Mercado Livre Ops)", "agente_emblema": "●", "status_acao": "monitorando"}, {"severidade": "media", "nivel": "moderada", "tipo": "aumento_preco_concorrente", "produto": "Linha Joie Fit", "concorrente": "Black Skull", "resumo": "Black Skull subiu o preço de 'Linha Joie Fit' de R$ 119.90 para R$ 129.90 (+8.3%).", "impacto_concorrencia": "Janela real de oportunidade para ganhar posição/Buy Box e volume sem sacrificar margem.", "impacto_volume": "Ganho potencial relevante (ver estimativa por elasticidade, sentido positivo). Estimativa: -12.5% de deslocamento de demanda (a favor do concorrente), usando elasticidade configurada (-1.5) x variação de preço observada (+8.3%). Premissa, não dado medido. Desempenho próprio atual no produto (Google/Meta Ads, últimos dados importados): CPA R$ 134.49, ROAS 3.55, CTR 2.29% — use como referência real para decidir quanto de margem cabe sacrificar num price-match.", "estrategia": ["Reforçar investimento em mídia paga no SKU equivalente enquanto a vantagem dura", "Atualizar comparativos de preço em conteúdo/anúncio"], "kpis": ["Share of search/impressões", "ROAS", "CAC"], "evidencia_url": "https://mercadolivre.com.br/simulado/black-skull-whey", "data": "2026-08-02 02:50 UTC", "agente_nome": "Agente de Precificação e Margem", "agente_emblema": "◈", "status_acao": "monitorando"}]</script>
+<script>
+/* Simulador de planejamento: premissas -> projeção x meta, recalculado ao vivo.
+   "Realizado" é dado medido; "cenário" é projeção sob a premissa do usuário. */
+(function () {
+  var el = document.getElementById('sim-base');
+  if (!el) return;
+  var B;
+  try { B = JSON.parse(el.textContent); } catch (e) { return; }
+  var inS = document.getElementById('in-sess'), inC = document.getElementById('in-conv'),
+      inT = document.getElementById('in-tick');
+  if (!inS || !inC || !inT) return;
+
+  function brl(v) {
+    return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+  }
+  function pctTxt(v) { return (v * 100).toFixed(2).replace('.', ',') + '%'; }
+  function sinal(v) { return (v > 0 ? '+' : '') + v + '%'; }
+
+  document.getElementById('base-sess').textContent = (B.sessions || 0).toLocaleString('pt-BR');
+  document.getElementById('base-conv').textContent = pctTxt(B.tx_conversao || 0);
+  document.getElementById('base-tick').textContent = brl(B.ticket_medio || 0);
+
+  function calcular() {
+    var ds = +inS.value, dc = +inC.value, dt = +inT.value;
+    document.getElementById('out-sess').textContent = sinal(ds);
+    document.getElementById('out-conv').textContent = sinal(dc);
+    document.getElementById('out-tick').textContent = sinal(dt);
+
+    var sess = (B.sessions || 0) * (1 + ds / 100);
+    var conv = (B.tx_conversao || 0) * (1 + dc / 100);
+    var tick = (B.ticket_medio || 0) * (1 + dt / 100);
+    var un = sess * conv;
+    var fat = un * tick;
+
+    document.getElementById('sim-fat').textContent = brl(fat);
+    document.getElementById('sim-un').textContent = Math.round(un).toLocaleString('pt-BR');
+
+    var mf = B.meta_faturamento, mu = B.meta_unidades;
+    var eF = document.getElementById('sim-fat-vs'), eU = document.getElementById('sim-un-vs');
+    if (mf) {
+      var d = fat - mf;
+      eF.textContent = (d >= 0 ? 'bate a meta com folga de ' + brl(d) : 'faltam ' + brl(-d) + ' para a meta');
+      eF.className = 'sim-res-sub ' + (d >= 0 ? 'ok' : 'bad');
+    } else { eF.textContent = 'meta de faturamento não declarada'; eF.className = 'sim-res-sub'; }
+    if (mu) {
+      var du = un - mu;
+      eU.textContent = (du >= 0 ? 'bate a meta (+' + Math.round(du) + ' un)'
+                                : 'faltam ' + Math.round(-du) + ' un para a meta');
+      eU.className = 'sim-res-sub ' + (du >= 0 ? 'ok' : 'bad');
+    } else { eU.textContent = 'meta de unidades não declarada'; eU.className = 'sim-res-sub'; }
+
+    desenhar(B.receita || 0, fat, mf);
+  }
+
+  function desenhar(real, cen, meta) {
+    var g = document.getElementById('sim-bars');
+    if (!g) return;
+    var W = 420, H = 150, base = 116, larg = 92, topo = 24;
+    var teto = Math.max(real, cen, meta || 0) || 1;
+    function alt(v) { return Math.max(2, (v / teto) * (base - topo)); }
+    var barras = [
+      { x: 46, v: real, cls: 'sim-bar-real', rot: 'realizado' },
+      { x: 176, v: cen, cls: 'sim-bar-cen', rot: 'cenário' }
+    ];
+    var html = '';
+    barras.forEach(function (b) {
+      var h = alt(b.v);
+      html += '<rect class="' + b.cls + '" x="' + b.x + '" y="' + (base - h).toFixed(1) +
+              '" width="' + larg + '" height="' + h.toFixed(1) + '" rx="4"/>' +
+              '<text class="sim-val" x="' + (b.x + larg / 2) + '" y="' + (base - h - 7).toFixed(1) +
+              '" text-anchor="middle">' + brl(b.v) + '</text>' +
+              '<text class="sim-lbl" x="' + (b.x + larg / 2) + '" y="' + (base + 15) +
+              '" text-anchor="middle">' + b.rot + '</text>';
+    });
+    if (meta) {
+      var ym = base - alt(meta);
+      html += '<line class="sim-meta-line" x1="26" y1="' + ym.toFixed(1) + '" x2="' + (W - 26) +
+              '" y2="' + ym.toFixed(1) + '"/>' +
+              '<text class="sim-lbl" x="' + (W - 26) + '" y="' + (ym - 5).toFixed(1) +
+              '" text-anchor="end" style="fill:#f0abfc">meta ' + brl(meta) + '</text>';
+    }
+    g.innerHTML = html;
+  }
+
+  [inS, inC, inT].forEach(function (i) { i.addEventListener('input', calcular); });
+  var reset = document.getElementById('sim-reset');
+  if (reset) reset.addEventListener('click', function () {
+    inS.value = 0; inC.value = 0; inT.value = 0; calcular();
+  });
+  calcular();
+})();
+</script>
 <script>
 (function () {
   'use strict';
@@ -2413,9 +3789,7 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
       b.addEventListener('click', function () {
         setTimeout(function () {
           document.querySelectorAll('.tab-panel.active .data-table tbody, .tab-panel.active .ml-radar-table tbody')
-            .forEach(function (tb) {
-              if (tb.getBoundingClientRect().top < window.innerHeight * 1.1) mostrar(tb);
-            });
+            .forEach(mostrar);
         }, 40);
       });
     });
@@ -2425,7 +3799,7 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
   (function () {
     var alvos = [];
     document.querySelectorAll('.tab-panel').forEach(function (panel) {
-      var itens = panel.querySelectorAll('section, .card, .gauge, .squadron-card, .hist-chart-card, .credbar, .selecao-coluna');
+      var itens = panel.querySelectorAll('section, .card, .gauge, .squadron-card, .hist-chart-card, .credbar, .selecao-coluna, .crea-card, .medida, .meta-card, .alav');
       itens.forEach(function (el, i) {
         el.classList.add('fx-reveal');
         el.style.setProperty('--rd', Math.min(i, 9) * 0.05 + 's');
@@ -2445,8 +3819,7 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
       b.addEventListener('click', function () {
         setTimeout(function () {
           document.querySelectorAll('.tab-panel.active .fx-reveal:not(.in)').forEach(function (el) {
-            var r = el.getBoundingClientRect();
-            if (r.top < window.innerHeight * 1.05) el.classList.add('in');
+            el.classList.add('in');
           });
         }, 40);
       });
@@ -2511,10 +3884,7 @@ seu <code>scripts/config.json</code> antes da próxima rodada.</p>
       document.querySelectorAll('.tab-btn').forEach(function (b) {
         b.addEventListener('click', function () {
           setTimeout(function () {
-            document.querySelectorAll('.tab-panel.active .hist-chart-svg').forEach(function (s) {
-              var r = s.getBoundingClientRect();
-              if (r.top < window.innerHeight) ligar(s);
-            });
+            document.querySelectorAll('.tab-panel.active .hist-chart-svg').forEach(ligar);
           }, 60);
         });
       });

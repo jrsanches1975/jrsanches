@@ -89,6 +89,22 @@
   "_comentario_cadencia": "Sugestão de intervalo (em horas) para agendar via /loop ou CronCreate. Comece conservador para não estourar saldo Apify.",
   "cadencia_sugerida_horas": 6,
 
+  "_comentario_metas": "Metas do período que orientam TODO o racional de ação do war room (as 'medidas a tomar' da GA4 e do Meta apontam para elas). Usadas por scripts/metas.py. Deixe de fora a chave que você não quer acompanhar — o quadro mostra 'sem meta definida' em vez de inventar um alvo. faturamento/ticket_medio/receita_por_sessao em BRL; unidades = compras concluídas; tx_conversao em fração (0.015 = 1,5%). 'produtos' aceita {'unidades': N} ou {'unidades': N, 'faturamento': R} por produto — o realizado por produto NÃO vem da GA4 no recorte usado, então informe via metas.py --vendas-produto-json (export do ERP/loja).",
+  "metas": {
+    "faturamento": 150000,
+    "unidades": 280,
+    "ticket_medio": 540,
+    "sessoes": 24000,
+    "tx_conversao": 0.0125,
+    "receita_por_sessao": 6.25,
+    "produtos": {
+      "Faciderm": {"unidades": 90, "faturamento": 48000},
+      "Amaze": {"unidades": 70, "faturamento": 32000},
+      "Linha Joie Fit": {"unidades": 80, "faturamento": 45000},
+      "Creatina Joie": {"unidades": 40, "faturamento": 25000}
+    }
+  },
+
   "_comentario_apify_actors": "IDs de actor usados por war_room.py (Mercado Livre — testado/confirmado), meta_ads.py, google_ads_transparency.py e google_trends.py (estes 3 são BETA, não testados ao vivo — ver SKILL.md e references/fontes-e-limitacoes.md). Troque aqui se o actor default não funcionar no seu teste real, sem precisar editar código.",
   "apify_actors": {
     "mercado_livre": "viralanalyzer~mercadolivre-scraper",

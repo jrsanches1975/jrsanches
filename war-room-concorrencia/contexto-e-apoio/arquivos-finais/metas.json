@@ -1,0 +1,468 @@
+{
+  "periodo": "02/07 a 31/07/2026 (30 dias)",
+  "dia_do_periodo": 30,
+  "dias_do_periodo": 31,
+  "indicadores": [
+    {
+      "rotulo": "Faturamento",
+      "realizado": 111184.09,
+      "meta": 150000,
+      "unidade": "BRL",
+      "pct_da_meta": 0.7412272666666666,
+      "falta": 38815.91,
+      "ritmo_dia": 3706.1363333333334,
+      "projecao_fim_periodo": 114890.22633333334,
+      "ritmo_necessario_dia": 38815.91,
+      "ideal_ate_agora": 145161.29032258064,
+      "aderencia_ao_ritmo": 0.7659348422222222,
+      "dias_restantes": 1,
+      "status": "fora do ritmo",
+      "maior_melhor": true,
+      "desc": "receita medida no período",
+      "fonte": "GA4",
+      "acumulavel": true
+    },
+    {
+      "rotulo": "Unidades vendidas",
+      "realizado": 199,
+      "meta": 280,
+      "unidade": "un",
+      "pct_da_meta": 0.7107142857142857,
+      "falta": 81,
+      "ritmo_dia": 6.633333333333334,
+      "projecao_fim_periodo": 205.63333333333335,
+      "ritmo_necessario_dia": 81.0,
+      "ideal_ate_agora": 270.9677419354839,
+      "aderencia_ao_ritmo": 0.7344047619047618,
+      "dias_restantes": 1,
+      "status": "fora do ritmo",
+      "maior_melhor": true,
+      "desc": "compras concluídas (purchase)",
+      "fonte": "GA4",
+      "acumulavel": true
+    },
+    {
+      "rotulo": "Ticket médio",
+      "realizado": 558.7140201005025,
+      "meta": 540,
+      "unidade": "BRL",
+      "pct_da_meta": 1.0346555927787082,
+      "falta": -18.714020100502466,
+      "ritmo_dia": 18.62380067001675,
+      "projecao_fim_periodo": null,
+      "ritmo_necessario_dia": null,
+      "ideal_ate_agora": null,
+      "aderencia_ao_ritmo": null,
+      "dias_restantes": 1,
+      "status": "no alvo",
+      "maior_melhor": true,
+      "desc": "receita ÷ compras",
+      "fonte": "GA4",
+      "acumulavel": false
+    },
+    {
+      "rotulo": "Sessões",
+      "realizado": 20310,
+      "meta": 24000,
+      "unidade": "sess",
+      "pct_da_meta": 0.84625,
+      "falta": 3690,
+      "ritmo_dia": 677.0,
+      "projecao_fim_periodo": 20987.0,
+      "ritmo_necessario_dia": 3690.0,
+      "ideal_ate_agora": 23225.806451612905,
+      "aderencia_ao_ritmo": 0.8744583333333332,
+      "dias_restantes": 1,
+      "status": "atenção",
+      "maior_melhor": true,
+      "desc": "tráfego total",
+      "fonte": "GA4",
+      "acumulavel": true
+    },
+    {
+      "rotulo": "Taxa de conversão",
+      "realizado": 0.009798129000492367,
+      "meta": 0.0125,
+      "unidade": "pct",
+      "pct_da_meta": 0.7838503200393894,
+      "falta": 0.0027018709995076332,
+      "ritmo_dia": 0.00032660430001641225,
+      "projecao_fim_periodo": null,
+      "ritmo_necessario_dia": null,
+      "ideal_ate_agora": null,
+      "aderencia_ao_ritmo": null,
+      "dias_restantes": 1,
+      "status": "abaixo",
+      "maior_melhor": true,
+      "desc": "compras ÷ sessões",
+      "fonte": "GA4",
+      "acumulavel": false
+    },
+    {
+      "rotulo": "Receita por sessão",
+      "realizado": 5.47435204332841,
+      "meta": 6.25,
+      "unidade": "BRL",
+      "pct_da_meta": 0.8758963269325456,
+      "falta": 0.7756479566715901,
+      "ritmo_dia": 0.18247840144428032,
+      "projecao_fim_periodo": null,
+      "ritmo_necessario_dia": null,
+      "ideal_ate_agora": null,
+      "aderencia_ao_ritmo": null,
+      "dias_restantes": 1,
+      "status": "atenção",
+      "maior_melhor": true,
+      "desc": "o quanto cada visita vale",
+      "fonte": "GA4",
+      "acumulavel": false
+    }
+  ],
+  "produtos": [
+    {
+      "produto": "Faciderm",
+      "unidades_realizado": 58,
+      "unidades_meta": 90,
+      "unidades_pct": 0.6444444444444445,
+      "faturamento_realizado": 31240.5,
+      "faturamento_meta": 48000,
+      "faturamento_pct": 0.65084375,
+      "ticket_medio": 538.6293103448276
+    },
+    {
+      "produto": "Linha Joie Fit",
+      "unidades_realizado": 52,
+      "unidades_meta": 80,
+      "unidades_pct": 0.65,
+      "faturamento_realizado": 27612.8,
+      "faturamento_meta": 45000,
+      "faturamento_pct": 0.6136177777777777,
+      "ticket_medio": 531.0153846153846
+    },
+    {
+      "produto": "Amaze",
+      "unidades_realizado": 41,
+      "unidades_meta": 70,
+      "unidades_pct": 0.5857142857142857,
+      "faturamento_realizado": 18904.3,
+      "faturamento_meta": 32000,
+      "faturamento_pct": 0.590759375,
+      "ticket_medio": 461.08048780487803
+    },
+    {
+      "produto": "Creatina Joie",
+      "unidades_realizado": 19,
+      "unidades_meta": 40,
+      "unidades_pct": 0.475,
+      "faturamento_realizado": 9820.0,
+      "faturamento_meta": 25000,
+      "faturamento_pct": 0.3928,
+      "ticket_medio": 516.8421052631579
+    }
+  ],
+  "evolucao": [
+    {
+      "data": "2026-07-02",
+      "dia": 1,
+      "receita_dia": 7182.3,
+      "acumulado": 7182.3,
+      "meta_acumulada": 4838.71,
+      "compras_dia": 11,
+      "sessions_dia": 539
+    },
+    {
+      "data": "2026-07-03",
+      "dia": 2,
+      "receita_dia": 3038.19,
+      "acumulado": 10220.49,
+      "meta_acumulada": 9677.42,
+      "compras_dia": 8,
+      "sessions_dia": 725
+    },
+    {
+      "data": "2026-07-04",
+      "dia": 3,
+      "receita_dia": 2828.81,
+      "acumulado": 13049.3,
+      "meta_acumulada": 14516.13,
+      "compras_dia": 7,
+      "sessions_dia": 524
+    },
+    {
+      "data": "2026-07-05",
+      "dia": 4,
+      "receita_dia": 2512.4,
+      "acumulado": 15561.7,
+      "meta_acumulada": 19354.84,
+      "compras_dia": 3,
+      "sessions_dia": 542
+    },
+    {
+      "data": "2026-07-06",
+      "dia": 5,
+      "receita_dia": 3194.67,
+      "acumulado": 18756.37,
+      "meta_acumulada": 24193.55,
+      "compras_dia": 8,
+      "sessions_dia": 674
+    },
+    {
+      "data": "2026-07-07",
+      "dia": 6,
+      "receita_dia": 4480.4,
+      "acumulado": 23236.77,
+      "meta_acumulada": 29032.26,
+      "compras_dia": 8,
+      "sessions_dia": 640
+    },
+    {
+      "data": "2026-07-08",
+      "dia": 7,
+      "receita_dia": 5862.68,
+      "acumulado": 29099.45,
+      "meta_acumulada": 33870.97,
+      "compras_dia": 16,
+      "sessions_dia": 611
+    },
+    {
+      "data": "2026-07-09",
+      "dia": 8,
+      "receita_dia": 8482.85,
+      "acumulado": 37582.3,
+      "meta_acumulada": 38709.68,
+      "compras_dia": 11,
+      "sessions_dia": 613
+    },
+    {
+      "data": "2026-07-10",
+      "dia": 9,
+      "receita_dia": 2896.53,
+      "acumulado": 40478.83,
+      "meta_acumulada": 43548.39,
+      "compras_dia": 11,
+      "sessions_dia": 572
+    },
+    {
+      "data": "2026-07-11",
+      "dia": 10,
+      "receita_dia": 524.17,
+      "acumulado": 41003.0,
+      "meta_acumulada": 48387.1,
+      "compras_dia": 1,
+      "sessions_dia": 423
+    },
+    {
+      "data": "2026-07-12",
+      "dia": 11,
+      "receita_dia": 2762.26,
+      "acumulado": 43765.26,
+      "meta_acumulada": 53225.81,
+      "compras_dia": 6,
+      "sessions_dia": 503
+    },
+    {
+      "data": "2026-07-13",
+      "dia": 12,
+      "receita_dia": 3761.75,
+      "acumulado": 47527.01,
+      "meta_acumulada": 58064.52,
+      "compras_dia": 6,
+      "sessions_dia": 846
+    },
+    {
+      "data": "2026-07-14",
+      "dia": 13,
+      "receita_dia": 9369.2,
+      "acumulado": 56896.21,
+      "meta_acumulada": 62903.23,
+      "compras_dia": 7,
+      "sessions_dia": 678
+    },
+    {
+      "data": "2026-07-15",
+      "dia": 14,
+      "receita_dia": 1050.11,
+      "acumulado": 57946.32,
+      "meta_acumulada": 67741.94,
+      "compras_dia": 4,
+      "sessions_dia": 622
+    },
+    {
+      "data": "2026-07-16",
+      "dia": 15,
+      "receita_dia": 3440.85,
+      "acumulado": 61387.17,
+      "meta_acumulada": 72580.65,
+      "compras_dia": 10,
+      "sessions_dia": 685
+    },
+    {
+      "data": "2026-07-17",
+      "dia": 16,
+      "receita_dia": 1521.42,
+      "acumulado": 62908.59,
+      "meta_acumulada": 77419.35,
+      "compras_dia": 2,
+      "sessions_dia": 638
+    },
+    {
+      "data": "2026-07-18",
+      "dia": 17,
+      "receita_dia": 3342.87,
+      "acumulado": 66251.46,
+      "meta_acumulada": 82258.06,
+      "compras_dia": 5,
+      "sessions_dia": 546
+    },
+    {
+      "data": "2026-07-19",
+      "dia": 18,
+      "receita_dia": 436.8,
+      "acumulado": 66688.26,
+      "meta_acumulada": 87096.77,
+      "compras_dia": 2,
+      "sessions_dia": 710
+    },
+    {
+      "data": "2026-07-20",
+      "dia": 19,
+      "receita_dia": 1674.46,
+      "acumulado": 68362.72,
+      "meta_acumulada": 91935.48,
+      "compras_dia": 5,
+      "sessions_dia": 718
+    },
+    {
+      "data": "2026-07-21",
+      "dia": 20,
+      "receita_dia": 7841.4,
+      "acumulado": 76204.12,
+      "meta_acumulada": 96774.19,
+      "compras_dia": 10,
+      "sessions_dia": 784
+    },
+    {
+      "data": "2026-07-22",
+      "dia": 21,
+      "receita_dia": 5067.99,
+      "acumulado": 81272.11,
+      "meta_acumulada": 101612.9,
+      "compras_dia": 9,
+      "sessions_dia": 745
+    },
+    {
+      "data": "2026-07-23",
+      "dia": 22,
+      "receita_dia": 229.9,
+      "acumulado": 81502.01,
+      "meta_acumulada": 106451.61,
+      "compras_dia": 1,
+      "sessions_dia": 714
+    },
+    {
+      "data": "2026-07-24",
+      "dia": 23,
+      "receita_dia": 1641.16,
+      "acumulado": 83143.17,
+      "meta_acumulada": 111290.32,
+      "compras_dia": 3,
+      "sessions_dia": 753
+    },
+    {
+      "data": "2026-07-25",
+      "dia": 24,
+      "receita_dia": 624.82,
+      "acumulado": 83767.99,
+      "meta_acumulada": 116129.03,
+      "compras_dia": 3,
+      "sessions_dia": 648
+    },
+    {
+      "data": "2026-07-26",
+      "dia": 25,
+      "receita_dia": 966.6,
+      "acumulado": 84734.59,
+      "meta_acumulada": 120967.74,
+      "compras_dia": 4,
+      "sessions_dia": 653
+    },
+    {
+      "data": "2026-07-27",
+      "dia": 26,
+      "receita_dia": 2934.83,
+      "acumulado": 87669.42,
+      "meta_acumulada": 125806.45,
+      "compras_dia": 7,
+      "sessions_dia": 846
+    },
+    {
+      "data": "2026-07-28",
+      "dia": 27,
+      "receita_dia": 4522.19,
+      "acumulado": 92191.61,
+      "meta_acumulada": 130645.16,
+      "compras_dia": 8,
+      "sessions_dia": 892
+    },
+    {
+      "data": "2026-07-29",
+      "dia": 28,
+      "receita_dia": 7370.35,
+      "acumulado": 99561.96,
+      "meta_acumulada": 135483.87,
+      "compras_dia": 6,
+      "sessions_dia": 1024
+    },
+    {
+      "data": "2026-07-30",
+      "dia": 29,
+      "receita_dia": 9525.46,
+      "acumulado": 109087.42,
+      "meta_acumulada": 140322.58,
+      "compras_dia": 15,
+      "sessions_dia": 799
+    },
+    {
+      "data": "2026-07-31",
+      "dia": 30,
+      "receita_dia": 2096.67,
+      "acumulado": 111184.09,
+      "meta_acumulada": 145161.29,
+      "compras_dia": 2,
+      "sessions_dia": 722
+    }
+  ],
+  "alavancas": [
+    {
+      "variavel": "Tráfego (sessões)",
+      "atual": 20310,
+      "necessario": 27401,
+      "delta_pct": 0.34911388850688985,
+      "leitura": "Mantendo conversão (0.98%) e ticket (559) atuais, faltam ~7,091 sessões no período."
+    },
+    {
+      "variavel": "Taxa de conversão",
+      "atual": 0.009798129000492367,
+      "necessario": 0.013218791915946385,
+      "delta_pct": 0.34911388850689,
+      "leitura": "Com o mesmo tráfego e ticket, a conversão precisaria ir de 0.98% para 1.32%."
+    },
+    {
+      "variavel": "Ticket médio",
+      "atual": 558.7140201005025,
+      "necessario": 753.7688442211055,
+      "delta_pct": 0.34911388850688985,
+      "leitura": "Com o mesmo número de compras (199), o ticket precisaria ir de R$ 559 para R$ 754."
+    }
+  ],
+  "base_simulador": {
+    "sessions": 20310,
+    "tx_conversao": 0.009798129000492367,
+    "ticket_medio": 558.7140201005025,
+    "receita": 111184.09,
+    "compras": 199,
+    "meta_faturamento": 150000,
+    "meta_unidades": 280
+  },
+  "tem_vendas_por_produto": true
+}

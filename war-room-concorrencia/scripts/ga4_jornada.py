@@ -245,6 +245,129 @@ def montar_kpis(overview, funil, serie_linhas):
     }
 
 
+def montar_campanhas(campanhas, criativos=None):
+    """Desempenho por campanha (dado REAL da GA4) com o criativo anexado quando
+    houver — a imagem do criativo NÃO vem da GA4, vem do Meta/Google (ou de um
+    mapa manual); sem esse arquivo a linha aparece sem imagem, nunca com
+    placeholder passando por criativo real."""
+    criativos = {k: v for k, v in (criativos or {}).items() if not k.startswith("_")}
+    linhas = []
+    for c in campanhas:
+        nome = c.get("campaign") or "(sem campanha)"
+        s = _num(c.get("sessions"))
+        compras = _num(c.get("ecommerce_purchases"))
+        receita = _num(c.get("purchase_revenue"))
+        crea = criativos.get(nome) or {}
+        linhas.append({
+            "campanha": nome, "source": c.get("source"), "medium": c.get("medium"),
+            "pago": (c.get("medium") or "").lower() in ("cpc", "ppc", "paid", "paidsocial", "display"),
+            "sessions": s, "engagement_rate": _num(c.get("engagement_rate")),
+            "add_to_carts": _num(c.get("add_to_carts")), "checkouts": _num(c.get("checkouts")),
+            "compras": compras, "receita": receita,
+            "tx_conversao": _pct(compras, s),
+            "tx_carrinho": _pct(_num(c.get("add_to_carts")), s),
+            "receita_por_sessao": (receita / s) if (isinstance(receita, (int, float)) and s) else None,
+            "ticket_medio": (receita / compras) if (isinstance(receita, (int, float))
+                                                     and isinstance(compras, (int, float)) and compras) else None,
+            "criativo_imagem": crea.get("imagem_url"),
+            "criativo_titulo": crea.get("titulo"),
+            "criativo_corpo": crea.get("corpo"),
+            "criativo_formato": crea.get("formato"),
+            "criativo_url": crea.get("url_anuncio"),
+        })
+    linhas.sort(key=lambda l: -(l["receita"] or 0))
+    return linhas
+
+
+def montar_medidas(kpis, etapas, canais, landings, devices):
+    """Medidas a tomar — cada uma amarrada a um número medido e à meta que move.
+    Recomendação, nunca execução: qualquer ação de escrita (verba, campanha,
+    preço) exige autorização explícita do usuário."""
+    medidas = []
+    vaz = next((e for e in etapas if e.get("maior_vazamento")), None)
+    if vaz and vaz["pct_da_anterior"] is not None:
+        nome = (vaz["nome"] or "").lower()
+        if "checkout" in nome:
+            como = ("Reduzir campos do checkout, mostrar frete e prazo ANTES da última etapa, oferecer PIX "
+                     "com desconto, salvar carrinho e disparar recuperação em 1h/24h. Medir novamente a "
+                     "passagem carrinho→checkout depois de cada mudança, uma por vez.")
+        elif "carrinho" in nome:
+            como = ("Prova social e garantia na página do produto, frete calculado na própria página, "
+                     "kit/combo para elevar percepção de valor. Testar botão fixo de compra no mobile.")
+        elif "produto" in nome:
+            como = ("Melhorar a navegação da home e das categorias para o produto certo aparecer em menos "
+                     "cliques; revisar busca interna (a página /busca está com rejeição alta).")
+        else:
+            como = "Instrumentar a etapa e testar uma hipótese por vez, medindo a passagem depois de cada uma."
+        medidas.append({
+            "prioridade": 1, "esforco": "médio", "impacto": "alto",
+            "acao": f"Corrigir a etapa '{vaz['nome']}' — maior vazamento do funil",
+            "porque": (f"Só {vaz['pct_da_anterior'] * 100:.1f}% da etapa anterior chega em "
+                        f"'{vaz['nome']}': {vaz['perda_abs']:,} pessoas perdidas no período. "
+                        "Ganho aqui é mais barato que comprar tráfego novo."),
+            "como": como, "meta_afetada": "Unidades vendidas / Faturamento",
+        })
+
+    zerados = [c for c in canais if c["sessions"] and c["sessions"] >= 500 and (c["compras"] or 0) == 0]
+    if zerados:
+        medidas.append({
+            "prioridade": 2, "esforco": "baixo", "impacto": "alto",
+            "acao": "Auditar rastreamento dos canais com volume e zero compra",
+            "porque": ("; ".join(f"{c['canal']}: {c['sessions']:,} sessões, {c['compras']} compra(s)"
+                                  for c in zerados)
+                        + ". Volume alto com zero conversão é sintoma de tag/atribuição antes de ser "
+                          "sintoma de audiência."),
+            "como": ("Validar disparo do evento purchase nessas origens, checar se a UTM não sobrescreve o "
+                      "canal e comparar com o relatório da plataforma de origem antes de cortar verba."),
+            "meta_afetada": "Faturamento",
+        })
+
+    vazando = [p for p in landings if p["vazamento"]]
+    if vazando:
+        top = sorted(vazando, key=lambda p: -(p["sessions"] or 0))[:3]
+        perdidas = sum(p["sessions"] or 0 for p in vazando)
+        medidas.append({
+            "prioridade": 3, "esforco": "médio", "impacto": "alto",
+            "acao": "Recuperar as landing pages que recebem tráfego e não vendem",
+            "porque": (f"{len(vazando)} página(s) somam {perdidas:,} sessões sem nenhuma compra. Maiores: "
+                        + "; ".join(f"{p['pagina']} ({p['sessions']:,})" for p in top)),
+            "como": ("Ir uma a uma pela ordem de sessão perdida: conferir preço/estoque visíveis, imagem, "
+                      "botão de compra acima da dobra no mobile, e se a promessa do anúncio bate com a página. "
+                      "Página com muito add-to-cart e zero compra aponta problema DEPOIS do carrinho."),
+            "meta_afetada": "Taxa de conversão",
+        })
+
+    # mobile pior que desktop com a maior parte do tráfego
+    mob = next((d for d in devices if (d["device"] or "").lower() == "mobile"), None)
+    desk = next((d for d in devices if (d["device"] or "").lower() == "desktop"), None)
+    if (mob and desk and mob["tx_conversao"] is not None and desk["tx_conversao"] is not None
+            and mob["sessions"] and desk["sessions"] and mob["tx_conversao"] < desk["tx_conversao"] * 0.9):
+        gap = (desk["tx_conversao"] - mob["tx_conversao"]) * (mob["sessions"] or 0)
+        medidas.append({
+            "prioridade": 4, "esforco": "médio", "impacto": "alto",
+            "acao": "Priorizar correções de mobile",
+            "porque": (f"Mobile converte {mob['tx_conversao'] * 100:.2f}% contra "
+                        f"{desk['tx_conversao'] * 100:.2f}% do desktop, com {mob['sessions']:,} sessões. "
+                        f"Igualar as duas taxas valeria ~{gap:.0f} compra(s) no período."),
+            "como": ("Medir Core Web Vitals no 4G, reduzir peso de imagem, botão de compra fixo, "
+                      "checkout em uma coluna e teclado numérico nos campos de número."),
+            "meta_afetada": "Taxa de conversão / Faturamento",
+        })
+
+    if kpis.get("pct_primeira_compra") is not None and kpis["pct_primeira_compra"] > 0.7:
+        medidas.append({
+            "prioridade": 5, "esforco": "baixo", "impacto": "médio",
+            "acao": "Montar recompra para reduzir dependência de aquisição",
+            "porque": (f"{kpis['pct_primeira_compra'] * 100:.0f}% dos compradores são de primeira compra: "
+                        "o faturamento está apoiado em mídia paga, não em base."),
+            "como": ("Fluxo de pós-compra por e-mail/WhatsApp na janela de recompra do produto (suplemento "
+                      "tem ciclo previsível), com oferta de assinatura ou kit de reposição."),
+            "meta_afetada": "Faturamento / Ticket médio",
+        })
+    medidas.sort(key=lambda m: m["prioridade"])
+    return medidas
+
+
 def montar_diagnostico(kpis, etapas, canais, landings, devices):
     """Leitura de gestor de tráfego: aponta os pontos de ação com o número que
     sustenta cada um. Só afirma o que sai da aritmética do dado medido."""
@@ -340,6 +463,9 @@ def main():
     ap.add_argument("--devices", help="get_data por devicecategory")
     ap.add_argument("--landing", help="get_data por landing_page")
     ap.add_argument("--serie", help="get_data por date")
+    ap.add_argument("--campanhas", help="get_data por campaign/source/medium (desempenho de campanha)")
+    ap.add_argument("--criativos", help='JSON {campanha: {imagem_url, titulo, corpo, formato, url_anuncio}} '
+                                         "— a imagem do criativo NÃO vem da GA4; venha do Meta/Google ou mapa manual")
     ap.add_argument("--limiar-landing-sessions", type=int, default=100)
     ap.add_argument("--out", default="ga4-jornada.json")
     ap.add_argument("--periodo", default="últimos 30 dias",
@@ -360,6 +486,9 @@ def main():
     serie = montar_serie(_linhas(args.serie))
     kpis = montar_kpis(overview, funil_raw, serie)
     diagnostico = montar_diagnostico(kpis, etapas, canais, landings, devices)
+    criativos = load_json(args.criativos, {}) if args.criativos else {}
+    campanhas = montar_campanhas(_linhas(args.campanhas), criativos) if args.campanhas else []
+    medidas = montar_medidas(kpis, etapas, canais, landings, devices)
 
     saida = {
         "periodo": args.periodo,
@@ -370,7 +499,9 @@ def main():
         "devices": devices,
         "landing_pages": landings,
         "serie": serie,
+        "campanhas": campanhas,
         "diagnostico": diagnostico,
+        "medidas": medidas,
         "limiar_landing_sessions": args.limiar_landing_sessions,
     }
     save_json(args.out, saida)

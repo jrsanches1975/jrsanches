@@ -655,6 +655,105 @@ O que a aba entrega (e o que o script **não** faz):
 Também gera 4 abas na planilha: `GA4 Funil`, `GA4 Canais`, `GA4 Landing Pages` e
 `GA4 Diagnóstico`.
 
+### 14. Metas, evolução e planejamento (`metas.py`) — a bússola das ações
+
+Todo o racional de ação do war room aponta para uma meta. Declare em
+`config["metas"]` (ver `config.example.json`): `faturamento`, `unidades`,
+`ticket_medio`, `sessoes`, `tx_conversao` (fração), `receita_por_sessao` e
+`produtos` (por produto: `unidades` e/ou `faturamento`).
+
+```bash
+python metas.py --config config.json --ga4-json ../outputs/ga4-jornada.json \
+  --vendas-produto-json vendas-por-produto.json --dias-do-periodo 31 \
+  --out ../outputs/metas.json
+
+python war_room.py --config config.json --metas-json ../outputs/metas.json ...
+```
+
+A aba **Metas & Evolução** traz:
+
+- **Quadro de metas** — realizado × meta por indicador, com barra de progresso e o
+  **traço de ritmo ideal até hoje** (meta distribuída linearmente no período).
+  Estar atrás do traço = fora do ritmo, mesmo com a barra crescendo. Status:
+  no ritmo / atenção / fora do ritmo.
+- **Evolução × meta** — faturamento acumulado (medido) contra a linha de meta.
+- **Alavancas** — quanto tráfego, conversão OU ticket precisaria mudar,
+  isoladamente, para fechar a lacuna. É aritmética reversa sobre o realizado:
+  serve para dimensionar esforço, não para prometer resultado (na prática as três
+  se movem juntas).
+- **Simulador de planejamento** — sliders de tráfego/conversão/ticket que
+  recalculam a projeção × meta **ao vivo** no navegador. A tela deixa explícito
+  o que é **realizado (medido)** e o que é **cenário sob premissa do usuário**.
+- **Metas por produto** — unidades e faturamento por produto. O realizado por
+  produto **não vem da GA4** no recorte usado: informe via
+  `--vendas-produto-json` (export do ERP/loja). Sem isso, as metas aparecem e o
+  realizado fica em branco — nunca preenchido por estimativa.
+
+Honestidade embutida: `projecao_fim_periodo` mantém o ritmo médio observado e é
+rotulada como **premissa**, não previsão (sem sazonalidade nem saturação). Meta
+não declarada aparece como "sem meta definida". Ticket médio, conversão e
+receita/sessão não são acumuláveis, então não têm linha de ritmo nem projeção.
+
+### 15. Aba Meta Ads (`meta_ads_performance.py`) — duas fontes, nunca misturadas
+
+Mesma lógica da aba GA4, mas para o Meta. O script mantém **separadas** duas
+fontes com status de confiança diferente:
+
+- **Lado GA4 (REAL, disponível hoje)** — as campanhas do Meta aparecem na GA4 via
+  UTM (`source: Facebook`), com sessões, engajamento, carrinho, checkout, compras
+  e receita. É medido, mas **sem gasto, impressão, clique, CTR, CPM ou criativo**
+  — a GA4 não vê o lado da plataforma.
+- **Lado plataforma** — gasto/impressões/cliques/CTR/CPM/frequência + imagem do
+  criativo. Exige o conector `facebook` do Windsor.ai, que nesta integração está
+  **desconectado**. Enquanto estiver, rode com `--simulado` para o relatório
+  avisar em letra garrafal.
+
+```bash
+python meta_ads_performance.py --ga4-campanhas examples/ga4-real/ga4-campanhas.json \
+  --plataforma meta-insights.json --criativos criativos.json --simulado \
+  --out ../outputs/meta-ads.json
+
+python war_room.py --config config.json \
+  --meta-ads-performance-json ../outputs/meta-ads.json ...
+```
+
+Cuidado com o nome: `--meta-ads-json` (já existente) é o monitor de criativo
+**novo de CONCORRENTE**; `--meta-ads-performance-json` é esta aba.
+
+O script nunca soma métrica de uma fonte com a outra. O `roas_cruzado` (receita
+GA4 ÷ gasto plataforma) é calculado mas vem sempre com o aviso de que são
+**janelas de atribuição diferentes**. Produto/objetivo/formato saem do padrão de
+nomenclatura das campanhas (`[[Conv]] - [Colágeno] - Carrossel`); onde o padrão
+não existe, aparece "—" em vez de chute.
+
+### 16. Medidas a serem tomadas (GA4 e Meta Ads)
+
+Ambas as abas têm uma seção **Medidas a serem tomadas**: ação, **por quê** (com o
+número medido que a sustenta), **como fazer** e **qual meta ela move**. Ordenadas
+por impacto sobre a meta ÷ esforço.
+
+Toda medida é **recomendação**. Nenhuma ação de escrita (verba, campanha, preço,
+`execute_action`) é executada sem autorização explícita e específica do usuário —
+princípio que vale para o sistema inteiro.
+
+### 17. Criativos nas abas GA4 e Meta
+
+A imagem do criativo **não vem da GA4**. Vem do Meta/Google (ou de um mapa
+manual) e é anexada por nome de campanha via `--criativos`. Onde não houver, o
+card diz "sem criativo anexado" — nunca mostra placeholder passando por criativo
+real. As fixtures de exemplo usam mockups SVG gerados proceduralmente, com
+"MOCKUP SIMULADO" impresso na própria arte.
+
+### 18. Visual cósmico (`_cosmos.py`)
+
+A arte do hero (nebulosa, disco de acreção, buraco negro, cometa, starfield) é
+**gerada proceduralmente em SVG** com seed fixa — não é imagem baixada. Motivo:
+a rede deste ambiente é bloqueada para hosts arbitrários e imagem de terceiro
+traria problema de direito de uso. O mesmo módulo exporta a paleta cósmica
+(violeta → magenta → ciano), o divisor de seção e orbes decorativos. As cores
+**categóricas dos gráficos** seguem intactas (validadas para daltonismo pela
+skill `dataviz`) — só a identidade visual usa o gradiente.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

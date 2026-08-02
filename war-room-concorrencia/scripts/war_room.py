@@ -32,6 +32,7 @@ from datetime import datetime, timezone
 from _fonts import FONT_ORBITRON_B64, FONT_SHARETECH_B64, FONT_SORA_B64
 from _effects import EFFECTS_CSS, EFFECTS_BODY_HTML, EFFECTS_JS
 from _fx_neon import FX_CSS, FX_BODY, FX_JS
+from _cosmos import COSMOS_TOKENS_CSS, hero_svg, nebula_strip_svg, planet_svg
 from apify_common import apify_run, get_token, load_json, norm, save_json
 
 ML_ACTOR = "viralanalyzer~mercadolivre-scraper"
@@ -1863,6 +1864,523 @@ def render_ga4_diagnostico(achados):
     return f'<div class="ga4-diag-grid">{"".join(cards)}</div>'
 
 
+# ------------------------------------------------- medidas a tomar (GA4 e Meta)
+def render_medidas(medidas, titulo_vazio="Nenhuma medida sugerida nesta rodada."):
+    """Seção "medidas a serem tomadas": ação, por quê (com o número), como, e a
+    meta que ela move. Recomendação — nunca execução automática."""
+    if not medidas:
+        return f'<p class="hist-empty">{titulo_vazio}</p>'
+    cards = []
+    for m in medidas:
+        cards.append(f"""
+    <div class="medida imp-{_slug(m.get('impacto'))}">
+      <div class="medida-top">
+        <span class="medida-num">{m.get('prioridade', '·')}</span>
+        <div class="medida-tags">
+          <span class="medida-tag t-imp">impacto {m.get('impacto', 'n/d')}</span>
+          <span class="medida-tag t-esf">esforço {m.get('esforco', 'n/d')}</span>
+        </div>
+      </div>
+      <div class="medida-acao">{m.get('acao', '')}</div>
+      <div class="medida-bloco"><span class="medida-rot">Por quê</span><p>{m.get('porque', '')}</p></div>
+      <div class="medida-bloco"><span class="medida-rot">Como fazer</span><p>{m.get('como', '')}</p></div>
+      <div class="medida-meta"><span>Move a meta</span><strong>{m.get('meta_afetada', '—')}</strong></div>
+    </div>""")
+    return f"""
+<div class="medida-grid">{''.join(cards)}</div>
+<p class="tab-note">Prioridade = ordem sugerida por impacto sobre a meta ÷ esforço. Toda medida é
+<strong>recomendação</strong>: nenhuma ação de escrita (verba, campanha, preço) é executada sem sua
+autorização explícita e específica.</p>"""
+
+
+def _slug(v):
+    return (str(v or "").lower().replace("é", "e").replace("ç", "c").replace("ã", "a")
+            .replace(" ", "-").replace("é", "e"))
+
+
+# ------------------------------------------- campanhas com criativo (GA4/Meta)
+def render_criativo_card(c, contexto="ga4"):
+    """Card de campanha com o criativo quando existir. Sem imagem, mostra o
+    porquê — nunca um placeholder fingindo ser o criativo real."""
+    img = c.get("criativo_imagem")
+    if img:
+        visual = (f'<div class="crea-img"><img src="{img}" alt="Criativo de {c.get("criativo_titulo") or "campanha"}"'
+                  f' loading="lazy"></div>')
+    else:
+        visual = ('<div class="crea-img crea-sem"><span>sem criativo anexado</span>'
+                  '<small>imagem vem do Meta/Google, não da GA4</small></div>')
+    nome = c.get("campanha") or c.get("nome_limpo") or c.get("nome") or "(sem nome)"
+    linhas = [
+        ("Sessões", _f_int(c.get("sessions"))),
+        ("Engajamento", _f_pct(c.get("engagement_rate"))),
+        ("Carrinho", _f_int(c.get("add_to_carts"))),
+        ("Compras", _f_int(c.get("compras"))),
+        ("Conversão", _f_pct(c.get("tx_conversao"), 2)),
+        ("Receita", _f_brl(c.get("receita"), 0)),
+    ]
+    if contexto == "meta" and c.get("gasto") is not None:
+        linhas = [("Gasto", _f_brl(c.get("gasto"), 0)),
+                  ("Impressões", _f_int(c.get("impressions"))),
+                  ("Cliques", _f_int(c.get("clicks"))),
+                  ("CTR", _f_pct(c.get("ctr"), 2)),
+                  ("CPC", _f_brl(c.get("cpc"))),
+                  ("CPM", _f_brl(c.get("cpm"))),
+                  ("Frequência", f"{c['frequencia']:.1f}×" if isinstance(c.get("frequencia"), (int, float)) else "n/d"),
+                  ("Compras (plat.)", _f_int(c.get("compras_plataforma")))]
+    metricas = "".join(f'<div class="crea-m"><span>{k}</span><strong>{v}</strong></div>' for k, v in linhas)
+    meta_txt = ""
+    if c.get("criativo_formato"):
+        meta_txt = f'<span class="crea-formato">{c["criativo_formato"]}</span>'
+    corpo = f'<p class="crea-corpo">{c["criativo_corpo"]}</p>' if c.get("criativo_corpo") else ""
+    link = (f'<a class="crea-link" href="{c["criativo_url"]}" target="_blank" rel="noopener">ver anúncio ↗</a>'
+            if c.get("criativo_url") else "")
+    return f"""
+    <div class="crea-card cosmos-frame">
+      {visual}
+      <div class="crea-body">
+        <div class="crea-head">{meta_txt}{link}</div>
+        <div class="crea-nome">{c.get('criativo_titulo') or nome}</div>
+        <div class="crea-sub">{nome if c.get('criativo_titulo') else (c.get('source') or '')}</div>
+        {corpo}
+        <div class="crea-metricas">{metricas}</div>
+      </div>
+    </div>"""
+
+
+def render_ga4_campanhas(campanhas):
+    if not campanhas:
+        return ('<p class="hist-empty">Campanhas não carregadas — passe <code>--campanhas</code> em '
+                '<code>ga4_jornada.py</code>.</p>')
+    com_crea = [c for c in campanhas if c.get("criativo_imagem")]
+    sem_crea = [c for c in campanhas if not c.get("criativo_imagem")]
+    galeria = ""
+    if com_crea:
+        galeria = f"""
+<h3 class="descoberta-produto">Criativos anexados</h3>
+<div class="crea-grid">{''.join(render_criativo_card(c) for c in com_crea[:8])}</div>"""
+    rows = []
+    for c in sem_crea[:24]:
+        pago = '<span class="ga4-badge q-testar">pago</span>' if c.get("pago") else ""
+        rows.append(f"""
+        <tr>
+          <td class="quem">{c['campanha']} {pago}</td>
+          <td>{c.get('source') or '—'} / {c.get('medium') or '—'}</td>
+          <td>{_f_int(c['sessions'])}</td><td>{_f_pct(c['engagement_rate'])}</td>
+          <td>{_f_int(c['add_to_carts'])}</td><td>{_f_int(c['compras'])}</td>
+          <td>{_f_pct(c['tx_conversao'], 2)}</td><td>{_f_brl(c['receita'], 0)}</td>
+          <td>{_f_brl(c['receita_por_sessao'])}</td>
+        </tr>""")
+    tabela = f"""
+<h3 class="descoberta-produto" style="margin-top:22px">Todas as campanhas</h3>
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Campanha</th><th>Origem / mídia</th><th>Sessões</th><th>Engajamento</th>
+    <th>Carrinho</th><th>Compras</th><th>Conversão</th><th>Receita</th><th>R$/sessão</th></tr></thead>
+    <tbody>{''.join(rows)}</tbody>
+  </table>
+</div>"""
+    return f"""{galeria}{tabela}
+<p class="tab-note">As métricas são da GA4 (lado do site) e são medidas. <strong>A imagem do criativo não
+vem da GA4</strong> — vem do Meta/Google (ou de um mapa manual) e é anexada por nome de campanha; onde não
+houver, o card avisa em vez de mostrar um placeholder passando por criativo real.</p>"""
+
+
+# ------------------------------------------------------- metas e evolução
+_STATUS_CLS = {"no ritmo": "ok", "no alvo": "ok", "atenção": "warn",
+               "fora do ritmo": "bad", "abaixo": "bad"}
+
+
+def _fmt_valor(v, unidade):
+    if not isinstance(v, (int, float)):
+        return "n/d"
+    if unidade == "BRL":
+        return _f_brl(v, 0 if abs(v) >= 1000 else 2)
+    if unidade == "pct":
+        return _f_pct(v, 2)
+    return _f_int(v)
+
+
+def render_metas_quadro(m):
+    if not m or not m.get("indicadores"):
+        return ('<p class="hist-empty">Metas não carregadas — declare <code>metas</code> no config e rode '
+                '<code>metas.py</code>, passando o resultado em <code>--metas-json</code>.</p>')
+    cards = []
+    for i in m["indicadores"]:
+        cls = _STATUS_CLS.get(i["status"], "neutro")
+        pct = i["pct_da_meta"]
+        largura = max(1.5, min(100, (pct or 0) * 100))
+        ritmo = ""
+        if i.get("aderencia_ao_ritmo") is not None:
+            marca = min(100, (i["ideal_ate_agora"] / i["meta"] * 100) if i.get("meta") else 0)
+            ritmo = f'<span class="meta-ritmo" style="left:{marca:.1f}%" title="ritmo ideal até hoje"></span>'
+        extra = []
+        if i.get("falta") is not None and i["falta"] > 0:
+            extra.append(f"faltam {_fmt_valor(i['falta'], i['unidade'])}")
+        if i.get("projecao_fim_periodo") is not None:
+            extra.append(f"projeção {_fmt_valor(i['projecao_fim_periodo'], i['unidade'])}")
+        if i.get("ritmo_necessario_dia") is not None:
+            extra.append(f"precisa {_fmt_valor(i['ritmo_necessario_dia'], i['unidade'])}/dia")
+        cards.append(f"""
+    <div class="meta-card st-{cls}">
+      <div class="meta-top">
+        <span class="meta-rotulo">{i['rotulo']}</span>
+        <span class="meta-status st-{cls}">{i['status']}</span>
+      </div>
+      <div class="meta-valores">
+        <span class="meta-real">{_fmt_valor(i['realizado'], i['unidade'])}</span>
+        <span class="meta-alvo">/ {_fmt_valor(i['meta'], i['unidade'])}</span>
+      </div>
+      <div class="meta-track">
+        <div class="meta-bar" style="--w:{largura:.1f}%"></div>{ritmo}
+      </div>
+      <div class="meta-foot">
+        <span class="meta-pct">{_f_pct(pct, 0) if pct is not None else 'n/d'} da meta</span>
+        <span class="meta-extra">{' · '.join(extra) if extra else i.get('desc', '')}</span>
+      </div>
+    </div>""")
+    dia, dias = m.get("dia_do_periodo"), m.get("dias_do_periodo")
+    return f"""
+<div class="meta-grid">{''.join(cards)}</div>
+<p class="tab-note">Dia <strong>{dia}</strong> de <strong>{dias}</strong> do período. O traço vertical na
+barra é o <strong>ritmo ideal até hoje</strong> (meta distribuída linearmente) — estar atrás dele significa
+fora do ritmo mesmo com a barra crescendo. "Projeção" mantém o ritmo médio observado: é
+<strong>premissa</strong>, não previsão. Ticket médio, conversão e receita/sessão não são acumuláveis, então
+não têm linha de ritmo nem projeção.</p>"""
+
+
+def render_metas_produtos(produtos, tem_vendas):
+    if not produtos:
+        return ""
+    if not tem_vendas:
+        aviso = ('<p class="tab-note">Sem <code>--vendas-produto-json</code>: a GA4 não devolve unidades por '
+                 'produto no recorte usado, então o realizado por produto fica em branco. Exporte do ERP/loja '
+                 'para preencher — as metas continuam visíveis para referência.</p>')
+    else:
+        aviso = ('<p class="tab-note">Unidades e faturamento por produto vêm do arquivo que você informou '
+                 '(ERP/loja), não da GA4.</p>')
+    rows = []
+    for p in produtos:
+        pu, pf = p["unidades_pct"], p["faturamento_pct"]
+        def barra(pct):
+            if pct is None:
+                return '<span class="meta-mini-nd">n/d</span>'
+            cls = "ok" if pct >= 1 else ("warn" if pct >= 0.85 else "bad")
+            return (f'<span class="meta-mini st-{cls}"><i style="--w:{min(100, pct * 100):.1f}%"></i>'
+                    f'<b>{pct * 100:.0f}%</b></span>')
+        rows.append(f"""
+        <tr>
+          <td class="quem">{p['produto']}</td>
+          <td>{_f_int(p['unidades_realizado'])} / {_f_int(p['unidades_meta'])}</td>
+          <td>{barra(pu)}</td>
+          <td>{_f_brl(p['faturamento_realizado'], 0)} / {_f_brl(p['faturamento_meta'], 0)}</td>
+          <td>{barra(pf)}</td>
+          <td>{_f_brl(p['ticket_medio'], 0)}</td>
+        </tr>""")
+    return f"""
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Produto</th><th>Unidades (real / meta)</th><th>% un.</th>
+    <th>Faturamento (real / meta)</th><th>% fat.</th><th>Ticket médio</th></tr></thead>
+    <tbody>{''.join(rows)}</tbody>
+  </table>
+</div>{aviso}"""
+
+
+def render_metas_evolucao(evolucao, metas_json):
+    """Curva de realizado acumulado × linha de meta. O realizado é medido; a
+    linha de meta é a meta distribuída linearmente (premissa declarada)."""
+    pts = [p for p in (evolucao or []) if p.get("acumulado") is not None]
+    n = len(pts)
+    if n < 2:
+        return '<p class="hist-empty">Série insuficiente para o gráfico de evolução.</p>'
+    W, H = 980, 300
+    PL, PR, PT, PB = 66, 20, 18, 40
+    pw, ph = W - PL - PR, H - PT - PB
+    tetos = [p["acumulado"] for p in pts] + [p["meta_acumulada"] for p in pts if p.get("meta_acumulada")]
+    top = max(tetos) or 1
+
+    def x(i):
+        return PL + (i / (n - 1)) * pw
+
+    def y(v):
+        return PT + ph - (v / top * ph * 0.94)
+
+    real_pts = [(x(i), y(p["acumulado"])) for i, p in enumerate(pts)]
+    real_line = " ".join(f"{a:.1f},{b:.1f}" for a, b in real_pts)
+    area = (f'M {real_pts[0][0]:.1f},{PT + ph:.1f} '
+            + " ".join(f"L {a:.1f},{b:.1f}" for a, b in real_pts)
+            + f" L {real_pts[-1][0]:.1f},{PT + ph:.1f} Z")
+    meta_line = ""
+    if any(p.get("meta_acumulada") for p in pts):
+        mp = [(x(i), y(p["meta_acumulada"])) for i, p in enumerate(pts) if p.get("meta_acumulada")]
+        meta_line = ('<polyline class="ev-meta" points="'
+                     + " ".join(f"{a:.1f},{b:.1f}" for a, b in mp) + '" />')
+    marcas = "".join(
+        f'<circle class="ev-dot" cx="{a:.1f}" cy="{b:.1f}" r="3.2">'
+        f'<title>{pts[i]["data"]} (dia {pts[i]["dia"]}) — acumulado {_f_brl(pts[i]["acumulado"], 0)}'
+        + (f' — meta do dia {_f_brl(pts[i]["meta_acumulada"], 0)}' if pts[i].get("meta_acumulada") else "")
+        + f' — receita do dia {_f_brl(pts[i]["receita_dia"], 0)}</title></circle>'
+        for i, (a, b) in enumerate(real_pts))
+    grade = "".join(
+        f'<line class="ga4-grid" x1="{PL}" y1="{PT + ph * k:.1f}" x2="{W - PR}" y2="{PT + ph * k:.1f}" />'
+        for k in (0, .25, .5, .75, 1))
+    eixos = "".join(
+        f'<text class="eixo-label" x="{PL - 8}" y="{PT + ph * (1 - k) + 4:.1f}" text-anchor="end">'
+        f'{_f_brl(top * k, 0)}</text>' for k in (0, .5, 1))
+    rotulos = "".join(
+        f'<text class="eixo-label" x="{x(i):.1f}" y="{H - 12}" text-anchor="middle">{pts[i]["data"][5:]}</text>'
+        for i in (0, n // 3, 2 * n // 3, n - 1))
+    return f"""
+<div class="ga4-serie-card">
+  <div class="hist-chart-head">
+    <span class="hist-chart-title">Evolução acumulada <span class="vs">× meta</span></span>
+    <span class="hist-chart-legend">
+      <span class="leg-item"><span class="leg-swatch sw-real"></span>realizado (medido)</span>
+      <span class="leg-item"><span class="leg-swatch sw-metaline"></span>linha de meta</span>
+    </span>
+  </div>
+  <svg viewBox="0 0 {W} {H}" class="ga4-serie-svg hist-chart-svg" role="img"
+       aria-label="Faturamento acumulado medido contra a linha de meta do período">
+    {grade}
+    <path class="ev-area" d="{area}" />
+    {meta_line}
+    <polyline class="ev-real hist-linha" points="{real_line}" />
+    {marcas}{eixos}{rotulos}
+  </svg>
+</div>"""
+
+
+def render_metas_simulador(base):
+    """Painel de planejamento: você mexe nas premissas (tráfego, conversão,
+    ticket) e o gráfico de projeção × meta recalcula ao vivo. Fica explícito na
+    tela o que é realizado e o que é cenário sob premissa sua."""
+    if not base or not base.get("sessions"):
+        return ""
+    return f"""
+<div class="sim-wrap cosmos-frame">
+  <div class="sim-head">
+    <div>
+      <div class="sim-titulo">Simulador de planejamento</div>
+      <div class="sim-sub">Mexa nas premissas e veja a projeção mudar contra a meta, ao vivo.</div>
+    </div>
+    <button class="btn btn-mini" id="sim-reset" type="button">↺ voltar ao realizado</button>
+  </div>
+  <div class="sim-grid">
+    <div class="sim-controles">
+      <label class="sim-ctl">
+        <span class="sim-ctl-top">Tráfego (sessões) <output id="out-sess"></output></span>
+        <input type="range" id="in-sess" min="-50" max="150" value="0" step="1">
+        <span class="sim-ctl-base">realizado: <b id="base-sess"></b></span>
+      </label>
+      <label class="sim-ctl">
+        <span class="sim-ctl-top">Taxa de conversão <output id="out-conv"></output></span>
+        <input type="range" id="in-conv" min="-50" max="250" value="0" step="1">
+        <span class="sim-ctl-base">realizado: <b id="base-conv"></b></span>
+      </label>
+      <label class="sim-ctl">
+        <span class="sim-ctl-top">Ticket médio <output id="out-tick"></output></span>
+        <input type="range" id="in-tick" min="-40" max="120" value="0" step="1">
+        <span class="sim-ctl-base">realizado: <b id="base-tick"></b></span>
+      </label>
+    </div>
+    <div class="sim-saida">
+      <div class="sim-res">
+        <span class="sim-res-rot">Faturamento no cenário</span>
+        <span class="sim-res-val" id="sim-fat">—</span>
+        <span class="sim-res-sub" id="sim-fat-vs">—</span>
+      </div>
+      <div class="sim-res">
+        <span class="sim-res-rot">Unidades no cenário</span>
+        <span class="sim-res-val" id="sim-un">—</span>
+        <span class="sim-res-sub" id="sim-un-vs">—</span>
+      </div>
+      <svg viewBox="0 0 420 150" class="sim-svg" role="img" aria-label="Comparação do cenário com a meta">
+        <g id="sim-bars"></g>
+      </svg>
+    </div>
+  </div>
+  <p class="tab-note">A barra "realizado" é <strong>dado medido</strong>. "Cenário" é
+  <strong>projeção sob a premissa que você escolheu</strong> (faturamento = sessões × conversão × ticket) —
+  não é previsão: não tem sazonalidade, saturação de canal nem limite de verba embutidos. Serve para
+  dimensionar o esforço necessário, não para prometer resultado.</p>
+  <script id="sim-base" type="application/json">{json.dumps(base, ensure_ascii=False)}</script>
+</div>"""
+
+
+def render_metas_alavancas(alavancas):
+    if not alavancas:
+        return ('<p class="tab-note">Sem lacuna de faturamento a fechar no período (ou meta de faturamento '
+                'não declarada).</p>')
+    cards = []
+    for a in alavancas:
+        atual = a["atual"]
+        nec = a["necessario"]
+        eh_pct = a["variavel"] == "Taxa de conversão"
+        fmt = (lambda v: _f_pct(v, 2)) if eh_pct else (
+            (lambda v: _f_brl(v, 0)) if "Ticket" in a["variavel"] else (lambda v: _f_int(v)))
+        cards.append(f"""
+    <div class="alav">
+      <div class="alav-var">{a['variavel']}</div>
+      <div class="alav-nums">
+        <span class="alav-de">{fmt(atual)}</span>
+        <span class="alav-seta">→</span>
+        <span class="alav-para">{fmt(nec)}</span>
+      </div>
+      <div class="alav-delta">{('+' if (a['delta_pct'] or 0) > 0 else '')}{_f_pct(a['delta_pct'], 1)}</div>
+      <p class="alav-leitura">{a['leitura']}</p>
+    </div>""")
+    return f"""
+<div class="alav-grid">{''.join(cards)}</div>
+<p class="tab-note">Cada alavanca considera as outras duas <strong>constantes</strong> — é aritmética reversa
+sobre o realizado, para dar ordem de grandeza e priorizar. Na prática elas se movem juntas (mais tráfego
+frio geralmente derruba conversão), então trate como piso do esforço, não como plano fechado.</p>"""
+
+
+def render_metas_tab(m):
+    if not m or not m.get("indicadores"):
+        return render_metas_quadro(m)
+    return f"""
+<section>
+  <h2>Metas do período — {m.get('periodo', '')}</h2>
+  {render_metas_quadro(m)}
+</section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Evolução × meta</h2>
+  {render_metas_evolucao(m.get('evolucao'), m)}
+</section>
+<section>
+  <h2>O que precisa mudar para bater a meta</h2>
+  {render_metas_alavancas(m.get('alavancas'))}
+</section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Planejamento — simule o cenário</h2>
+  {render_metas_simulador(m.get('base_simulador'))}
+</section>
+<section>
+  <h2>Metas por produto</h2>
+  {render_metas_produtos(m.get('produtos'), m.get('tem_vendas_por_produto'))}
+</section>"""
+
+
+# --------------------------------------------------------------- Meta Ads tab
+def render_meta_kpis(k, tem_plat, simulada):
+    cards = [
+        ("Campanhas Meta", _f_int(k.get("campanhas")), "identificadas via UTM na GA4", k.get("campanhas"), 0, ""),
+        ("Sessões", _f_int(k.get("sessions")), "tráfego vindo do Meta", k.get("sessions"), 0, ""),
+        ("Compras", _f_int(k.get("compras")), f"conversão {_f_pct(k.get('tx_conversao'), 2)}", k.get("compras"), 0, ""),
+        ("Receita", _f_brl(k.get("receita"), 0), f"ticket {_f_brl(k.get('ticket_medio'), 0)}", None, 0, ""),
+        ("Engajamento médio", _f_pct(k.get("engajamento_medio")), "entre as campanhas Meta", None, 0, ""),
+    ]
+    if tem_plat:
+        marca = " (simulado)" if simulada else ""
+        cards += [
+            ("Gasto" + marca, _f_brl(k.get("gasto_plataforma"), 0), "lado da plataforma", None, 0, ""),
+            ("Impressões" + marca, _f_int(k.get("impressoes_plataforma")), "lado da plataforma", None, 0, ""),
+            ("ROAS cruzado" + marca, f"{k['roas_cruzado']:.2f}×" if k.get("roas_cruzado") else "n/d",
+             "receita GA4 ÷ gasto plataforma", None, 0, ""),
+        ]
+    html = []
+    for titulo, valor, sub, count, dec, suf in cards:
+        attr = ""
+        if isinstance(count, (int, float)):
+            attr = f' data-count="{count:.{dec}f}" data-count-dec="{dec}" data-count-suf="{suf}"'
+        html.append(f"""
+    <div class="ga4-kpi">
+      <div class="ga4-kpi-label">{titulo}</div>
+      <div class="ga4-kpi-value"{attr}>{valor}</div>
+      <div class="ga4-kpi-sub">{sub}</div>
+    </div>""")
+    return f'<div class="ga4-kpi-grid">{"".join(html)}</div>'
+
+
+def render_meta_campanhas_ga4(campanhas):
+    if not campanhas:
+        return '<p class="hist-empty">Nenhuma campanha Meta identificada via UTM na GA4.</p>'
+    rows = []
+    for c in campanhas:
+        obj = f'<span class="ga4-badge q-testar">{c["objetivo"]}</span>' if c.get("objetivo") else ""
+        alerta = ('<span class="ga4-badge q-corrigir">sem compra</span>'
+                  if (c["sessions"] or 0) >= 100 and (c["compras"] or 0) == 0 else "")
+        rows.append(f"""
+        <tr>
+          <td class="quem">{c['nome_limpo']} {obj}</td>
+          <td>{c.get('produto') or '—'}</td><td>{c.get('formato') or '—'}</td>
+          <td>{_f_int(c['sessions'])}</td><td>{_f_pct(c['engagement_rate'])}</td>
+          <td>{_f_int(c['add_to_carts'])}</td><td>{_f_int(c['checkouts'])}</td>
+          <td>{_f_int(c['compras'])} {alerta}</td>
+          <td>{_f_pct(c['tx_conversao'], 2)}</td><td>{_f_brl(c['receita'], 0)}</td>
+        </tr>""")
+    return f"""
+<div class="data-table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Campanha</th><th>Produto</th><th>Formato</th><th>Sessões</th><th>Engajamento</th>
+    <th>Carrinho</th><th>Checkout</th><th>Compras</th><th>Conversão</th><th>Receita</th></tr></thead>
+    <tbody>{''.join(rows)}</tbody>
+  </table>
+</div>
+<p class="tab-note">Produto, objetivo e formato saem do <strong>padrão de nomenclatura</strong> das suas
+campanhas (ex.: <code>[[Conv]] - [Colágeno] - Carrossel</code>) — onde o padrão não existe, aparece "—" em
+vez de chute. Estes números são da GA4 (lado do site): reais, mas <strong>sem gasto, impressão, clique nem
+CTR</strong>, que a GA4 não vê.</p>"""
+
+
+def render_meta_tab(md):
+    if not md or not md.get("kpis"):
+        return ('<p class="hist-empty">Meta Ads não carregado — rode <code>meta_ads_performance.py</code> '
+                '(pelo menos com <code>--ga4-campanhas</code>) e passe o resultado em '
+                '<code>--meta-ads-performance-json</code>.</p>')
+    tem_plat = md.get("tem_plataforma")
+    simulada = md.get("plataforma_simulada")
+    aviso = ""
+    if not tem_plat:
+        aviso = ('<div class="tab-aviso">Lado da plataforma AUSENTE — o conector <code>facebook</code> do '
+                 'Windsor.ai está desconectado nesta integração. Os números abaixo vêm da GA4 e são reais, '
+                 'mas não incluem gasto, impressões, cliques, CTR, CPM nem imagem de criativo. Sem gasto não '
+                 'há ROAS nem CPA de plataforma.</div>')
+    elif simulada:
+        aviso = ('<div class="tab-aviso">⚠ O lado da plataforma (gasto, impressões, cliques, CTR, CPM e as '
+                 'imagens de criativo) é <strong>SIMULADO</strong> — serve para mostrar o formato. Só as '
+                 'métricas de sessão/compra/receita, vindas da GA4, são reais.</div>')
+    galeria = ""
+    if md.get("campanhas_plataforma"):
+        galeria = f"""
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Criativos e desempenho na plataforma{' (simulado)' if simulada else ''}</h2>
+  <div class="crea-grid">{''.join(render_criativo_card(c, 'meta') for c in md['campanhas_plataforma'][:8])}</div>
+  <p class="tab-note">Gasto, impressões, cliques, CTR, CPM e frequência só existem do lado da plataforma.
+  <strong>Frequência acima de ~3× no mesmo público costuma indicar fadiga de criativo</strong> — é o momento
+  de rodar variação nova em vez de subir verba.</p>
+</section>"""
+    return f"""
+{aviso}
+<section>
+  <h2>Visão Meta Ads — {md.get('periodo', '')}</h2>
+  {render_meta_kpis(md['kpis'], tem_plat, simulada)}
+</section>
+<section>
+  <h2>Diagnóstico</h2>
+  {render_ga4_diagnostico(md.get('diagnostico', []))}
+</section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Medidas a serem tomadas</h2>
+  {render_medidas(md.get('medidas'))}
+</section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Funil das campanhas Meta (lado do site)</h2>
+  {render_ga4_funil(md.get('funil', []))}
+</section>
+<section>
+  <h2>Campanhas Meta — desempenho medido na GA4</h2>
+  {render_meta_campanhas_ga4(md.get('campanhas_ga4', []))}
+</section>
+{galeria}"""
+
+
 def render_ga4_tab(ga4):
     """A aba inteira. Sem dado carregado, explica como carregar em vez de quebrar."""
     if not ga4 or not ga4.get("kpis"):
@@ -1879,9 +2397,19 @@ def render_ga4_tab(ga4):
   <h2>Diagnóstico — onde agir primeiro</h2>
   {render_ga4_diagnostico(ga4.get('diagnostico', []))}
 </section>
+<div class="cosmos-divider"></div>
+<section>
+  <h2>Medidas a serem tomadas</h2>
+  {render_medidas(ga4.get('medidas'))}
+</section>
+<div class="cosmos-divider"></div>
 <section>
   <h2>Funil de compra — jornada completa</h2>
   {render_ga4_funil(ga4.get('funil', []))}
+</section>
+<section>
+  <h2>Campanhas e criativos</h2>
+  {render_ga4_campanhas(ga4.get('campanhas', []))}
 </section>
 <section>
   <h2>Evolução diária</h2>
@@ -1913,7 +2441,7 @@ coleta é feita em blocos (ver ga4_jornada.py).</p>"""
 
 def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
                descoberta=None, keywords_data=None, marketplaces=None, historico=None,
-               primeira_rodada=False, ga4=None):
+               primeira_rodada=False, ga4=None, metas_data=None, meta_ads=None):
     ordem = {"alta": 0, "media": 1, "baixa": 2}
     ordenados = sorted(alertas_rodada, key=lambda x: ordem[x["severidade"]])
     cards = "".join(render_card(a, i) for i, a in enumerate(ordenados))
@@ -1958,6 +2486,9 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     historico_html = render_historico_chart(historico)
     selecao_html = render_selecao_manual_tab(config)
     ga4_html = render_ga4_tab(ga4)
+    metas_html = render_metas_tab(metas_data)
+    meta_ads_html = render_meta_tab(meta_ads)
+    hero_art = hero_svg()
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2005,7 +2536,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 
   /* --- cabeçalho no estilo "capa técnica": eyebrow em pill, título bicolor, selo circular --- */
   header.top {{ max-width: 1240px; margin: 0 auto; padding: 34px 28px 22px; position: relative; z-index: 1; }}
-  .head-grid {{ display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 26px; }}
+  .head-grid {{ position: relative; z-index: 2; max-width: 640px; }}
   .pill-badge {{
     display: inline-flex; align-items: center; gap: 9px; padding: 6px 15px; border-radius: 999px;
     border: 1px solid var(--border-strong); color: var(--accent-strong);
@@ -2019,15 +2550,17 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .rule {{ height: 1px; width: 190px; margin: 18px 0 16px; background: linear-gradient(90deg, var(--accent), transparent); }}
   .cover-sub {{ margin: 0; font-size: .95rem; color: var(--text-dim); max-width: 46ch; line-height: 1.55; }}
   .cover-sub b {{ color: var(--accent-strong); font-weight: 600; }}
-  .head-right {{ display: flex; flex-direction: column; align-items: flex-end; gap: 18px; }}
+  .head-right {{
+    display: flex; align-items: center; gap: 26px; flex-wrap: wrap; margin-top: 22px;
+  }}
   .seal {{ width: 142px; height: 142px; flex: none; }}
   .seal-ring {{ fill: none; stroke: var(--border-strong); stroke-width: 1; }}
   .seal-text {{ fill: var(--accent-strong); font-size: 7.6px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }}
   .seal-value {{ fill: var(--text); font-size: 21px; font-weight: 800; text-anchor: middle; }}
   .seal-label {{ fill: var(--text-mute); font-size: 7.2px; font-weight: 700; letter-spacing: .16em; text-anchor: middle; text-transform: uppercase; }}
   .seal-tick {{ stroke: var(--border-strong); stroke-width: 1; }}
-  .top-stats {{ display: flex; flex-wrap: wrap; gap: 26px; justify-content: flex-end; }}
-  .top-stat {{ text-align: right; }}
+  .top-stats {{ display: flex; flex-wrap: wrap; gap: 26px; }}
+  .top-stat {{ text-align: left; }}
   .top-stat-label {{ display: block; font-size: .6rem; text-transform: uppercase; letter-spacing: .14em; color: var(--text-mute); font-weight: 700; }}
   .top-stat-value {{ font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }}
 
@@ -2337,6 +2870,213 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   a:focus-visible, button:focus-visible, input:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
   .card:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 3px; }}
 
+{COSMOS_TOKENS_CSS}
+  /* posicionamento da arte no hero: ocupa a direita, sem cruzar a coluna de texto */
+  .cosmos-hero-art {{
+    right: -6%; top: -20%; width: min(52%, 660px); opacity: .9;
+  }}
+  @media (max-width: 1180px) {{ .cosmos-hero-art {{ opacity: .45; }} }}
+
+  /* ------------------------------------------------- medidas a serem tomadas */
+  .medida-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }}
+  .medida {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 10px; position: relative;
+  }}
+  .medida-top {{ display: flex; align-items: center; justify-content: space-between; gap: 10px; }}
+  .medida-num {{
+    width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex: none;
+    background: var(--grad-cta); color: #fff; font-size: .76rem; font-weight: 800;
+  }}
+  .medida-tags {{ display: flex; gap: 6px; flex-wrap: wrap; }}
+  .medida-tag {{
+    font-size: .58rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-mute);
+  }}
+  .medida-tag.t-imp {{ color: #f0abfc; border-color: rgba(217,70,239,.45); background: rgba(217,70,239,.12); }}
+  .medida-tag.t-esf {{ color: #a5f3fc; border-color: rgba(34,211,238,.4); background: rgba(34,211,238,.1); }}
+  .medida-acao {{ font-size: .95rem; font-weight: 700; line-height: 1.35; }}
+  .medida-bloco {{ border-left: 2px solid var(--border-strong); padding-left: 11px; }}
+  .medida-rot {{
+    display: block; font-size: .58rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--violet); margin-bottom: 3px;
+  }}
+  .medida-bloco p {{ margin: 0; font-size: .8rem; color: var(--text-dim); line-height: 1.55; }}
+  .medida-meta {{
+    margin-top: auto; padding-top: 10px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; gap: 10px; font-size: .72rem; color: var(--text-mute);
+  }}
+  .medida-meta strong {{ color: var(--cyan); font-weight: 700; text-align: right; }}
+  .medida.imp-alto {{ border-color: rgba(217,70,239,.35); }}
+
+  /* -------------------------------------------------------- criativos (cards) */
+  .crea-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 14px; }}
+  .crea-card {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }}
+  .crea-img {{ position: relative; aspect-ratio: 1 / 1; background: var(--surface-2); overflow: hidden; }}
+  .crea-img img {{ width: 100%; height: 100%; object-fit: cover; display: block; }}
+  .crea-img.crea-sem {{
+    display: grid; place-content: center; text-align: center; gap: 4px; aspect-ratio: 16 / 7;
+    border-bottom: 1px dashed var(--border-strong);
+  }}
+  .crea-sem span {{ font-size: .76rem; color: var(--text-dim); font-weight: 600; }}
+  .crea-sem small {{ font-size: .64rem; color: var(--text-mute); }}
+  .crea-body {{ padding: 13px 15px 15px; display: flex; flex-direction: column; gap: 6px; }}
+  .crea-head {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; }}
+  .crea-formato {{
+    font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--violet); background: var(--violet-soft); border: 1px solid rgba(139,92,246,.4);
+    padding: 3px 8px; border-radius: 999px;
+  }}
+  .crea-link {{ font-size: .66rem; text-decoration: none; white-space: nowrap; }}
+  .crea-nome {{ font-size: .86rem; font-weight: 700; line-height: 1.3; }}
+  .crea-sub {{ font-size: .66rem; color: var(--text-mute); word-break: break-word; }}
+  .crea-corpo {{ margin: 2px 0 0; font-size: .74rem; color: var(--text-dim); line-height: 1.5; }}
+  .crea-metricas {{
+    margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;
+  }}
+  .crea-m {{ display: flex; justify-content: space-between; gap: 8px; font-size: .72rem; }}
+  .crea-m span {{ color: var(--text-mute); }}
+  .crea-m strong {{ color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }}
+
+  /* --------------------------------------------------------- metas / evolução */
+  .meta-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 13px; }}
+  .meta-card {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px 17px;
+    border-top: 2px solid var(--border-strong);
+  }}
+  .meta-card.st-ok {{ border-top-color: var(--good); }}
+  .meta-card.st-warn {{ border-top-color: var(--warning); }}
+  .meta-card.st-bad {{ border-top-color: var(--critical); }}
+  .meta-top {{ display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 9px; }}
+  .meta-rotulo {{
+    font-size: .6rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; color: var(--text-mute);
+  }}
+  .meta-status {{
+    font-size: .58rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-mute);
+    white-space: nowrap;
+  }}
+  .meta-status.st-ok {{ color: #8fe38f; border-color: rgba(12,163,12,.5); background: var(--good-bg); }}
+  .meta-status.st-warn {{ color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }}
+  .meta-status.st-bad {{ color: #ff9c96; border-color: rgba(224,66,107,.5); background: var(--critical-bg); }}
+  .meta-valores {{ display: flex; align-items: baseline; gap: 7px; margin-bottom: 10px; }}
+  .meta-real {{ font-size: 1.45rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }}
+  .meta-alvo {{ font-size: .82rem; color: var(--text-mute); font-variant-numeric: tabular-nums; }}
+  .meta-track {{
+    position: relative; height: 8px; background: rgba(255,255,255,.06); border-radius: 5px; margin-bottom: 9px;
+  }}
+  .meta-bar {{
+    height: 100%; width: var(--w); border-radius: 5px; background: var(--grad-cta);
+    box-shadow: 0 0 14px -2px rgba(139,92,246,.85);
+    animation: ga4-grow 1s cubic-bezier(.2,.8,.3,1) both;
+  }}
+  .st-ok .meta-bar {{ background: linear-gradient(90deg, #0ca30c, #22d3ee); box-shadow: 0 0 14px -2px rgba(34,211,238,.8); }}
+  .st-bad .meta-bar {{ background: linear-gradient(90deg, #e0426b, #d946ef); box-shadow: 0 0 14px -2px rgba(224,66,107,.85); }}
+  .meta-ritmo {{
+    position: absolute; top: -4px; bottom: -4px; width: 2px; background: #fff; opacity: .8;
+    border-radius: 2px; box-shadow: 0 0 8px rgba(255,255,255,.8);
+  }}
+  .meta-foot {{ display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }}
+  .meta-pct {{ font-size: .72rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }}
+  .meta-extra {{ font-size: .68rem; color: var(--text-mute); text-align: right; }}
+  .meta-mini {{ display: inline-flex; align-items: center; gap: 7px; min-width: 96px; }}
+  .meta-mini i {{
+    display: block; height: 5px; width: var(--w); border-radius: 3px; background: var(--grad-cta);
+    min-width: 3px; flex: none;
+  }}
+  .meta-mini.st-ok i {{ background: linear-gradient(90deg, #0ca30c, #22d3ee); }}
+  .meta-mini.st-bad i {{ background: linear-gradient(90deg, #e0426b, #d946ef); }}
+  .meta-mini b {{ font-size: .7rem; font-variant-numeric: tabular-nums; }}
+  .meta-mini-nd {{ font-size: .7rem; color: var(--text-mute); }}
+  .ev-area {{ fill: url(#ev-area-grad); opacity: .32; }}
+  .ev-real {{ fill: none; stroke: var(--cyan); stroke-width: 2.4; stroke-linejoin: round; }}
+  .ev-meta {{ fill: none; stroke: #f0abfc; stroke-width: 2; stroke-dasharray: 6 4; opacity: .9; }}
+  .ev-dot {{ fill: var(--cyan); stroke: #0a0518; stroke-width: 1.4; cursor: crosshair; }}
+  .leg-swatch.sw-real {{ background: var(--cyan); }}
+  .leg-swatch.sw-metaline {{ background: #f0abfc; }}
+
+  /* ---------------------------------------------------------------- alavancas */
+  .alav-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 13px; }}
+  .alav {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px 17px;
+  }}
+  .alav-var {{
+    font-size: .6rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--text-mute); margin-bottom: 9px;
+  }}
+  .alav-nums {{ display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }}
+  .alav-de {{ font-size: 1rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }}
+  .alav-seta {{ color: var(--violet); font-weight: 800; }}
+  .alav-para {{
+    font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums;
+    background: var(--grad-hero); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }}
+  .alav-delta {{ font-size: .74rem; font-weight: 700; color: #f0abfc; margin-top: 3px; }}
+  .alav-leitura {{ margin: 9px 0 0; font-size: .76rem; color: var(--text-dim); line-height: 1.55; }}
+
+  /* ---------------------------------------------------------------- simulador */
+  .sim-wrap {{
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px;
+  }}
+  .sim-head {{
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 16px;
+  }}
+  .sim-titulo {{ font-size: .95rem; font-weight: 800; }}
+  .sim-sub {{ font-size: .74rem; color: var(--text-mute); margin-top: 3px; }}
+  .sim-grid {{ display: grid; grid-template-columns: minmax(240px, 1fr) minmax(260px, 1.1fr); gap: 22px; }}
+  .sim-controles {{ display: flex; flex-direction: column; gap: 16px; }}
+  .sim-ctl {{ display: flex; flex-direction: column; gap: 6px; }}
+  .sim-ctl-top {{
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    font-size: .72rem; font-weight: 700; color: var(--text-dim);
+  }}
+  .sim-ctl-top output {{
+    font-size: .9rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--cyan);
+  }}
+  .sim-ctl-base {{ font-size: .66rem; color: var(--text-mute); }}
+  .sim-ctl-base b {{ color: var(--text-dim); }}
+  .sim-ctl input[type="range"] {{
+    -webkit-appearance: none; appearance: none; width: 100%; height: 5px; border-radius: 4px;
+    background: linear-gradient(90deg, rgba(255,255,255,.1), rgba(139,92,246,.5)); outline: none;
+  }}
+  .sim-ctl input[type="range"]::-webkit-slider-thumb {{
+    -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; cursor: grab;
+    background: #a855f7; border: 2px solid #0a0518; box-shadow: 0 0 12px rgba(139,92,246,.9);
+  }}
+  .sim-ctl input[type="range"]::-moz-range-thumb {{
+    width: 15px; height: 15px; border-radius: 50%; cursor: grab; border: 2px solid #0a0518;
+    background: #a855f7; box-shadow: 0 0 12px rgba(139,92,246,.9);
+  }}
+  .sim-saida {{ display: flex; flex-direction: column; gap: 12px; }}
+  .sim-res {{
+    display: flex; flex-direction: column; gap: 2px; padding: 11px 14px; border-radius: 10px;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }}
+  .sim-res-rot {{
+    font-size: .58rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-mute);
+  }}
+  .sim-res-val {{
+    font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums;
+    background: var(--grad-hero); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }}
+  .sim-res-sub {{ font-size: .7rem; color: var(--text-dim); }}
+  .sim-res-sub.ok {{ color: #8fe38f; }}
+  .sim-res-sub.bad {{ color: #ff9c96; }}
+  .sim-svg {{ width: 100%; height: auto; }}
+  .sim-bar-real {{ fill: #22d3ee; opacity: .85; }}
+  .sim-bar-cen {{ fill: #a855f7; }}
+  .sim-lbl {{ fill: #93a8c4; font-size: 10px; font-family: 'Sora', sans-serif; }}
+  .sim-val {{ fill: #fff; font-size: 11px; font-weight: 700; font-family: 'Sora', sans-serif; }}
+  .sim-meta-line {{ stroke: #f0abfc; stroke-width: 2; stroke-dasharray: 5 3; }}
+  @media (max-width: 780px) {{ .sim-grid {{ grid-template-columns: 1fr; }} }}
+
   /* ------------------------------------------------------------ GA4 · Jornada */
   .ga4-kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 12px; }}
   .ga4-kpi {{
@@ -2470,10 +3210,11 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 <body>
 {FX_BODY}
 <header class="top">
+  <div class="cosmos-hero-art">{hero_art}</div>
   <div class="head-grid">
     <div>
       <span class="pill-badge">War Room · Inteligência Competitiva · {meta['data'][:10]}</span>
-      <h1 class="cover-title">{config.get('marca', '')}<em>Monitoramento Competitivo</em></h1>
+      <h1 class="cover-title">{config.get('marca', '')}<em class="cosmos-grad">Monitoramento Competitivo</em></h1>
       <div class="rule"></div>
       <p class="cover-sub">Preço, desconto e posição da concorrência em marketplaces, cruzados com o
       <b>desempenho real</b> das nossas campanhas — com <b>diagnóstico antes de qualquer ação</b>.</p>
@@ -2494,7 +3235,9 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   <button class="tab-btn active" data-tab="visao-geral" role="tab" aria-selected="true">Visão Geral</button>
   <button class="tab-btn" data-tab="marketplaces" role="tab" aria-selected="false">Marketplaces</button>
   <button class="tab-btn" data-tab="concorrentes" role="tab" aria-selected="false">Concorrentes</button>
+  <button class="tab-btn" data-tab="metas" role="tab" aria-selected="false">Metas &amp; Evolução</button>
   <button class="tab-btn" data-tab="ga4" role="tab" aria-selected="false">GA4 · Jornada</button>
+  <button class="tab-btn" data-tab="meta-ads" role="tab" aria-selected="false">Meta Ads</button>
   <button class="tab-btn" data-tab="keywords" role="tab" aria-selected="false">Keywords &amp; Leilão</button>
   <button class="tab-btn" data-tab="historico" role="tab" aria-selected="false">Histórico Preço × Ads</button>
   <button class="tab-btn" data-tab="selecao" role="tab" aria-selected="false">Seleção Manual</button>
@@ -2522,14 +3265,28 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     <section><h2>Motor de descoberta e composição de concorrentes</h2>{descoberta_html}</section>
   </div>
 
+  <div class="tab-panel" data-tab="metas">
+    {metas_html}
+  </div>
+
   <div class="tab-panel" data-tab="ga4">
     <svg width="0" height="0" aria-hidden="true" style="position:absolute">
-      <defs><linearGradient id="ga4-area-grad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#1187f0" stop-opacity=".85" />
-        <stop offset="100%" stop-color="#1187f0" stop-opacity="0" />
-      </linearGradient></defs>
+      <defs>
+        <linearGradient id="ga4-area-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8b5cf6" stop-opacity=".85" />
+          <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient id="ev-area-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#22d3ee" stop-opacity=".55" />
+          <stop offset="100%" stop-color="#22d3ee" stop-opacity="0" />
+        </linearGradient>
+      </defs>
     </svg>
     {ga4_html}
+  </div>
+
+  <div class="tab-panel" data-tab="meta-ads">
+    {meta_ads_html}
   </div>
 
   <div class="tab-panel" data-tab="keywords">
@@ -2696,6 +3453,98 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 }})();
 </script>
 <script id="fx-alertas-data" type="application/json">{alertas_json}</script>
+<script>
+/* Simulador de planejamento: premissas -> projeção x meta, recalculado ao vivo.
+   "Realizado" é dado medido; "cenário" é projeção sob a premissa do usuário. */
+(function () {{
+  var el = document.getElementById('sim-base');
+  if (!el) return;
+  var B;
+  try {{ B = JSON.parse(el.textContent); }} catch (e) {{ return; }}
+  var inS = document.getElementById('in-sess'), inC = document.getElementById('in-conv'),
+      inT = document.getElementById('in-tick');
+  if (!inS || !inC || !inT) return;
+
+  function brl(v) {{
+    return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+  }}
+  function pctTxt(v) {{ return (v * 100).toFixed(2).replace('.', ',') + '%'; }}
+  function sinal(v) {{ return (v > 0 ? '+' : '') + v + '%'; }}
+
+  document.getElementById('base-sess').textContent = (B.sessions || 0).toLocaleString('pt-BR');
+  document.getElementById('base-conv').textContent = pctTxt(B.tx_conversao || 0);
+  document.getElementById('base-tick').textContent = brl(B.ticket_medio || 0);
+
+  function calcular() {{
+    var ds = +inS.value, dc = +inC.value, dt = +inT.value;
+    document.getElementById('out-sess').textContent = sinal(ds);
+    document.getElementById('out-conv').textContent = sinal(dc);
+    document.getElementById('out-tick').textContent = sinal(dt);
+
+    var sess = (B.sessions || 0) * (1 + ds / 100);
+    var conv = (B.tx_conversao || 0) * (1 + dc / 100);
+    var tick = (B.ticket_medio || 0) * (1 + dt / 100);
+    var un = sess * conv;
+    var fat = un * tick;
+
+    document.getElementById('sim-fat').textContent = brl(fat);
+    document.getElementById('sim-un').textContent = Math.round(un).toLocaleString('pt-BR');
+
+    var mf = B.meta_faturamento, mu = B.meta_unidades;
+    var eF = document.getElementById('sim-fat-vs'), eU = document.getElementById('sim-un-vs');
+    if (mf) {{
+      var d = fat - mf;
+      eF.textContent = (d >= 0 ? 'bate a meta com folga de ' + brl(d) : 'faltam ' + brl(-d) + ' para a meta');
+      eF.className = 'sim-res-sub ' + (d >= 0 ? 'ok' : 'bad');
+    }} else {{ eF.textContent = 'meta de faturamento não declarada'; eF.className = 'sim-res-sub'; }}
+    if (mu) {{
+      var du = un - mu;
+      eU.textContent = (du >= 0 ? 'bate a meta (+' + Math.round(du) + ' un)'
+                                : 'faltam ' + Math.round(-du) + ' un para a meta');
+      eU.className = 'sim-res-sub ' + (du >= 0 ? 'ok' : 'bad');
+    }} else {{ eU.textContent = 'meta de unidades não declarada'; eU.className = 'sim-res-sub'; }}
+
+    desenhar(B.receita || 0, fat, mf);
+  }}
+
+  function desenhar(real, cen, meta) {{
+    var g = document.getElementById('sim-bars');
+    if (!g) return;
+    var W = 420, H = 150, base = 116, larg = 92, topo = 24;
+    var teto = Math.max(real, cen, meta || 0) || 1;
+    function alt(v) {{ return Math.max(2, (v / teto) * (base - topo)); }}
+    var barras = [
+      {{ x: 46, v: real, cls: 'sim-bar-real', rot: 'realizado' }},
+      {{ x: 176, v: cen, cls: 'sim-bar-cen', rot: 'cenário' }}
+    ];
+    var html = '';
+    barras.forEach(function (b) {{
+      var h = alt(b.v);
+      html += '<rect class="' + b.cls + '" x="' + b.x + '" y="' + (base - h).toFixed(1) +
+              '" width="' + larg + '" height="' + h.toFixed(1) + '" rx="4"/>' +
+              '<text class="sim-val" x="' + (b.x + larg / 2) + '" y="' + (base - h - 7).toFixed(1) +
+              '" text-anchor="middle">' + brl(b.v) + '</text>' +
+              '<text class="sim-lbl" x="' + (b.x + larg / 2) + '" y="' + (base + 15) +
+              '" text-anchor="middle">' + b.rot + '</text>';
+    }});
+    if (meta) {{
+      var ym = base - alt(meta);
+      html += '<line class="sim-meta-line" x1="26" y1="' + ym.toFixed(1) + '" x2="' + (W - 26) +
+              '" y2="' + ym.toFixed(1) + '"/>' +
+              '<text class="sim-lbl" x="' + (W - 26) + '" y="' + (ym - 5).toFixed(1) +
+              '" text-anchor="end" style="fill:#f0abfc">meta ' + brl(meta) + '</text>';
+    }}
+    g.innerHTML = html;
+  }}
+
+  [inS, inC, inT].forEach(function (i) {{ i.addEventListener('input', calcular); }});
+  var reset = document.getElementById('sim-reset');
+  if (reset) reset.addEventListener('click', function () {{
+    inS.value = 0; inC.value = 0; inT.value = 0; calcular();
+  }});
+  calcular();
+}})();
+</script>
 {FX_JS}
 </body></html>"""
 
@@ -2755,6 +3604,13 @@ def main():
     ap.add_argument("--ga4-json", default=None,
                      help="saída de ga4_jornada.py — vira a aba 'GA4 · Jornada' (KPIs, funil de compra, "
                           "matriz de decisão por canal, devices, landing pages e diagnóstico)")
+    ap.add_argument("--metas-json", default=None,
+                     help="saída de metas.py — vira a aba 'Metas & Evolução' (quadro de metas, evolução x "
+                          "meta, alavancas e simulador de planejamento)")
+    ap.add_argument("--meta-ads-performance-json", default=None,
+                     help="saída de meta_ads_performance.py — vira a aba 'Meta Ads' (funil, campanhas, "
+                          "criativos, diagnóstico e medidas). Não confundir com --meta-ads-json, que é o "
+                          "monitor de criativo NOVO de CONCORRENTE.")
     ap.add_argument("--simulate-historico-preco-ads", default=None,
                      help="JSON {produto: {concorrente: [pontos...]}} pronto para semear/sobrescrever o "
                           "histórico acumulado de preço×ads (demonstração — em produção ele acumula "
@@ -2855,13 +3711,16 @@ def main():
     descoberta = load_json(args.descoberta_json, {}) if args.descoberta_json else {}
     keywords_data = load_json(args.keywords_relatorio_json, {}) if args.keywords_relatorio_json else {}
     ga4 = load_json(args.ga4_json, {}) if args.ga4_json else {}
+    metas_data = load_json(args.metas_json, {}) if args.metas_json else {}
+    meta_ads = (load_json(args.meta_ads_performance_json, {})
+                if args.meta_ads_performance_json else {})
 
     write_xlsx(alertas, alertas_log, snapshot_novo, ads_entries, load_json(ads_hist_path, {}), config, meta, args.out,
                own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta, keywords_data=keywords_data,
                marketplaces=marketplaces, historico=historico, ga4=ga4)
     write_html(alertas, config, meta, args.html, own_perf=own_perf, radar_ml=radar_ml, descoberta=descoberta,
                keywords_data=keywords_data, marketplaces=marketplaces, historico=historico,
-               primeira_rodada=primeira_rodada, ga4=ga4)
+               primeira_rodada=primeira_rodada, ga4=ga4, metas_data=metas_data, meta_ads=meta_ads)
     print_console(alertas)
 
     if not args.ads_manual:

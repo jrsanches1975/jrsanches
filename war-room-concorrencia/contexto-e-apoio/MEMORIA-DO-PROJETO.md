@@ -301,7 +301,7 @@ Livre: `JOIE`.
     formatados), build sem `--ga4-json` mostrando como carregar em vez de
     quebrar, 18 abas no xlsx, zero erro de JS, sem scroll horizontal.
 
-26. **PEDIDO EM ANDAMENTO — NÃO CONCLUÍDO.** O usuário mandou uma referência
+26. **PEDIDO (concluído na entrada 27).** O usuário mandou uma referência
     visual nova (landing page "DOMAIN Premium Internet": cosmos/nebulosa com
     buraco negro, gradientes violeta→magenta→ciano, cards de plano em vidro com
     o do meio destacado em neon, faixa de ícones+label, footer com newsletter) e
@@ -343,6 +343,56 @@ Livre: `JOIE`.
       ticket — recalculando projeção × meta ao vivo no navegador. Deixar
       explícito na tela o que é **realizado (medido)** e o que é **projeção
       sob premissa do usuário** — nunca desenhar projeção como se fosse dado.
+
+27. **PEDIDO DA ENTRADA 26 — CONCLUÍDO.** Implementados todos os 6 itens:
+    - **(a) Visual cósmico + imagem futurista:** criado `scripts/_cosmos.py` com arte
+      **gerada proceduralmente em SVG** (nebulosa, disco de acreção, buraco negro,
+      cometa, starfield com seed fixa determinística) — não é imagem baixada
+      (rede bloqueada + direito de uso). Paleta violeta→magenta→ciano, título com
+      gradiente, divisores com cantos recortados, `cosmos-frame` com halo. O
+      cabeçalho virou coluna única à esquerda com a arte ocupando a direita
+      (igual à referência) — antes o buraco negro cobria o selo e as stats.
+    - **(b) Campanhas com criativos na GA4:** `ga4_jornada.py` ganhou
+      `--campanhas` e `--criativos`. **A imagem do criativo NÃO vem da GA4** —
+      vem do Meta/Google ou de mapa manual, anexada por nome de campanha; sem
+      ela o card diz "sem criativo anexado" em vez de placeholder.
+    - **(c) Aba Meta Ads:** criado `meta_ads_performance.py` que mantém DUAS
+      fontes explicitamente separadas: **lado GA4 (REAL** — campanhas Meta via
+      UTM, 10 campanhas / 2.372 sessões / 3 compras, sem gasto/CTR/criativo) e
+      **lado plataforma** (gasto/CTR/CPM/criativo, exige conector `facebook`
+      desconectado → fixture com `--simulado`). Nunca soma métrica de uma com a
+      outra; `roas_cruzado` sai com aviso de janelas de atribuição diferentes.
+      CLI: `--meta-ads-performance-json` (o `--meta-ads-json` que já existia é o
+      monitor de criativo novo de CONCORRENTE — nomes parecidos, funções
+      distintas).
+    - **(d) Medidas a serem tomadas:** seção nas duas abas, com ação / por quê
+      (com o número) / como fazer / qual meta move, ordenadas por impacto ÷
+      esforço. Sempre recomendação, nunca execução.
+    - **(e+f) Metas e evolução:** criado `metas.py` + aba "Metas & Evolução" com
+      quadro de metas (realizado × meta, com **traço de ritmo ideal até hoje**),
+      curva de evolução acumulada × linha de meta, **alavancas** (quanto tráfego/
+      conversão/ticket precisa mudar isoladamente para fechar a lacuna) e
+      **simulador de planejamento** com sliders que recalculam projeção × meta ao
+      vivo. Metas declaradas em `config["metas"]`.
+    Números reais do quadro de metas com as metas de exemplo: faturamento 74% da
+    meta (fora do ritmo), unidades 71%, ticket médio 103% (no alvo), sessões 85%,
+    conversão 78%. Alavancas: +34,9% em qualquer uma das três fecharia a lacuna.
+    Decisões de honestidade (manter em qualquer evolução):
+    - Projeção rotulada como **premissa** (mantém ritmo médio), nunca previsão;
+      sem sazonalidade nem saturação de canal.
+    - Ticket médio, conversão e receita/sessão **não são acumuláveis** → sem
+      linha de ritmo nem projeção.
+    - Realizado por produto **não vem da GA4** → exige `--vendas-produto-json`
+      (ERP/loja); sem isso fica em branco, nunca estimado.
+    - Meta não declarada = "sem meta definida", nunca alvo inventado.
+    - No simulador, a tela diz explicitamente o que é medido e o que é cenário.
+    Bug corrigido: a revelação em cascata não disparava para conteúdo de aba que
+    estava `display:none` (IntersectionObserver não observa oculto) — ao trocar
+    de aba agora revela todo o painel.
+    Testado: 9 abas, modal de card e de linha, simulador recalculando ao vivo
+    (R$ 111.184 → R$ 202.355 com +40% tráfego e +30% conversão), reduced-motion,
+    build sem os JSONs novos degradando com instrução, 18 abas no xlsx, zero
+    erro de JS, sem scroll horizontal.
 
 ## Princípios que NUNCA devem ser quebrados
 

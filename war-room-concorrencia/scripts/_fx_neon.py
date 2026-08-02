@@ -501,9 +501,7 @@ FX_JS = """<script>
       b.addEventListener('click', function () {
         setTimeout(function () {
           document.querySelectorAll('.tab-panel.active .data-table tbody, .tab-panel.active .ml-radar-table tbody')
-            .forEach(function (tb) {
-              if (tb.getBoundingClientRect().top < window.innerHeight * 1.1) mostrar(tb);
-            });
+            .forEach(mostrar);
         }, 40);
       });
     });
@@ -513,7 +511,7 @@ FX_JS = """<script>
   (function () {
     var alvos = [];
     document.querySelectorAll('.tab-panel').forEach(function (panel) {
-      var itens = panel.querySelectorAll('section, .card, .gauge, .squadron-card, .hist-chart-card, .credbar, .selecao-coluna');
+      var itens = panel.querySelectorAll('section, .card, .gauge, .squadron-card, .hist-chart-card, .credbar, .selecao-coluna, .crea-card, .medida, .meta-card, .alav');
       itens.forEach(function (el, i) {
         el.classList.add('fx-reveal');
         el.style.setProperty('--rd', Math.min(i, 9) * 0.05 + 's');
@@ -533,8 +531,7 @@ FX_JS = """<script>
       b.addEventListener('click', function () {
         setTimeout(function () {
           document.querySelectorAll('.tab-panel.active .fx-reveal:not(.in)').forEach(function (el) {
-            var r = el.getBoundingClientRect();
-            if (r.top < window.innerHeight * 1.05) el.classList.add('in');
+            el.classList.add('in');
           });
         }, 40);
       });
@@ -599,10 +596,7 @@ FX_JS = """<script>
       document.querySelectorAll('.tab-btn').forEach(function (b) {
         b.addEventListener('click', function () {
           setTimeout(function () {
-            document.querySelectorAll('.tab-panel.active .hist-chart-svg').forEach(function (s) {
-              var r = s.getBoundingClientRect();
-              if (r.top < window.innerHeight) ligar(s);
-            });
+            document.querySelectorAll('.tab-panel.active .hist-chart-svg').forEach(ligar);
           }, 60);
         });
       });

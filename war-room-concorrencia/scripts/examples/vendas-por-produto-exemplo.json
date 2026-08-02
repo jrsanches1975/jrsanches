@@ -1,0 +1,7 @@
+{
+  "_comentario": "EXEMPLO de formato. O realizado por produto NÃO vem da GA4 no recorte que o war room usa — exporte do seu ERP/plataforma de loja e alimente metas.py --vendas-produto-json. Os números abaixo são ilustrativos do formato, não dados reais da Joie.",
+  "Faciderm": {"unidades": 58, "faturamento": 31240.50},
+  "Amaze": {"unidades": 41, "faturamento": 18904.30},
+  "Linha Joie Fit": {"unidades": 52, "faturamento": 27612.80},
+  "Creatina Joie": {"unidades": 19, "faturamento": 9820.00}
+}
