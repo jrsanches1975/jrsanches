@@ -852,6 +852,35 @@ Livre: `JOIE`.
     que aparece na coluna "Nível de qualidade" do Google Ads Editor/UI para
     uma dessas keywords antes de confiar no número exibido no painel.
 
+41. **Primeira coleta REAL do Radar de Mercado Livre, na máquina do usuário
+    (2026-08-02).** Como o `APIFY_TOKEN` não pode passar por chat e o host do
+    Apify está bloqueado neste ambiente (confirmado com `curl` — 403 do proxy
+    de política da organização, mesmo bloqueio já visto no Windsor), a
+    solução foi empacotar a pasta inteira do projeto (`zip`, ~1MB, sem nenhum
+    token dentro — conferido com grep antes de enviar) e mandar por
+    `SendUserFile`, com passo a passo de `setx APIFY_TOKEN` e execução local.
+    O usuário rodou com sucesso: `war_room.py` coletou de verdade os 3
+    produtos configurados via o ator `karamelo`, achou **1 alerta ALTA real**
+    (Black Skull baixou o preço de "Linha Joie Fit" de R$ 129,90 para R$ 106,72,
+    -17,8%) e 5 alertas médios (concorrentes sumindo de buscas, novo desconto,
+    salto de reviews). **Todas as abas de dado automatizável do painel agora
+    são reais** — só falta Google Shopping (sem fonte conectada).
+    **Bug cosmético achado e corrigido:** o texto do alerta de salto de
+    reviews mostrava "910 para 4869.0" — `_num_br()` sempre devolve float, e o
+    valor antigo (do snapshot anterior, coletado com o ator antigo) era int,
+    gerando a mistura visual. Corrigido formatando a exibição como inteiro
+    (`:.0f`) em `war_room.py`, tanto no texto do alerta quanto nas duas tabelas
+    HTML do Radar — sem alterar o dado armazenado.
+    **Nota de segurança à parte:** o usuário colou um print com o token da
+    conta Apify em texto claro durante esta sessão, oferecendo "apagar o print
+    depois". Respondido que não existe capacidade de apagar mensagem já
+    enviada em uma conversa — o token já estava exposto no histórico
+    independente do que acontecesse depois. Orientado a regenerar o token
+    (botão 🔄 na tela de Settings → API & Integrations do Apify) antes de usar
+    de verdade. Mesmo com autorização explícita do usuário para usar o token
+    exposto, a chamada foi tecnicamente impossível (host bloqueado), então a
+    questão de "usar ou não" nem chegou a se colocar de fato.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

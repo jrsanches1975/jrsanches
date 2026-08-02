@@ -294,7 +294,10 @@ de Keywords e Descoberta. Autentique e me avise que eu integro.
 |---|---|
 | GA4 · Jornada | **real medido** (GA4 via Windsor MCP) |
 | Metas & Evolução | **real** (cruza GA4 com as metas do config) |
-| Mercado Livre / Radar | **real** (Apify, precisa do `APIFY_TOKEN`; ator karamelo ativo desde 2026-08-02) |
-| Meta Ads (lado GA4 + lado plataforma) | **real** desde 2026-08-02 (as duas pontas — falta só rodar o comando do item 5 pra entrar no HTML/XLSX) |
-| Keywords & Leilão | **real** desde 2026-08-02 (`outputs/keywords-relatorio.json`, `"simulado": false`) — falta só rodar o comando do item 5 pra entrar no HTML/XLSX; `quality_score` com ressalva, ver item 4 |
+| Mercado Livre / Radar | **real, primeira coleta feita na sua máquina em 2026-08-02** (ator karamelo, achou a queda de preço da Black Skull) |
+| Meta Ads (lado GA4 + lado plataforma) | **real** desde 2026-08-02 (as duas pontas — rode o comando do item 5 de novo pra entrar junto com o Radar no mesmo HTML/XLSX) |
+| Keywords & Leilão | **real** desde 2026-08-02 (`outputs/keywords-relatorio.json`, `"simulado": false`) — `quality_score` com ressalva, ver item 4 |
 | Marketplaces (Google Shopping) | simulado |
+
+**Todas as abas de dado automatizável já são reais** — só falta Google Shopping
+(sem fonte conectada ainda) e a ressalva do `quality_score` (item 4).
