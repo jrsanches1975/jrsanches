@@ -245,7 +245,7 @@ recriar a partir do `config.example.json` atualizado):
 
 ## 7. Agentes de produto (2026-08-02)
 
-Dois agentes novos, pedidos por você:
+Três agentes, pedidos por você:
 
 **`descoberta_produtos_shopping.py`** (pronto, já rodou contra seu dado real):
 decide quais produtos vigiar no Google Shopping. Já achou que a campanha real
@@ -267,9 +267,29 @@ testou os dois lados: a busca real ("magnesio quelato") confirmou
 - [ ] Rode de verdade: `python google_shopping.py --config config.json
       --token $APIFY_TOKEN --out ../outputs/google-shopping.json
       --out-proprio ../outputs/google-shopping-proprio.json --debug-raw`
-- [ ] Me manda o resumo que aparecer na tela (quantos concorrentes achados
-      por produto) — o próximo passo depois disso é eu ligar essa saída em
-      `war_room.py` com flags dedicados (ainda não existem)
+- [x] Rodado — deu **0 concorrentes** nos 3 produtos (dado real: Black Skull/
+      Growth Supplements não aparecem no Shopping pra esses termos). Próximo
+      passo depois disso é eu ligar essa saída em `war_room.py` com flags
+      dedicados (ainda não existem)
+
+**`descoberta_termos_busca.py`** (novo, pronto, já rodou contra seu dado
+real): você apontou que o termo configurado às vezes não é o "ativo" certo
+("Colágeno" genérico vs "colágeno verisol" específico) — isso explica em
+parte o "0 concorrentes" acima. Este agente minera as keywords REAIS do
+Google Ads e recomenda o termo de mais clique/impressão por produto:
+```bash
+python descoberta_termos_busca.py --config config.json \
+    --gads-keywords-json ../outputs/gads-keywords.json \
+    --out ../outputs/descoberta-termos.xlsx
+```
+- [x] Já ajustei `termo_busca_ml` de "Colágeno" pra `"colágeno verisol"`
+      (92 impressões/11 cliques reais) — escolhi o específico, não o de mais
+      clique (`"Colageno"`, genérico, 38 cliques), pela sua indicação
+- [ ] Revisar se essa escolha (específico vs volume) faz sentido pros outros
+      produtos também, se algum dia o Shopping continuar sem achar
+      concorrente com os termos atuais
+- [ ] Rodar com o Google Shopping de novo pra "Colágeno" (o produto novo, sem
+      snapshot ainda) e ver se aparece algum concorrente configurado agora
 
 ---
 

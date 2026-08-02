@@ -1316,6 +1316,49 @@ diferente de Meta Ads/Keywords). Próximo passo certo: criar flags dedicados
 reaproveitar os de simulação — mesmo cuidado já tomado com o Windsor (nunca
 usar o caminho de teste pra dado de verdade).
 
+### 28. Agente: termo de busca certo por produto (`descoberta_termos_busca.py`)
+
+Achado na primeira coleta real de Google Shopping (passo 27): Faciderm/Amaze/
+Linha Joie Fit não acharam Black Skull nem Growth Supplements — quem aparece
+pra esses termos são farmácias/marketplaces (Amazon, Drogasil). O usuário
+apontou a causa provável: o termo configurado nem sempre é o "ativo" certo —
+"Colágeno" como categoria genérica é diferente de "colágeno verisol" (o ativo
+específico), e um termo genérico demais atrai concorrente genérico demais.
+
+Este agente NÃO adivinha o termo certo — ele MINERA as keywords REAIS do
+Google Ads já coletadas (`outputs/gads-keywords.json`) e recomenda, por
+produto, a keyword com mais clique/impressão real dentro das campanhas
+daquele produto, comparando contra o `termo_busca_ml` configurado:
+
+```bash
+python descoberta_termos_busca.py --config config.json \
+    --gads-keywords-json ../outputs/gads-keywords.json \
+    --out ../outputs/descoberta-termos.xlsx --export-json ../outputs/descoberta-termos.json
+```
+
+**Achado real na primeira rodada, e um bug corrigido antes de confiar nele:**
+a campanha `"Search - Linha Joie Fit"` mistura keywords de **dois produtos
+diferentes** (whey — `"whey protein"`, 4.436 impressões — E colágeno —
+`"Colageno"`, 823 impressões, 38 cliques) na mesma campanha. Casar
+keyword→produto só por NOME da campanha (como `own_performance.py::match_produto`
+faz, correto pro caso dele) atribuiria a keyword `"Colageno"` ao produto
+"Linha Joie Fit" por engano — a primeira versão deste script fez exatamente
+isso. Corrigido com `match_produto_por_keyword()`: casa a keyword direto
+contra o NOME de cada produto primeiro (mais específico), só cai pra
+casamento por campanha se a keyword não citar nenhum produto — com remoção
+de acento dos dois lados (`_sem_acento()`), porque o dado real tem
+`"Colageno"` e `"colágeno"` juntos e `norm()` do resto do projeto não tira
+acento de propósito (mataria outros casamentos que dependem de acento
+existir).
+
+Resultado depois da correção: "Colágeno" ficou com a recomendação certa
+(`"Colageno"`, 38 cliques reais) e "Linha Joie Fit" manteve `"whey protein
+isolado"` (já bate com a keyword real de mais volume, `"whey protein"`).
+`termo_busca_ml` de "Colágeno" em `config.example.json` foi ajustado pra
+`"colágeno verisol"` — não o de mais clique (`"Colageno"`, genérico), mas o
+mais específico que o usuário confirmou ser o ativo certo, também com
+evidência real (92 impressões, 11 cliques).
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

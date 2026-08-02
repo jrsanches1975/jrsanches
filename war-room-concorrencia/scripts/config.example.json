@@ -34,7 +34,7 @@
     }
   ],
 
-  "_comentario_produtos_candidatos_manual": "Produtos/variantes que você quer PASSAR A observar mas ainda não configurou por completo em produtos_monitorados (ex.: um lançamento em avaliação, ou uma categoria nova). descoberta_concorrentes.py roda a mesma busca de variantes/concorrentes para estes também; depois de revisar o achado, promova o item pra produtos_monitorados. 'Colágeno' foi adicionado em 2026-08-02 por achado de descoberta_produtos_shopping.py: tem campanha REAL 'Shopping - Colageno' rodando (R$ 422,78 de gasto, 1.230 cliques) e aparece em várias campanhas Meta ('[Colágeno]'), mas não estava cadastrado como produto nenhum — falta você revisar preco_proprio/ticket_medio (deixei em branco, não fabriquei) antes de promover.",
+  "_comentario_produtos_candidatos_manual": "Produtos/variantes que você quer PASSAR A observar mas ainda não configurou por completo em produtos_monitorados (ex.: um lançamento em avaliação, ou uma categoria nova). descoberta_concorrentes.py roda a mesma busca de variantes/concorrentes para estes também; depois de revisar o achado, promova o item pra produtos_monitorados. 'Colágeno' foi adicionado em 2026-08-02 por achado de descoberta_produtos_shopping.py: tem campanha REAL 'Shopping - Colageno' rodando (R$ 422,78 de gasto, 1.230 cliques) e aparece em várias campanhas Meta ('[Colágeno]'), mas não estava cadastrado como produto nenhum — falta você revisar preco_proprio/ticket_medio (deixei em branco, não fabriquei) antes de promover. termo_busca_ml de 'Colágeno' foi ajustado no mesmo dia por descoberta_termos_busca.py: a keyword real de MAIS clique/impressão na campanha é 'Colageno' genérico (823 impressões, 38 cliques), mas escolhi 'colágeno verisol' (92 impressões, 11 cliques, também real) por ser o ativo específico que você identificou como o certo — reavalie se quiser priorizar volume em vez de especificidade.",
   "produtos_candidatos_manual": [
     {
       "nome": "Creatina Joie",
@@ -43,10 +43,10 @@
     },
     {
       "nome": "Colágeno",
-      "termo_busca_ml": "colágeno hidrolisado verisol",
+      "termo_busca_ml": "colágeno verisol",
       "campanhas_google_ads": ["Shopping - Colageno"],
       "campanhas_meta_ads": ["Colágeno"],
-      "atributos": {"categoria": "colágeno"}
+      "atributos": {"categoria": "colágeno", "ativo": "verisol"}
     }
   ],
 

@@ -1005,6 +1005,44 @@ Livre: `JOIE`.
     `--google-shopping-proprio-json` dedicados é o próximo passo, registrado
     desde a entrada 43.
 
+46. **Primeira coleta real de Google Shopping rodou — 0 concorrentes achados
+    (dado real, não bug) — e terceiro agente criado por causa disso
+    (2026-08-02, mesmo dia da entrada 45).** Usuário rodou `google_shopping.py`
+    de verdade contra as 3 buscas configuradas (Faciderm/Amaze/Linha Joie Fit).
+    Um erro HTTP 400 pontual no Faciderm na primeira tentativa (`"run-failed"`)
+    sumiu no retry — tratado como transiente do lado do Apify, não bug de
+    payload (o mesmo formato funcionou nas outras duas chamadas). Confirmado
+    de novo que o preço em formato não-quebrado-de-linha (`"R$\xa019,99"`,
+    com espaço não-quebrável `\xa0` em vez de espaço comum) já é tratado
+    corretamente pelo `_num()` baseado em regex (não dependia de string
+    `.replace()` ingênuo — resistiu a essa variação sem precisar de ajuste).
+    **0 concorrentes achados em todos os 3 produtos** — os vendedores reais
+    que apareceram (Amazon, Drogasil.com.br, DrogaRaia.com.br, Vhita) não
+    batem com `nome`/`google_advertiser`/`sellers_ml` de Black Skull/Growth
+    Supplements. Isso é achado real (eles não aparecem no Google Shopping pra
+    esses termos, diferente do Mercado Livre), não falha de parsing.
+    Usuário apontou a causa provável, na sequência: o termo configurado às
+    vezes não é o "ativo" certo (ex.: "Colágeno" genérico vs "colágeno
+    verisol" específico), pedindo um agente pra achar o termo certo por
+    produto. Criado `descoberta_termos_busca.py` — minera as keywords REAIS
+    do Google Ads (não adivinha) e recomenda, por produto, a de mais
+    clique/impressão. **Bug pego e corrigido antes de confiar no resultado:**
+    a campanha `"Search - Linha Joie Fit"` mistura keywords de whey E de
+    colágeno na mesma campanha — casar só por nome de campanha (como
+    `own_performance.py::match_produto` faz) atribuiria `"Colageno"` (823
+    impressões, 38 cliques) ao produto errado ("Linha Joie Fit" em vez de
+    "Colágeno"). Corrigido com `match_produto_por_keyword()` — casa a keyword
+    contra o NOME do produto primeiro (mais específico), só cai pra campanha
+    se não citar produto nenhum; comparação sem acento dos dois lados
+    (`_sem_acento()`, local a este script, não mudou o `norm()` global) porque
+    o dado real mistura "Colageno" e "colágeno".
+    `termo_busca_ml` de "Colágeno" ajustado em `config.example.json` pra
+    `"colágeno verisol"` (92 impressões, 11 cliques reais) — não o de mais
+    clique (`"Colageno"`, genérico, 38 cliques), porque o usuário confirmou
+    que o ativo específico é o termo certo pra achar concorrente direto, não
+    volume de busca. Registrado como decisão, não fato absoluto: reavaliar se
+    o volume importar mais que a especificidade em algum momento.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer
