@@ -1355,6 +1355,37 @@ Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
     confirmado visualmente via screenshot Playwright nos dois níveis, mais o
     estado "escaneando" injetado manualmente pra conferir o efeito.
 
+52. **"Paramos de trazer" Trends/Leilão/KPI-Próprio/Descoberta na rodada ao vivo
+    + esclarecido que o Esquadrão de Combate por agente já é real, não só da demo
+    (2026-08-02, mesmo dia).** Usuário comparou os entregáveis antigos (gerados
+    por CLI, com `--extra` completo passado manualmente) com a rodada ao vivo do
+    botão e notou que várias seções tinham sumido. Causa raiz confirmada:
+    `servidor.py::comando()` só monta `--config`/`--out`/`--html` +
+    `self.args.extra`, e o `.bat` nunca passava nenhum `--extra` — então GA4, Meta
+    Ads, Keywords, Metas, Descoberta e Google Shopping nunca chegavam no
+    `war_room.py` da rodada ao vivo, só o Radar ML/Shopping interno (que É
+    recoletado a cada clique). Corrigido: `iniciar-painel.bat` agora monta
+    `--extra` sozinho, checando com `if exist` se cada arquivo convencional já
+    existe em `..\outputs` (10 arquivos: own-performance, ga4-jornada,
+    keywords-relatorio, meta-ads, metas, descoberta, descoberta-shopping,
+    descoberta-termos, google-shopping, google-shopping-proprio) — só inclui o
+    que existir de verdade. Testado rodando `servidor.py` com os 10 `--extra` +
+    `POST /api/rodar` real, confirmando `estado: ok`. Deixados de fora de
+    propósito: `--trends-json`, `--keyword-auction-json`, `--meta-ads-json`
+    (novo criativo concorrente), `--google-ads-transparency-json`,
+    `--ads-manual` — são capturas pontuais/manuais que ficariam enganosas se
+    replicadas silenciosamente sem o usuário revisitar a fonte.
+    Separadamente, o usuário viu a demo animada (`gerar_demo_live.py` — relógio
+    de simulação falso, "reiniciar simulação") agrupando alertas por agente
+    (Precificação e Margem, Mídia Paga e Leilão, Marketplace Ops, Marca e
+    Enforcement) e perguntou se "esse tipo de informação será abordada". Resposta
+    confirmada lendo o código: **já é real**, não exclusivo da demo —
+    `render_esquadrao(alertas_rodada)` já roda no dashboard de verdade (aba Visão
+    Geral, antes do Desempenho Próprio) e retorna `""` só quando nenhum alerta da
+    rodada tem `agente_chave` — exatamente o caso das rodadas reais do usuário até
+    agora (0 alertas). Assim que uma rodada real tiver mudança de preço/desconto/
+    visibilidade, o card do agente responsável aparece sozinho, sem código novo.
+
 ## Onde estão os detalhes completos
 
 Se precisar de mais profundidade sobre qualquer ponto acima (trechos de

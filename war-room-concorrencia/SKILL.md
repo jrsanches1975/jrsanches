@@ -921,6 +921,41 @@ digitado. Pode ser arrastado pra Área de Trabalho (criar atalho) pra virar um
 "ícone de app". Ainda precisa da janela preta aberta (é o processo do
 servidor rodando) — fechar ela desliga, mesma limitação de sempre sem systemd.
 
+**Atualizado (2026-08-02, mesmo dia): `.bat` agora junta as fontes reais já
+coletadas antes.** O usuário notou que seções que apareciam nos entregáveis
+gerados por CLI (Trends, Leilão/Keyword, KPI Próprio, Descoberta de
+Concorrentes) tinham sumido na rodada ao vivo do botão. Causa: `servidor.py`
+monta o comando só com `--config`/`--out`/`--html` + `self.args.extra`, e o
+`.bat` nunca passava nenhum `--extra` — então nenhuma outra fonte (GA4, Meta
+Ads, Keywords, Metas, Descoberta, Google Shopping) chegava no `war_room.py`
+da rodada ao vivo, só o Radar ML/Shopping interno. `iniciar-painel.bat` agora
+monta `--extra` sozinho, checando com `if exist` se cada arquivo convencional
+existe em `..\outputs` (`own-performance-por-produto.json`, `ga4-jornada.json`,
+`keywords-relatorio.json`, `meta-ads.json`, `metas.json`, `descoberta.json`,
+`descoberta-shopping.json`, `descoberta-termos.json`, `google-shopping.json`,
+`google-shopping-proprio.json`) — só entra o que existir de verdade, nada
+inventado. Testado rodando `servidor.py` manualmente com os 10 `--extra`
+apontando pra fixtures mínimas + `POST /api/rodar`, confirmando `estado: ok`.
+**Não incluído de propósito:** `--trends-json`, `--keyword-auction-json`,
+`--meta-ads-json` (novo criativo concorrente), `--google-ads-transparency-json`,
+`--ads-manual` — são capturas pontuais/manuais que ficariam enganosas se
+replicadas silenciosamente rodada após rodada sem o usuário revisitar a
+fonte; continuam exigindo passar manualmente quando houver dado novo.
+
+**Esquadrão de Combate (`render_esquadrao()`) já existe e é REAL, não é
+exclusivo da demonstração.** O usuário viu a demo animada (`gerar_demo_live.py`,
+com relógio de simulação e "reiniciar simulação" — 100% fake, feita pra
+apresentação) agrupando alertas por agente responsável (Precificação e
+Margem, Mídia Paga e Leilão, Marketplace Ops, Marca e Enforcement) e
+perguntou se isso "seria abordado". Resposta: já É o comportamento do
+dashboard real — `agentes.json` define esses 4 papéis, `make_alert()` já
+atribui `agente_chave`/`agente_nome`/`status_acao` a cada alerta real, e
+`render_esquadrao(alertas_rodada)` já roda na aba Visão Geral (antes do
+Desempenho Próprio) — só ainda não apareceu no dashboard do usuário porque
+as rodadas reais até agora tiveram 0 alertas. Assim que uma rodada real
+detectar mudança de preço/desconto/visibilidade etc., o card do agente
+responsável aparece sozinho, sem nenhum código novo.
+
 **O painel detecta em qual modo está, não presume.** Aberto pelo servidor: barra
 verde "backend conectado", botões de rodar/salvar ativos. Aberto como arquivo:
 barra âmbar "modo arquivo", os botões de servidor ficam **desabilitados** (não
