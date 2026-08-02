@@ -256,20 +256,20 @@ produto — já adicionei como candidato em `config.example.json`.
       --config config.json --own-performance-json ../outputs/own-performance-por-produto.json
       --out ../outputs/descoberta-shopping.xlsx`
 
-**`google_shopping.py`** — você já achou e testou o ator
-(`damilo~google-shopping-apify`, "Google Shopping Scraper"). A SAÍDA já está
-confirmada e corrigida contra o dado real que você colou (`source`/`link`
-eram diferentes dos meus palpites originais; preço com sufixo "agora" agora
-é tratado certo). Já ativei em `config.example.json`.
-- [ ] **Só falta confirmar o campo de ENTRADA:** abra o Input do ator, clique
-      "JSON" (ao lado de "Form" — a mesma aba que faltou olhar desta vez) e
-      me mande o print. Hoje o script usa `"query"` por indício (a saída
-      ecoa esse nome), não confirmação
-- [ ] Depois de confirmar, rode: `python google_shopping.py --config config.json
-      --token $APIFY_TOKEN --out ../outputs/google-shopping.json
-      --out-proprio ../outputs/google-shopping-proprio.json --debug-raw`
+**`google_shopping.py`** — **pronto, ENTRADA e SAÍDA confirmadas contra dado
+real** (`damilo~google-shopping-apify`, "Google Shopping Scraper"). Você
+testou os dois lados: a busca real ("magnesio quelato") confirmou
+`source`/`link`/preço com sufixo "agora"; o print do JSON do Input confirmou
+`query`/`country` (minúsculo)/`max_pages`/`num`. Já ativado em
+`config.example.json`.
 - [ ] Se seu `config.json` local já existe, copie
       `apify_actors.google_shopping` do `config.example.json` atualizado
+- [ ] Rode de verdade: `python google_shopping.py --config config.json
+      --token $APIFY_TOKEN --out ../outputs/google-shopping.json
+      --out-proprio ../outputs/google-shopping-proprio.json --debug-raw`
+- [ ] Me manda o resumo que aparecer na tela (quantos concorrentes achados
+      por produto) — o próximo passo depois disso é eu ligar essa saída em
+      `war_room.py` com flags dedicados (ainda não existem)
 
 ---
 

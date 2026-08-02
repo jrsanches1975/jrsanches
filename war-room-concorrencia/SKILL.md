@@ -1266,7 +1266,7 @@ campanha Shopping real), e só desenhar a aba de orquestração depois de ter
 pelo menos um rodando de verdade, pra saber o que ela realmente precisa
 mostrar. Este é o primeiro.
 
-### 27. Coletor de concorrentes no Google Shopping (`google_shopping.py`) — saída confirmada, entrada não
+### 27. Coletor de concorrentes no Google Shopping (`google_shopping.py`) — entrada e saída confirmadas
 
 Metade que faltava do passo 26: agora que se sabe QUAIS produtos vigiar no
 Shopping, este script coleta os CONCORRENTES lá — mesmo formato de saída do
@@ -1282,20 +1282,22 @@ pública no Apify Store), mesmo sem testar ao vivo. Para Google Shopping eu
 não tive essa confiança de início — nenhum ator foi sugerido, de propósito —
 até o usuário testar um de verdade.
 
-**Ator escolhido e testado com dado real (2026-08-02):**
+**Ator escolhido e 100% confirmado com dado real (2026-08-02):**
 `damilo~google-shopping-apify` ("Google Shopping Scraper" na Apify Store,
-$3,50/1.000 resultados). A SAÍDA está confirmada: `source` (vendedor) e
-`link` (URL) vieram antes dos palpites em `CAMPOS_ESPERADOS`; preço chega
-como texto, às vezes com sufixo `"agora"` (`"R$ 99,40 agora"`), tratado por
-regex em `_num()` — nunca há campo de preço original/desconto nesta saída,
-então `discount_pct` fica sempre `None` aqui (correto, não é bug: o ator não
-traz essa informação).
+$3,50/1.000 resultados).
 
-**O que AINDA falta confirmar:** o nome do campo de ENTRADA (a busca). Só a
-aba "Form" do Input foi vista ("Search query"/"Search queries"), nunca a
-"JSON" — `montar_input()` usa `"query"` como palpite (a própria saída ecoa um
-campo `query`, indício forte, não confirmação). Rode com `--debug-raw` antes
-de confiar de verdade; se a coleta vier vazia, é o primeiro lugar a olhar.
+- **Saída:** `source` (vendedor) e `link` (URL) são os campos reais — na
+  frente dos palpites em `CAMPOS_ESPERADOS`. Preço chega como texto, às
+  vezes com sufixo `"agora"` (`"R$ 99,40 agora"`), tratado por regex em
+  `_num()`. Não há campo de preço original/desconto nesta saída —
+  `discount_pct` fica sempre `None` aqui (correto: o ator não traz essa
+  informação, não é bug de mapeamento).
+- **Entrada:** confirmada pelo JSON real do Input —
+  `{"country": "br", "date_range": "anytime", "language": "pt-br",
+  "max_pages": 2, "num": "50", "query": "..."}`. `"query"` era só indício
+  antes (a saída ecoava esse nome); confirmado de verdade agora.
+  `"country"` é minúsculo. Não existe `maxItems` — o volume é `max_pages` ×
+  `num` (este como texto, `"50"`, preservado assim em `montar_input()`).
 
 ```bash
 python google_shopping.py --config config.json \
@@ -1309,8 +1311,7 @@ python google_shopping.py --config config.json \
 **Ainda não ligado a `war_room.py`:** os flags existentes
 `--simulate-google-shopping`/`--simulate-google-shopping-proprio` são para
 teste/demo (a aba Marketplaces não os distingue de dado real com um selo,
-diferente de Meta Ads/Keywords). Quando a entrada também estiver confirmada,
-o passo certo é criar flags dedicados
+diferente de Meta Ads/Keywords). Próximo passo certo: criar flags dedicados
 `--google-shopping-json`/`--google-shopping-proprio-json` em vez de
 reaproveitar os de simulação — mesmo cuidado já tomado com o Windsor (nunca
 usar o caminho de teste pra dado de verdade).

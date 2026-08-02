@@ -982,6 +982,29 @@ Livre: `JOIE`.
     confiar na coleta de produção, rodar com `--debug-raw` numa busca real e
     conferir se o resultado bate com o termo pedido.
 
+45. **Entrada do Google Shopping também confirmada — `google_shopping.py`
+    100% pronto (2026-08-02, mesmo dia da entrada 44).** Usuário mandou o
+    JSON real do Input: `{"country": "br", "date_range": "anytime",
+    "language": "pt-br", "max_pages": 2, "num": "50", "query": "..."}`.
+    Confirma que `"query"` estava certo (o indício da saída ecoada se provou
+    verdadeiro), mas corrige dois detalhes que o palpite original errava:
+    `"country"` é **minúsculo** (`"br"`, eu tinha `"BR"`), e **não existe
+    `maxItems`** — o volume é controlado por `max_pages` (nº de páginas) ×
+    `num` (resultados por página, como TEXTO — `"50"`, não `50` — preservado
+    assim de propósito, sem converter pra int, porque o schema real manda
+    string). `montar_input()` reescrito pra bater exatamente com esse JSON.
+    Testado de novo contra a mesma fixture real da entrada 44 — sem
+    regressão (mesmos 4 vendedores, mesmos preços, mesmo casamento de
+    concorrente). `google_shopping.py` está agora no mesmo nível de confiança
+    que `windsor_api.py`/`war_room.py` (ML): ENTRADA e SAÍDA confirmadas
+    contra dado real, pronto pra coleta de produção assim que o usuário tiver
+    o `APIFY_TOKEN` configurado localmente.
+    **Ainda pendente, não deste script:** ligar a saída em `war_room.py` (os
+    flags `--simulate-google-shopping*` existentes são só teste/demo, sem
+    selo de real na aba Marketplaces) — criar `--google-shopping-json`/
+    `--google-shopping-proprio-json` dedicados é o próximo passo, registrado
+    desde a entrada 43.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

@@ -4,32 +4,35 @@ Coletor de Google Shopping — mesmo padrão do Radar de Mercado Livre
 (`collect_snapshot()` em `war_room.py`): preço, posição, reviews e rating de
 cada concorrente + o NOSSO próprio anúncio, por produto monitorado.
 
-*** STATUS: SAÍDA CONFIRMADA COM DADO REAL (2026-08-02) — ENTRADA AINDA NÃO ***
-Ator escolhido: `damilo~google-shopping-apify` ("Google Shopping Scraper" na
-Apify Store, $3,50/1.000 resultados). O usuário rodou uma busca real
-("magnesio quelato") e colou o resultado — os campos de SAÍDA abaixo
-(`CAMPOS_ESPERADOS`) já têm `source` (vendedor) e `link` (URL) confirmados
-contra esse dado real, na frente dos palpites. Preço vem como texto
-("R$ 26,90", às vezes "R$ 99,40 agora" — o sufixo "agora" é tratado por regex
-em `_num()`, não string replace ingênuo). NÃO há campo de preço original/
-desconto na saída deste ator — `discount_pct` fica sempre `None` aqui, e é o
-correto: o ator simplesmente não traz essa informação, não é ausência de dado
-por bug.
+*** STATUS: ENTRADA E SAÍDA CONFIRMADAS COM DADO REAL (2026-08-02) ***
+Ator escolhido e testado: `damilo~google-shopping-apify` ("Google Shopping
+Scraper" na Apify Store, $3,50/1.000 resultados). O usuário rodou uma busca
+real ("magnesio quelato") e colou o resultado, DEPOIS colou o JSON real do
+Input.
 
-**O que AINDA não foi confirmado:** o nome do campo de ENTRADA (a busca). Só
-vimos a aba "Form" do Input ("Search query" singular + "Search queries"
-plural, com um botão "+ Add"), nunca a aba "JSON" — por isso `montar_input()`
-usa `"query"` como palpite (a própria SAÍDA ecoa um campo `"query"` com o
-termo buscado, o que é um indício forte, mas não confirmação). Antes de
-confiar na coleta de verdade, rode com `--debug-raw` numa conta de teste, ou
-abra o Input do ator e clique "JSON" pra conferir o nome real — se vier
-diferente de `query`, ajuste `montar_input()`.
+SAÍDA confirmada: `source` (vendedor) e `link` (URL) — na frente dos
+palpites em `CAMPOS_ESPERADOS`. Preço vem como texto ("R$ 26,90", às vezes
+"R$ 99,40 agora" — o sufixo "agora" é tratado por regex em `_num()`, não
+string replace ingênuo). NÃO há campo de preço original/desconto na saída
+deste ator — `discount_pct` fica sempre `None` aqui, e é o correto: o ator
+simplesmente não traz essa informação, não é ausência de dado por bug.
 
-Os nomes de campo abaixo (CAMPOS_ESPERADOS) misturam confirmado (source, link,
-rating, ratingCount) com palpite (os demais, caso outro ator seja usado no
-lugar) — várias chaves plausíveis por campo lógico, na ordem em que tentamos.
-`--debug-raw` mostra o primeiro item bruto de cada busca, pra conferir contra
-a lista antes de confiar em qualquer número.
+ENTRADA confirmada — o JSON real do Input é:
+```json
+{"country": "br", "date_range": "anytime", "language": "pt-br",
+ "max_pages": 2, "num": "50", "query": "..."}
+```
+`"query"` era só indício antes (a saída ecoava esse nome); agora é
+confirmação de verdade. `"country"` é minúsculo (`"br"`, não `"BR"` como o
+palpite original tinha). Não existe `maxItems` neste ator — o volume é
+`max_pages` (nº de páginas) × `num` (resultados por página, como TEXTO,
+`"50"` e não `50` — preservado assim de propósito em `montar_input()`).
+
+Os nomes de campo em CAMPOS_ESPERADOS (saída) misturam confirmado (source,
+link, rating, ratingCount) com palpite (os demais, caso outro ator seja
+usado no lugar) — várias chaves plausíveis por campo lógico, na ordem em que
+tentamos. `--debug-raw` mostra o primeiro item bruto de cada busca, pra
+conferir contra a lista antes de confiar em qualquer número.
 
 Formato de saída: idêntico ao snapshot do Radar de ML — {produto:
 {concorrente: {...}}} e {produto: {...}} do próprio. NÃO reaproveite os flags
@@ -154,15 +157,20 @@ def match_competitor_shopping(nome_loja, concorrentes):
 
 
 def montar_input(termo, config):
-    """'query' é um palpite (INDÍCIO forte, não confirmação): a SAÍDA real do
-    damilo~google-shopping-apify ecoa um campo 'query' com o termo buscado, mas
-    a aba 'JSON' do Input nunca foi vista, só a 'Form' ('Search query'/
-    'Search queries'). Se a coleta vier vazia, rode --debug-raw e confira o
-    nome do campo real antes de assumir que é bug de outra coisa."""
+    """CONFIRMADO contra o JSON real do Input do damilo~google-shopping-apify
+    (2026-08-02): {country: "br" (minúsculo), date_range: "anytime",
+    language: "pt-br", max_pages: 2, num: "50" (string, não int), query: "..."}.
+    'query' era só indício antes (a saída ecoava esse nome) — agora é
+    confirmação de verdade. Não existe 'maxItems' neste ator: o volume é
+    controlado por max_pages (nº de páginas) + num (resultados por página,
+    como texto — preservado assim de propósito)."""
     return {
         "query": termo,
-        "country": "BR",
-        "maxItems": config.get("google_shopping_max_por_produto", 20),
+        "country": "br",
+        "language": "pt-br",
+        "date_range": "anytime",
+        "max_pages": config.get("google_shopping_max_paginas", 2),
+        "num": str(config.get("google_shopping_num_por_pagina", 50)),
     }
 
 
