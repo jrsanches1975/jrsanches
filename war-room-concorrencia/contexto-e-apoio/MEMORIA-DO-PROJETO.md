@@ -394,6 +394,43 @@ Livre: `JOIE`.
     build sem os JSONs novos degradando com instrução, 18 abas no xlsx, zero
     erro de JS, sem scroll horizontal.
 
+28. Pergunta: "não consegue extrair as conexões igual do Looker e trazer para
+    nosso projeto?" (com URL de um relatório Looker Studio). **Verificado, não
+    assumido:**
+    - A URL do relatório responde **403** via WebFetch (é privada, exige sessão
+      Google).
+    - **O Looker Studio não tem API para extrair fontes de dados nem dados de
+      gráfico** — a API dele só gerencia permissões de asset. Isso é limitação
+      da plataforma, não do ambiente. Não insistir nesse caminho.
+    - Mas o **Google Drive MCP funciona** — e achei a planilha "Joie - Keyword
+      War Room - Dados" (id `1dAdIja9QQKgb-PfGoe6ux-NpJTAEQWMvB3QAlV_uwoc`) com
+      **Auction Insights real**: vhita.com.br, mercadolivre.com.br,
+      gsuplementos.com.br, vitafor.com.br, shopee.com.br, puravida.com.br (com
+      impression share, overlap, taxa de posição superior, topo de página, 1ª
+      posição e parcela de vitórias). Confirma e amplia a lista de concorrentes.
+    Recomendação dada ao usuário: a rota ideal a longo prazo é conectar direto
+    nas fontes (traz gasto/CTR/criativo, que nem o Looker nem a GA4 dão), mas
+    está travada no plano Free do Windsor; a rota que funciona hoje é importar
+    planilha. Criado **`scripts/sheets_import.py`** com 4 tipos (`leilao`,
+    `campanhas`, `vendas-produto`, `metas`, mais `bruto` para inspeção),
+    detecção automática de markdown/TSV/CSV e escolha do bloco de tabela.
+    **Dois bugs reais achados em teste e corrigidos** (registrar para não
+    repetir):
+    - CSV pt-BR delimitado por `;`: o split aceitava `,` como delimitador e
+      quebrava `31.240,50` em duas células. Agora detecta o delimitador por
+      linha e o padrão numérico pela planilha inteira.
+    - `keyword_auction.py` lê a chave `registros`, não `result` — o import
+      gerava só `result` e o cruzamento dava zero. Agora emite as duas.
+    Cuidados de honestidade embutidos: a escala de percentual do Auction
+    Insights é ambígua (`1.408` = 1,4% ou 14,08%?), então há `--escala-pct` e o
+    script IMPRIME os valores convertidos para conferência em vez de decidir no
+    escuro; a linha "Você" é excluída dos concorrentes; sem `--campanha` os
+    domínios não cruzam com o relatório de keywords e o script avisa; em
+    `vendas-produto` linhas repetidas do mesmo produto são somadas.
+    **Pendente de confirmação com o usuário:** a escala real dos percentuais
+    daquela planilha (se `1.408` é 1,4% ou 14,08%) — sem isso o dado não deve
+    substituir o simulado na aba de Keywords.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer

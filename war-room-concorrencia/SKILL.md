@@ -754,6 +754,72 @@ traria problema de direito de uso. O mesmo módulo exporta a paleta cósmica
 **categóricas dos gráficos** seguem intactas (validadas para daltonismo pela
 skill `dataviz`) — só a identidade visual usa o gradiente.
 
+### 19. Importar planilha / Looker Studio (`sheets_import.py`)
+
+**Sobre o Looker Studio, com clareza:** ele **não expõe API** para listar as
+fontes de dados de um relatório nem para ler os dados dos gráficos — a API dele
+só gerencia permissões de asset. Verificado também que a URL de um relatório
+privado responde **403** sem sessão Google. Ou seja: "extrair as conexões do
+Looker" não é possível nem com credencial. E não precisa ser: o Looker é só a
+camada de visualização — as conexões dele apontam para as MESMAS fontes que o war
+room já alcança (GA4, Google Ads, Sheets, BigQuery).
+
+O caminho que funciona: **materializar o dado em planilha e importar**. O Looker
+agenda entrega automática para Google Sheets (ou você exporta o gráfico), e o
+Google Drive está acessível via MCP.
+
+Fluxo em duas etapas (o script não tem credencial do Drive — quem lê é o agente):
+
+```
+1) o agente lê a planilha:  mcp__Google_Drive__search_files -> read_file_content
+   e salva o texto num arquivo (ex.: planilha.txt)
+2) o script converte:
+```
+
+```bash
+# Auction Insights -> alimenta o monitor de leilão
+python sheets_import.py --entrada planilha.txt --tipo leilao \
+  --campanha "Brand." --out ../outputs/auction-do-sheets.json
+
+# vendas por produto (ERP) -> destrava as metas por produto
+python sheets_import.py --entrada erp.csv --tipo vendas-produto \
+  --out vendas-por-produto.json
+
+# campanhas, metas, ou só inspecionar
+python sheets_import.py --entrada x.tsv --tipo campanhas --out camp.json
+python sheets_import.py --entrada x.csv  --tipo metas --escala-pct pontos --out metas.json
+python sheets_import.py --entrada x.txt  --tipo bruto  --out bruto.json   # mostra os cabeçalhos
+```
+
+Formatos de entrada detectados automaticamente: **tabela markdown** (o que o MCP
+do Drive devolve), **TSV** e **CSV**. Uma planilha exportada costuma ter vários
+blocos de tabela — o script escolhe o bloco cujo cabeçalho tem as colunas do tipo
+pedido, e `--tabela N` força outro.
+
+**Duas armadilhas que o script trata explicitamente** (ambas encontradas em teste
+real com a planilha "Joie - Keyword War Room - Dados"):
+
+1. **Separador decimal.** `31.240,50` em CSV pt-BR (delimitado por `;`) era
+   quebrado em duas células quando o split aceitava `,` como delimitador. Agora o
+   delimitador é detectado por linha (`;` quando presente) e o padrão numérico é
+   detectado pela planilha inteira (vírgula decimal ⇒ pt-BR), nunca célula a
+   célula.
+2. **Escala de percentual.** `Impression Share = 1.408` pode ser 1,4% ou 14,08%
+   dependendo de como o Google exportou. `--escala-pct auto|fracao|pontos`
+   resolve, e o script **imprime os primeiros valores convertidos** para você
+   conferir antes de confiar. Errar aqui distorce a leitura toda — por isso ele
+   avisa em vez de escolher no escuro.
+
+Detalhes que evitam erro silencioso: a linha "Você" do Auction Insights (a
+própria conta) é excluída dos concorrentes; o Auction Insights exportado **não
+traz a campanha**, e sem `--campanha` os domínios não cruzam com o relatório de
+keywords (o cruzamento é por nome de campanha) — o script avisa nesse caso; e o
+JSON de saída emite as chaves `registros` **e** `result`, porque
+`keyword_auction.py` lê uma e os scripts de retorno cru do Windsor leem a outra.
+
+Para `vendas-produto`, várias linhas do mesmo produto são **somadas** (export por
+pedido), não sobrescritas.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —
