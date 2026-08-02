@@ -203,25 +203,40 @@ cd war-room-concorrencia\deploy
 - [ ] Saber a limitação: sem senha guardada na tarefa, ela só dispara com sua
       sessão do Windows aberta (computador desligado/deslogado, não roda)
 
-**Sobre o ator do Apify** (`karamelo/mercadolivre-scraper-brasil-portugues`,
-$5/1.000 resultados) — atualizado depois que você colou uma coleta real dele
-("magnesio quelato 60 capsulas", 2.105 resultados):
+**Ator do Apify trocado — `karamelo` já é o padrão (2026-08-02).** Você testou
+os dois lados de verdade (saída com a busca "magnesio quelato 60 capsulas",
+entrada com o print do Input em JSON) e o `karamelo/mercadolivre-scraper-brasil-portugues`
+está ativado em `config.example.json`:
 
-- [x] Corrigido o bug que fazia `war_room.py` ignorar o ator configurado —
-      agora é trocável de verdade, sem editar código
-- [x] Mapeado e testado o lado de SAÍDA do `karamelo` contra o dado real que
-      você mandou: preços em formato BR, desconto, vendedor, frete, reviews,
-      link — tudo confere. Ele traz DOIS campos que o ator atual não tem:
-      quantidade vendida estimada e o selo de destaque ("MAIS VENDIDO" etc.) —
-      bom sinal de que é o mais apurado dos dois, mas ainda faltando um passo
-- [ ] **Só falta o campo de ENTRADA** para poder ativar de verdade: no Input
-      do ator (o mesmo print de antes), clique em **"JSON"** ao lado de "Form"
-      e me mande o nome real do campo "Nome do produto" — sem isso não dá pra
-      preencher `apify_actors_campos.mercado_livre.termo` com segurança (nome
-      errado não dá erro, só traz coleta vazia, e isso passaria despercebido)
-- [ ] Depois de me mandar isso, eu troco `apify_actors.mercado_livre` para
-      `karamelo~mercadolivre-scraper-brasil-portugues` e
-      `apify_actors_formato.mercado_livre` para `"karamelo"` em `config.json`
+- [x] Bug corrigido: `war_room.py` respeita de verdade o ator configurado
+- [x] Saída mapeada e testada: preço, desconto, vendedor, frete, reviews,
+      link — tudo conferido contra o dado real. Ganha dois campos que o ator
+      anterior não tinha: quantidade vendida estimada e selo de destaque
+      ("MAIS VENDIDO" etc.)
+- [x] Entrada confirmada pelo seu print: o campo é `keyword` (não
+      "nomeProduto" como o rótulo sugeria). `maxPages: 2`, `maxPagesOfertas: 1`,
+      `promoted: true`, `scrapeOfertas: false` foram copiados do payload que
+      você testou de verdade — não um palpite
+- [x] `apify_actors.mercado_livre` e `apify_actors_formato.mercado_livre` já
+      trocados para `karamelo` em `config.example.json`
+
+Falta só você copiar isso pro seu `config.json` local (se ele já existia antes
+de hoje, essas chaves não vão aparecer sozinhas — precisa mesclar à mão ou
+recriar a partir do `config.example.json` atualizado):
+
+- [ ] Se seu `config.json` já existe: copie as quatro chaves novas/alteradas
+      (`apify_actors.mercado_livre`, `apify_actors_campos`,
+      `apify_actors_extra`, `apify_actors_formato`) do `config.example.json`
+      pro seu `config.json`
+- [ ] Rodar uma coleta de verdade e conferir se os concorrentes aparecem
+      certinhos no Radar (mesma lógica de sempre, agora com o ator novo)
+- [ ] **Em aberto, sem urgência:** `promoted: true` não trouxe nenhum item
+      patrocinado no teste — se algum dia aparecer um anúncio patrocinado de
+      verdade no resultado, me avise para eu confirmar se o campo funciona
+      como esperado
+- [ ] **Se quiser reverter:** troque `apify_actors.mercado_livre` de volta pra
+      `"viralanalyzer~mercadolivre-scraper"` e `apify_actors_formato.mercado_livre`
+      pra `"viralanalyzer"` — os dois juntos, o código dos dois continua pronto
 
 ---
 

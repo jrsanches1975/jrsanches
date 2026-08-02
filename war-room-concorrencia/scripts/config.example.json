@@ -110,27 +110,27 @@
     }
   },
 
-  "_comentario_apify_actors": "IDs de actor usados por war_room.py (Mercado Livre — testado/confirmado), meta_ads.py, google_ads_transparency.py e google_trends.py (estes 3 são BETA, não testados ao vivo — ver SKILL.md e references/fontes-e-limitacoes.md). Troque aqui se o actor default não funcionar no seu teste real, sem precisar editar código. Trocar de ator quase sempre exige TAMBÉM ajustar 'apify_actors_campos' logo abaixo — atores diferentes usam nomes de campo diferentes, e campo com nome errado não dá erro, só traz coleta vazia.",
+  "_comentario_apify_actors": "IDs de actor usados por war_room.py (Mercado Livre — testado/confirmado com dado real, 2026-08-02: karamelo/mercadolivre-scraper-brasil-portugues), meta_ads.py, google_ads_transparency.py e google_trends.py (estes 3 são BETA, não testados ao vivo — ver SKILL.md e references/fontes-e-limitacoes.md). Troque aqui se o actor default não funcionar no seu teste real, sem precisar editar código. Trocar de ator quase sempre exige TAMBÉM ajustar 'apify_actors_campos'/'apify_actors_extra'/'apify_actors_formato' logo abaixo — atores diferentes usam nomes de campo diferentes, e campo com nome errado não dá erro, só traz coleta vazia. O ator anterior (viralanalyzer~mercadolivre-scraper) continua suportado — volte pra ele e pra 'apify_actors_formato.mercado_livre': 'viralanalyzer' se precisar reverter.",
   "apify_actors": {
-    "mercado_livre": "viralanalyzer~mercadolivre-scraper",
+    "mercado_livre": "karamelo~mercadolivre-scraper-brasil-portugues",
     "meta_ads": "apify~facebook-ads-scraper",
     "google_ads_transparency": "unseenuser~google-ads",
     "google_trends": "apify~google-trends-scraper"
   },
 
-  "_comentario_apify_actors_campos": "Nomes de campo do INPUT do ator de Mercado Livre em uso — 'termo' é o campo de texto da busca, 'limite' é o campo de máximo de itens (opcional; omita a chave 'limite' se o ator não tiver um). Os valores abaixo são os do ator padrão (viralanalyzer~mercadolivre-scraper), já confirmados. Ao trocar de ator, abra o Input dele no painel do Apify, clique em 'JSON' (ao lado de 'Form') para ver os nomes reais, e troque aqui — nunca adivinhar.",
+  "_comentario_apify_actors_campos": "Nomes de campo do INPUT do ator de Mercado Livre em uso — 'termo' é o campo de texto da busca (confirmado pelo JSON real do Input do karamelo: a chave é 'keyword', não o texto do rótulo 'Nome do produto'). 'limite' (campo de máximo de ITENS) fica de fora aqui porque o karamelo pagina por NÚMERO DE PÁGINAS, não por contagem de item — esse controle vai em 'apify_actors_extra' abaixo, não dá pra derivar de 'per_produto' de forma confiável. Ao trocar de ator de novo: abra o Input dele no painel do Apify, clique em 'JSON' (ao lado de 'Form') para ver os nomes reais, e troque aqui — nunca adivinhar.",
   "apify_actors_campos": {
-    "mercado_livre": {"termo": "searchQuery", "limite": "maxItems"}
+    "mercado_livre": {"termo": "keyword"}
   },
 
-  "_comentario_apify_actors_extra": "Campos FIXOS extras que um ator possa exigir no input (ex.: toggles como 'modo de ofertas do dia'), além de termo/limite. Ficam de fora por padrão — cada chave aqui vira um campo a mais no payload enviado ao ator.",
+  "_comentario_apify_actors_extra": "Campos FIXOS extras que um ator possa exigir no input (ex.: toggles), além de termo/limite. Os valores abaixo são EXATAMENTE os do payload que o usuário testou de verdade em 2026-08-02 (busca 'magnesio quelato 60 capsulas', 48 itens recebidos, 2 páginas) — copiados do teste real, não escolhidos a dedo. 'promoted': true e nenhum item veio com tipoResultado != ORGANIC nesse teste; não está confirmado se esse campo real traz anúncio patrocinado misturado no resultado ou se é outra coisa (ex.: priorizar loja oficial) — reavalie se aparecer um item patrocinado de verdade num teste futuro.",
   "apify_actors_extra": {
-    "mercado_livre": {}
+    "mercado_livre": {"maxPages": 2, "maxPagesOfertas": 1, "promoted": true, "scrapeOfertas": false}
   },
 
-  "_comentario_apify_actors_formato": "Escolhe QUAL leitor de resultado usar em war_room.py: 'viralanalyzer' (padrão, testado/confirmado) ou 'karamelo' (karamelo~mercadolivre-scraper-brasil-portugues — a SAÍDA já foi testada contra uma coleta real de 2026-08-02 e está pronta em war_room.py::_campos_listagem, com números em formato BR convertidos e sinal de patrocinado via 'tipoResultado'; traz também venda_estimada e destaque, que o viralanalyzer não tem). NÃO ative 'karamelo' em apify_actors.mercado_livre/apify_actors_formato ainda: falta confirmar o nome do campo de ENTRADA (o formulário mostra 'Nome do produto', mas o JSON pode ser outro nome) — abra o Input do ator, clique 'JSON' ao lado de 'Form', me mande o nome real, e só então preencha apify_actors_campos.mercado_livre.termo com ele antes de trocar isto para 'karamelo'.",
+  "_comentario_apify_actors_formato": "Escolhe QUAL leitor de resultado usar em war_room.py: 'karamelo' (ativo desde 2026-08-02 — testado contra coleta real, ver entrada 38 do MEMORIA-DO-PROJETO.md: preço/nota em formato BR convertidos, desconto recalculado, patrocinado via 'tipoResultado'; traz também venda_estimada e destaque, que o viralanalyzer não tinha) ou 'viralanalyzer' (o ator anterior, ainda suportado como fallback — troque os dois de volta juntos se precisar reverter).",
   "apify_actors_formato": {
-    "mercado_livre": "viralanalyzer"
+    "mercado_livre": "karamelo"
   },
 
   "_comentario_trends": "Parâmetros do google_trends.py. trends_termos (opcional) sobrescreve a lista default (marca + apelidos + produtos + concorrentes).",

@@ -1145,35 +1145,43 @@ no painel do Apify, clique em **"JSON"** ao lado de "Form" para ver os nomes
 reais, e só então preencha `termo`/`limite` (e qualquer campo fixo extra em
 `apify_actors_extra`, ex.: toggles) — nunca adivinhar.
 
-**Caso concreto (2026-08-02, atualizado):** o usuário está avaliando trocar
-para `karamelo/mercadolivre-scraper-brasil-portugues` (vira
-`karamelo~mercadolivre-scraper-brasil-portugues` na chamada da API — Apify usa
-`~`, a URL da loja usa `/`) contra o atual `viralanalyzer~mercadolivre-scraper`.
-O usuário colou uma coleta REAL do karamelo (busca "magnesio quelato 60
-capsulas", 2.105 resultados) e o lado de SAÍDA já foi mapeado e testado contra
-ela: `_campos_listagem(item, position, formato="karamelo")` lê os nomes reais
-(`eTituloProduto`, `novoPreco`/`precoAnterior` em formato BR — vírgula decimal,
-convertidos por `_num_br()` —, `Vendedor`, `freteGratis`, `numeroAvaliacoes`,
-`produtoReviews`, `zProdutoLink`), recalcula `discount_pct` a partir dos dois
-preços (mais robusto que parsear o texto "16% OFF"), e usa `tipoResultado`
-("ORGANIC" visto em todos os itens testados) como sinal de patrocinado mais
-confiável que o best-effort genérico de `extrair_patrocinado()`. Também captura
-dois campos que o `viralanalyzer` não tem — `venda_estimada` (de
-`quantidadeVendida`) e `destaque` (de `highlight`, ex.: "MAIS VENDIDO",
-"OFERTA IMPERDÍVEL") —, aditivos, ainda não ligados a nenhuma coluna do
-XLSX/HTML (próximo passo, se o ator for ativado).
+**Ativado em produção (2026-08-02):** `karamelo/mercadolivre-scraper-brasil-portugues`
+(vira `karamelo~mercadolivre-scraper-brasil-portugues` na chamada da API —
+Apify usa `~`, a URL da loja usa `/`) é agora o ator padrão em
+`config.example.json`, no lugar do antigo `viralanalyzer~mercadolivre-scraper`
+(que continua suportado — ver "Como reverter" abaixo). Decidido depois de duas
+rodadas de dado real colado pelo usuário:
 
-Ativação em `config.json`: `apify_actors.mercado_livre` = `"karamelo~mercadolivre-scraper-brasil-portugues"`
-e `apify_actors_formato.mercado_livre` = `"karamelo"`.
+1. **Saída** (busca "magnesio quelato 60 capsulas", 2.105 resultados, 48 itens):
+   `_campos_listagem(item, position, formato="karamelo")` lê os nomes reais
+   (`eTituloProduto`, `novoPreco`/`precoAnterior` em formato BR — vírgula
+   decimal, convertidos por `_num_br()` —, `Vendedor`, `freteGratis`,
+   `numeroAvaliacoes`, `produtoReviews`, `zProdutoLink`), recalcula
+   `discount_pct` a partir dos dois preços (mais robusto que parsear o texto
+   "16% OFF"), e usa `tipoResultado` ("ORGANIC" em todos os itens testados)
+   como sinal de patrocinado mais confiável que o best-effort genérico de
+   `extrair_patrocinado()`. Captura também dois campos que o `viralanalyzer`
+   não tem — `venda_estimada` (de `quantidadeVendida`) e `destaque` (de
+   `highlight`, ex. "MAIS VENDIDO") —, aditivos, ainda sem coluna própria no
+   XLSX/HTML (próximo passo natural, não feito ainda).
+2. **Entrada** (print do Input em modo "JSON"): o campo de busca é `keyword`
+   — **não** `nomeProduto`/`productName` como o rótulo "Nome do produto"
+   sugeriria, confirmando por que nunca se deve adivinhar nome de campo. O
+   payload também não tem um campo de "máximo de itens" (`limite`); ele
+   pagina por `maxPages`/`maxPagesOfertas` (nº de páginas), por isso
+   `apify_actors_campos.mercado_livre` só declara `termo`, e `maxPages: 2`,
+   `maxPagesOfertas: 1`, `promoted: true`, `scrapeOfertas: false` foram
+   copiados EXATAMENTE do payload que o usuário testou de verdade, não
+   escolhidos a dedo — ver `apify_actors_extra` em `config.example.json`.
+   **Em aberto:** `promoted: true` não trouxe nenhum item com
+   `tipoResultado != ORGANIC` no teste — não está confirmado se esse campo
+   de fato mistura anúncio patrocinado no resultado ou se é outra coisa (ex.:
+   priorizar loja oficial); reavaliar se aparecer um patrocinado de verdade.
 
-**O que ainda falta, e por que NÃO está ativado por padrão:** o campo de
-ENTRADA (o que a busca `termo_busca_ml` de cada produto preenche) ainda não
-foi confirmado — o formulário mostra "Nome do produto", mas o nome real do
-campo no JSON pode ser outro (`nomeProduto`, `productName`, etc.), e campo
-errado não dá erro, só coleta vazia. Falta o usuário abrir o Input do ator,
-clicar em **"JSON"** ao lado de "Form", e mandar o nome real — só então
-`apify_actors_campos.mercado_livre.termo` pode ser preenchido com segurança e
-o ator trocado de fato (ver `PROXIMOS-PASSOS.md`, item 6).
+**Como reverter para o `viralanalyzer`,** se o `karamelo` decepcionar num teste
+maior: troque `apify_actors.mercado_livre` para `"viralanalyzer~mercadolivre-scraper"`
+e `apify_actors_formato.mercado_livre` para `"viralanalyzer"` — os dois juntos,
+o código dos dois formatos continua presente e testado.
 
 ### 25. Rotina automática sem clicar em nada (Windows Task Scheduler)
 

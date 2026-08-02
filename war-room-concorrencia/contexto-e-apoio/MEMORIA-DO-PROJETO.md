@@ -787,6 +787,35 @@ Livre: `JOIE`.
     verdade. Ver `config.example.json` (`apify_actors_formato`) e
     `PROXIMOS-PASSOS.md` item 6.
 
+39. **Entrada confirmada, `karamelo` ativado como padrão (2026-08-02, mesmo
+    dia das entradas 37-38).** Usuário mandou o JSON real do Input do ator:
+    `{"keyword": "...", "maxPages": 2, "maxPagesOfertas": 1, "promoted": true,
+    "scrapeOfertas": false}`. Achado confirmando por que nunca se deve
+    adivinhar nome de campo: o rótulo do formulário era "Nome do produto", mas
+    a chave real é `keyword` — nenhuma relação óbvia entre os dois. Outro
+    achado: o ator não tem um campo de "máximo de itens" equivalente a
+    `maxItems` (do `viralanalyzer`) — pagina por NÚMERO DE PÁGINAS
+    (`maxPages`/`maxPagesOfertas`), que não é derivável de `per_produto` de
+    forma confiável, então ficou fora de `apify_actors_campos` e virou valor
+    FIXO em `apify_actors_extra`, copiado exatamente do payload testado (não
+    escolhido a dedo).
+    Ativado em `config.example.json`: `apify_actors.mercado_livre` =
+    `"karamelo~mercadolivre-scraper-brasil-portugues"`,
+    `apify_actors_campos.mercado_livre` = `{"termo": "keyword"}`,
+    `apify_actors_extra.mercado_livre` = `{"maxPages": 2, "maxPagesOfertas": 1,
+    "promoted": true, "scrapeOfertas": false}`, `apify_actors_formato.mercado_livre`
+    = `"karamelo"`. `viralanalyzer~mercadolivre-scraper` continua com código
+    funcionando (fallback documentado em `config.example.json` e no SKILL.md).
+    **Pendência registrada, não resolvida:** `promoted: true` não trouxe nenhum
+    item com `tipoResultado != "ORGANIC"` no teste real — não dá pra confirmar
+    se o campo de fato mistura patrocinado no resultado ou se controla outra
+    coisa (ex.: priorizar loja oficial). Reavaliar se aparecer um patrocinado
+    de verdade numa coleta futura, não assumir nem numa direção nem noutra.
+    **Ação do usuário ainda pendente:** o `config.json` real dele (se já
+    existia antes de hoje) não herda essas chaves automaticamente — precisa
+    mesclar à mão a partir do `config.example.json` atualizado. Registrado em
+    `PROXIMOS-PASSOS.md`.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer
