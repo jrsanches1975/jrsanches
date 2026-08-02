@@ -9,25 +9,53 @@ Ordem pensada para o item de espera externa sair da frente primeiro.
 
 ---
 
-## 1. Developer token do Google Ads — COMECE POR AQUI
+## 1. Redefinir o token de desenvolvedor — 1 minuto
 
-**Por que primeiro:** é o único item com prazo que não depende de você. A análise
-do Google leva de dias a semanas. Todo o resto é questão de minutos.
+O token apareceu num print compartilhado em conversa (2026-08-02). Sozinho ele não
+dá acesso aos dados (isso exige também as credenciais OAuth), mas o Google o trata
+como confidencial e a correção é um clique.
 
-- [ ] Confirmar que você tem uma **conta gerenciadora (MCC)**. O Centro de API
-      **só aparece em MCC**. Se não tiver, crie em
-      `ads.google.com/home/tools/manager-accounts` e vincule a conta da Joie.
-- [ ] `ads.google.com` (logado na MCC) → Ferramentas e Configurações →
-      Configuração → **Centro de API**
-- [ ] Preencher o formulário e **solicitar Acesso Básico**
-      (o Acesso de Teste que vem na hora **não** lê a conta real)
-- [ ] Guardar o token quando aprovar
+- [ ] `ads.google.com` (MCC **595-971-6066**) → Ferramentas e Configurações →
+      Configuração → **Central de API** → **Redefinir token**
+- [ ] Guardar o novo em variável de ambiente, nunca em arquivo do repositório
 
-No formulário, descreva o uso com honestidade: relatório interno de desempenho das
-próprias campanhas, sem revenda de dados. Pedido vago é o que mais leva a
-indeferimento.
+---
 
-**Tempo seu:** ~15 min. **Espera:** dias a semanas.
+## 1b. Boa notícia: o formulário do developer token já está feito
+
+O Centro de API já mostra:
+
+- **MCC:** 595-971-6066 (`Adm Contas`, sob `mktjoiesuplementos@gmail.com`)
+- **Nível de acesso:** *Acesso às Análises*
+- Dados de desenvolvedor preenchidos (Balanced Business Consult, Agência/SEM)
+
+Ou seja: **não há formulário pendente nem fila de análise para iniciar.** O aviso
+anterior de "espera de dias a semanas" não se aplica — aquilo valia para quem ainda
+nem pediu.
+
+O que resta é **descobrir se o nível "Acesso às Análises" já alcança a conta de
+produção**. A documentação pública é inconsistente sobre esse nível (algumas
+páginas listam só Teste/Básico/Padrão, outra cita um nível "Explorer"), então não
+vale discutir no papel: **o teste decisivo é uma execução do coletor.**
+
+- Se vier dado → está liberado, seguimos.
+- Se vier `403 — DEVELOPER_TOKEN_NOT_APPROVED` → aí sim pedimos elevação de nível,
+  e só nesse caso entra a espera. O coletor imprime essa mensagem já traduzida,
+  com o caminho exato do que fazer.
+
+Para esse teste você precisa antes dos itens 3 e 4 (credencial OAuth e refresh
+token) — por isso eles subiram na ordem.
+
+Você também vai precisar do **customer_id da conta de anúncio da Joie**, que é
+diferente do id da MCC. O id da MCC entra separado:
+
+```bash
+export GOOGLE_ADS_LOGIN_CUSTOMER_ID='5959716066'   # a MCC, só dígitos
+export GOOGLE_ADS_CUSTOMER_ID='...'                # a conta da Joie, só dígitos
+```
+
+Sem o `LOGIN_CUSTOMER_ID`, acesso através de gerenciadora responde
+`403 — USER_PERMISSION_DENIED`.
 
 ---
 

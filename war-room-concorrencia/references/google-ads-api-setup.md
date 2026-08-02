@@ -11,7 +11,18 @@ São **cinco** valores. Mais burocrático que a Meta, e um dos passos é **assí
 | `GOOGLE_ADS_REFRESH_TOKEN` | gerado por `scripts/google_ads_oauth.py` |
 | `GOOGLE_ADS_CUSTOMER_ID` | id da conta no Google Ads, só dígitos |
 
-## 1. Developer token — FAÇA ISSO PRIMEIRO (a espera é de dias)
+## 1. Developer token
+
+**Se você já tem um token com nível atribuído no Centro de API, pule para o passo 2.**
+O caso da Joie (verificado em 2026-08-02): MCC `595-971-6066`, nível
+**"Acesso às Análises"**, dados de desenvolvedor já preenchidos — nada pendente.
+
+Se o nível alcança contas de produção, só se descobre executando: a documentação
+pública é inconsistente sobre esse nível. Rode o coletor; se vier
+`403 — DEVELOPER_TOKEN_NOT_APPROVED`, aí sim peça elevação de nível e aguarde a
+análise. O coletor traduz esse erro com o caminho exato.
+
+### Se você ainda NÃO tem token (a espera é de dias)
 
 1. Entre em `ads.google.com` com a **conta gerenciadora (MCC)**. O Centro de API
    **só aparece em conta MCC** — se você só tem conta comum, crie uma MCC em

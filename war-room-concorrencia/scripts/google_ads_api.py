@@ -237,9 +237,35 @@ def _explicar_erro(bruto, http):
         return (f"401 não autenticado: {detalhe}\n"
                 "  O access token expirou (dura 1h) ou o refresh token é de outro client_id.", None)
     if http == 403:
+        # o Google nomeia a causa exata no corpo; traduzir cada uma evita horas
+        # procurando no lugar errado
+        especificos = {
+            "DEVELOPER_TOKEN_NOT_APPROVED":
+                "o developer token não tem nível suficiente para contas de PRODUÇÃO.\n"
+                "  Ele funciona em conta de teste, mas não na conta real. Peça a elevação de\n"
+                "  nível no Centro de API (ads.google.com > Ferramentas > Configuração >\n"
+                "  Central de API) e aguarde a análise do Google.",
+            "DEVELOPER_TOKEN_PROHIBITED":
+                "este developer token está proibido de usar a API. Verifique no Centro de API\n"
+                "  se ele foi revogado ou redefinido — se você clicou em 'Redefinir token',\n"
+                "  o antigo deixou de valer e é preciso exportar o novo.",
+            "DEVELOPER_TOKEN_PARAMETER_MISSING":
+                "faltou o cabeçalho developer-token. Confira GOOGLE_ADS_DEVELOPER_TOKEN.",
+            "USER_PERMISSION_DENIED":
+                "a conta autenticada não tem acesso a este customer_id. Se a conta é\n"
+                "  gerenciada por uma MCC, exporte GOOGLE_ADS_LOGIN_CUSTOMER_ID com o id da\n"
+                "  MCC (só dígitos) — sem isso o acesso via gerenciadora é recusado.",
+            "CUSTOMER_NOT_ENABLED":
+                "a conta de anúncio está cancelada ou suspensa.",
+            "NOT_ADS_USER":
+                "a conta Google autenticada não tem nenhuma conta do Google Ads associada.",
+        }
+        for chave, dica in especificos.items():
+            if chave in bruto:
+                return f"403 — {chave}\n  {dica}\n  (mensagem do Google: {detalhe})", None
         return (f"403 sem permissão: {detalhe}\n"
-                "  Causas comuns: developer token ainda sem acesso aprovado, developer token\n"
-                "  de outra conta MCC, ou falta o cabeçalho login-customer-id ao acessar via MCC.", None)
+                "  Causas comuns: developer token sem nível para produção, developer token de\n"
+                "  outra MCC, ou falta o cabeçalho login-customer-id ao acessar via MCC.", None)
     if http == 404:
         return (f"404: {detalhe}\n"
                 "  Versão da API retirada? Sonde com --versao-api (v15-v19 já saíram).", None)
