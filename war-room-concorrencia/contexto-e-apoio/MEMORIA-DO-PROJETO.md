@@ -431,6 +431,48 @@ Livre: `JOIE`.
     daquela planilha (se `1.408` é 1,4% ou 14,08%) — sem isso o dado não deve
     substituir o simulado na aba de Keywords.
 
+29. **RESOLVIDO (2026-08-02) — a escala não era ambígua, a planilha está
+    corrompida.** Em vez de perguntar a escala ao usuário, baixei a planilha via
+    `download_file_content` como **.xlsx** e li os valores CRUS com openpyxl (o
+    `read_file_content` devolve markdown já renderizado, que era a origem da
+    dúvida). O que a aba `auction_raw` guarda de fato:
+    - `B2 = 1408.0` (float, formato `#,##0`), `G2 = 708.0`, `E3 = 655.0`,
+      `F3 = 3534.0` — **inteiros**, não decimais.
+    - `C4 = '0.26'`, `F5 = '0.43'`, `E8 = '0.61'` — **strings**.
+    Diagnóstico: um export do Auction Insights em **en-US** (`0.1408`) foi colado
+    numa planilha em **pt-BR**, onde `.` é separador de MILHAR. O Sheets engoliu
+    o ponto e o zero à esquerda e `0.1408` virou `1408`. As células com 2 casas
+    (`0.26`) sobraram como TEXTO porque o Sheets não conseguiu lê-las como
+    milhar — essa mistura de inteiro grande com string decimal é a **impressão
+    digital** do problema.
+    **O estrago é irreversível por cálculo:** `592` pode ter vindo de `0,592`
+    (59,2%) ou de `0,0592` (5,9%) e as duas leituras são plausíveis pela coluna.
+    Escolher uma seria inventar dado de concorrente. Então, em vez de importar,
+    `sheets_import.py` ganhou `checar_taxas()`: aborta com **exit 2** quando
+    qualquer taxa passa de 100% (impossível por definição) e imprime como
+    reexportar (trocar idioma da conta no Google Ads, ou usar
+    *Arquivo > Importar* em vez de colar, ou formatar a coluna como Texto
+    simples antes de colar). **Não há flag para forçar** — nenhuma `--escala-pct`
+    conserta, porque o separador foi *perdido*, não deslocado.
+    **Mais dois bugs reais achados pelo teste de regressão** (o teste com dado
+    correto falhou, o que expôs os dois):
+    - `_tem_virgula_decimal()` usava `re.fullmatch` na célula crua, então o `%`
+      de `14,08%` impedia o casamento e a planilha era classificada como en-US —
+      transformando `14,08%` em `1408`. Agora limpa `%`, `R$` e espaços antes de
+      casar.
+    - O modo `--escala-pct auto` leria `0,5%` como fração (0,5 ≤ 1) e reportaria
+      **50%** em vez de 0,5% — erro de 100× exatamente nos concorrentes de
+      participação pequena. `_pct(v, escala)` foi substituído por
+      `fazer_pct(num, escala)`, que recebe a célula CRUA e dá precedência ao
+      sinal `%` sobre qualquer escala escolhida.
+    Testado ponta a ponta: planilha real → recusada com exit 2; os mesmos dados
+    em pt-BR correto → `0.1408 / 0.708`; borda `0,5%` → `0.005`; e os tipos
+    `campanhas`, `vendas-produto` e `metas` seguem convertendo certo.
+    **Estado do dado:** a aba de Keywords & Leilão continua com dado simulado e
+    marcado como tal. Os 6 domínios da planilha são achado real e válido (a
+    LISTA de concorrentes serve); só os PERCENTUAIS estão inutilizáveis até o
+    reexport.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer
@@ -526,6 +568,20 @@ do `SKILL.md`) e copie por cima deste diretório antes de commitar.
   trata isso como componente separado (`ga4_*`), nunca mistura com CTR/CPA/ROAS.
 - **Auction Insight não combina com métricas de performance** na mesma consulta
   Windsor.ai/Google Ads (`auction_insight_domain` é uma leitura à parte).
+- **Looker Studio não tem API de leitura.** A API dele só gerencia permissões de
+  asset — não lista as fontes de dados de um relatório nem devolve os dados dos
+  gráficos. A URL de relatório privado responde **403** sem sessão Google
+  (testado com WebFetch). "Extrair as conexões do Looker" é impossível mesmo com
+  credencial; e é desnecessário, porque o Looker é só camada de visualização —
+  as conexões dele apontam para as MESMAS fontes (GA4, Google Ads, Sheets) que o
+  war room já alcança. O caminho que funciona: materializar em planilha (o Looker
+  agenda entrega para Sheets) e importar com `sheets_import.py`.
+- **Para ler valores de planilha com precisão, baixe .xlsx, não markdown.**
+  `read_file_content` do MCP do Drive devolve markdown já formatado, onde um
+  inteiro `1408` e um decimal `1,408` podem aparecer iguais. `download_file_content`
+  com `exportMimeType` de xlsx + openpyxl mostra o tipo, o valor e o
+  `number_format` de cada célula — foi assim que a corrupção de locale da
+  planilha de Auction Insights foi diagnosticada em vez de virar pergunta.
 - **`keyword_auction.py` é o único dos "beta" que foi VERIFICADO com dado real**
   (rodou de fato contra a conta Google Ads da Joie via Windsor.ai).
 - **Windsor.ai plano Free — limitação de conector único, achado 2x:**

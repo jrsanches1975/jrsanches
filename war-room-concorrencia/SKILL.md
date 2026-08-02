@@ -808,7 +808,21 @@ real com a planilha "Joie - Keyword War Room - Dados"):
    dependendo de como o Google exportou. `--escala-pct auto|fracao|pontos`
    resolve, e o script **imprime os primeiros valores convertidos** para você
    conferir antes de confiar. Errar aqui distorce a leitura toda — por isso ele
-   avisa em vez de escolher no escuro.
+   avisa em vez de escolher no escuro. O sinal `%` na própria célula tem
+   precedência sobre `--escala-pct`: é a informação mais confiável que existe
+   sobre a escala, e sem essa regra o modo `auto` leria `0,5%` como 50% (0,5 ≤ 1
+   viraria fração), errando por 100× justamente nos concorrentes pequenos.
+3. **Planilha corrompida por locale — recusada, não adivinhada.** Um export do
+   Auction Insights em en-US (`0.1408`) colado numa planilha em **pt-BR**, onde
+   `.` é separador de MILHAR, faz o Sheets engolir o ponto e o zero à esquerda:
+   `0.1408` vira o inteiro **1408**. A impressão digital do problema é que as
+   células com 2 casas (`0.26`) sobram como **texto**, porque o Sheets não
+   consegue lê-las como milhar. `checar_taxas()` aborta com exit 2 quando
+   qualquer taxa passa de 100% (impossível por definição) e explica como
+   reexportar. **Não há flag para forçar**: `592` pode ter vindo de `0,592` ou de
+   `0,0592`, as duas leituras são plausíveis e dão respostas diferentes —
+   adivinhar aqui inventaria dado de concorrente, que é exatamente o que este
+   projeto não faz.
 
 Detalhes que evitam erro silencioso: a linha "Você" do Auction Insights (a
 própria conta) é excluída dos concorrentes; o Auction Insights exportado **não

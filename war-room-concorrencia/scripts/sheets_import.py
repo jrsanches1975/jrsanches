@@ -130,7 +130,11 @@ def _tem_virgula_decimal(tabelas):
     for t in tabelas:
         for linha in t:
             for c in linha:
-                if re.fullmatch(r"-?\d{1,3}(\.\d{3})*,\d+", c) or re.fullmatch(r"-?\d+,\d+", c):
+                # limpa %, R$ e espaços ANTES de casar: sem isso "14,08%" não
+                # casava no fullmatch e a planilha era lida como en-US, virando
+                # 1408 em vez de 14,08.
+                s = re.sub(r"[R$%\s ]", "", str(c)).strip()
+                if re.fullmatch(r"-?\d{1,3}(\.\d{3})*,\d+", s) or re.fullmatch(r"-?\d+,\d+", s):
                     return True
     return False
 
@@ -159,19 +163,93 @@ def fazer_parser_numero(ptbr):
     return parse
 
 
-def _pct(v, escala):
-    """Converte percentual conforme a escala escolhida.
+def fazer_pct(num, escala):
+    """Devolve a função que converte uma célula de percentual para fração 0-1.
+
     'fracao'  -> valor já é 0-1 (0,14 = 14%)
     'pontos'  -> valor é 0-100 (14 = 14%)  → divide por 100
     'auto'    -> se <= 1, trata como fração; se > 1, como pontos.
+
+    O sinal '%' na própria célula tem precedência sobre tudo isso: é a
+    informação mais confiável que existe sobre a escala. Sem essa regra, o modo
+    'auto' leria "0,5%" como 0,5 (= 50%), errando por um fator de 100 justamente
+    nos concorrentes de participação pequena.
     """
-    if v is None:
-        return None
-    if escala == "fracao":
-        return v
-    if escala == "pontos":
-        return v / 100.0
-    return v if v <= 1 else v / 100.0
+    def pct(raw):
+        v = num(raw)
+        if v is None:
+            return None
+        if "%" in str(raw):
+            return v / 100.0
+        if escala == "fracao":
+            return v
+        if escala == "pontos":
+            return v / 100.0
+        return v if v <= 1 else v / 100.0
+    return pct
+
+
+# campos que são taxa: nenhum pode passar de 100%. Se passar, o dado chegou
+# corrompido — não existe leitura válida acima disso.
+CAMPOS_TAXA = {
+    "impression_share": "Impression Share",
+    "overlap_rate": "Overlap Rate",
+    "position_above_rate": "Taxa de posição superior",
+    "top_of_page_rate": "Topo da página",
+    "abs_top_of_page_rate": "1ª posição",
+    "outranking_share": "Parcela de vitórias",
+    "engagement_rate": "Taxa de engajamento",
+    "tx_conversao": "Taxa de conversão",
+}
+
+
+def checar_taxas(resultado):
+    """Aborta se alguma taxa passar de 100%.
+
+    O caso real que motivou esta checagem: um export do Auction Insights em
+    en-US ("0.1408") colado numa planilha em pt-BR, onde o "." é separador de
+    MILHAR. O Sheets engoliu o ponto e o zero à esquerda, e "0.1408" virou o
+    inteiro 1408. Pior: o estrago não é reversível, porque "592" pode ter vindo
+    de "0.592" ou de "0.0592" — as duas leituras são plausíveis e dão respostas
+    diferentes. Então a única saída honesta é recusar o arquivo e pedir o
+    export de novo, em vez de adivinhar e contaminar o war room.
+    """
+    linhas = resultado if isinstance(resultado, list) else [resultado]
+    problemas = []
+    for i, r in enumerate(linhas):
+        if not isinstance(r, dict):
+            continue
+        rotulo = r.get("auction_insight_domain") or r.get("campaign") or f"linha {i + 1}"
+        for campo, nome in CAMPOS_TAXA.items():
+            v = r.get(campo)
+            if isinstance(v, (int, float)) and v > 1.0:
+                problemas.append((rotulo, nome, v))
+    if not problemas:
+        return
+    print("\nERRO: dado recusado — taxas acima de 100%, o que é impossível.", file=sys.stderr)
+    for rotulo, nome, v in problemas[:12]:
+        print(f"    {rotulo} · {nome} = {v * 100:,.0f}%".replace(",", "."), file=sys.stderr)
+    if len(problemas) > 12:
+        print(f"    ... e outros {len(problemas) - 12}", file=sys.stderr)
+    print(
+        "\n  Causa provável: a planilha está em pt-BR (onde '.' é separador de MILHAR) e recebeu\n"
+        "  números em en-US (onde '.' é DECIMAL). Ao colar, o Sheets leu '0.1408' como 1408.\n"
+        "  Repare que as células com 2 casas ('0.26') sobraram como TEXTO, justamente porque o\n"
+        "  Sheets não conseguiu lê-las como milhar — é a impressão digital do problema.\n"
+        "\n  Isso NÃO é recuperável por cálculo: '592' pode ter vindo de 0,592 ou de 0,0592, e as\n"
+        "  duas leituras são plausíveis. Adivinhar aqui inventaria dado de concorrente.\n"
+        "\n  Como corrigir na origem (escolha um):\n"
+        "    1. No Google Ads, troque o idioma da conta/relatório para Português e exporte de novo\n"
+        "       (aí os percentuais saem com vírgula: 14,08%).\n"
+        "    2. Ou baixe o Auction Insights em .csv e abra com Arquivo > Importar no Sheets,\n"
+        "       marcando 'Detectar automaticamente' — a importação respeita o ponto decimal,\n"
+        "       diferente do colar.\n"
+        "    3. Ou, antes de colar, formate a coluna de destino como Texto simples\n"
+        "       (Formatar > Número > Texto simples) e depois converta.\n"
+        "\n  Não existe flag para forçar a importação: nenhuma escala (--escala-pct fracao ou\n"
+        "  pontos) conserta este arquivo, porque o separador foi perdido, não deslocado.",
+        file=sys.stderr)
+    sys.exit(2)
 
 
 def montar_registros(tabela):
@@ -222,6 +300,7 @@ CAMPANHA_PADRAO = ["(do sheets)"]
 def conv_leilao(regs, num, escala):
     """Auction Insights -> formato que keyword_auction/gerar_relatorio_keywords
     consomem (auction_insight_domain), preservando as colunas extras do Google."""
+    pct = fazer_pct(num, escala)
     out = []
     for r in regs:
         dominio = _pega(r, "dominio", "domain", "dominio_de_exibicao", "display_url_domain")
@@ -233,23 +312,19 @@ def conv_leilao(regs, num, escala):
             "auction_insight_domain": dominio,
             "campaign": _pega(r, "campanha", "campaign") or CAMPANHA_PADRAO[0],
             "date": _pega(r, "data", "date", "timestamp"),
-            "impression_share": _pct(num(_pega(r, "impression_share", "parcela_de_impressoes",
-                                                 "impressao")), escala),
-            "overlap_rate": _pct(num(_pega(r, "overlap_rate", "taxa_de_sobreposicao")), escala),
-            "position_above_rate": _pct(num(_pega(r, "taxa_posicao_superior", "position_above_rate",
-                                                   "taxa_de_posicao_superior")), escala),
-            "top_of_page_rate": _pct(num(_pega(r, "topo_pagina", "top_of_page_rate",
-                                                 "taxa_de_topo_da_pagina")), escala),
-            "abs_top_of_page_rate": _pct(num(_pega(r, "1a_posicao", "primeira_posicao",
-                                                    "abs_top_of_page_rate")), escala),
-            "outranking_share": _pct(num(_pega(r, "parcela_vitorias", "outranking_share",
-                                                "parcela_de_superacao")), escala),
+            "impression_share": pct(_pega(r, "impression_share", "parcela_de_impressoes", "impressao")),
+            "overlap_rate": pct(_pega(r, "overlap_rate", "taxa_de_sobreposicao")),
+            "position_above_rate": pct(_pega(r, "taxa_posicao_superior", "position_above_rate", "taxa_de_posicao_superior")),
+            "top_of_page_rate": pct(_pega(r, "topo_pagina", "top_of_page_rate", "taxa_de_topo_da_pagina")),
+            "abs_top_of_page_rate": pct(_pega(r, "1a_posicao", "primeira_posicao", "abs_top_of_page_rate")),
+            "outranking_share": pct(_pega(r, "parcela_vitorias", "outranking_share", "parcela_de_superacao")),
         })
     return out
 
 
 def conv_campanhas(regs, num, escala):
     """Planilha de campanha -> formato de campanha da GA4."""
+    pct = fazer_pct(num, escala)
     out = []
     for r in regs:
         camp = _pega(r, "campanha", "campaign", "campaign_name", "nome_da_campanha")
@@ -260,8 +335,7 @@ def conv_campanhas(regs, num, escala):
             "source": _pega(r, "origem", "source", "fonte"),
             "medium": _pega(r, "midia", "medium", "meio"),
             "sessions": num(_pega(r, "sessoes", "sessions")),
-            "engagement_rate": _pct(num(_pega(r, "taxa_de_engajamento", "engagement_rate",
-                                               "engajamento")), escala),
+            "engagement_rate": pct(_pega(r, "taxa_de_engajamento", "engagement_rate", "engajamento")),
             "add_to_carts": num(_pega(r, "adicoes_ao_carrinho", "add_to_carts", "carrinho")),
             "checkouts": num(_pega(r, "checkouts", "inicios_de_checkout", "checkout")),
             "ecommerce_purchases": num(_pega(r, "compras", "ecommerce_purchases", "transacoes",
@@ -298,6 +372,7 @@ def conv_vendas_produto(regs, num, escala):
 
 def conv_metas(regs, num, escala):
     """Planilha de metas (duas colunas: indicador | valor) -> bloco do config."""
+    pct = fazer_pct(num, escala)
     mapa = {
         "faturamento": "faturamento", "receita": "faturamento",
         "unidades": "unidades", "pedidos": "unidades", "vendas": "unidades",
@@ -316,10 +391,13 @@ def conv_metas(regs, num, escala):
         alvo = mapa.get(ind)
         if not alvo:
             continue
-        v = num(r[chaves[1]])
+        bruto = r[chaves[1]]
+        # tx_conversao passa por pct() com a célula CRUA, para o '%' valer como
+        # escala; os outros indicadores são valor absoluto.
+        v = pct(bruto) if alvo == "tx_conversao" else num(bruto)
         if v is None:
             continue
-        out[alvo] = _pct(v, escala) if alvo == "tx_conversao" else v
+        out[alvo] = v
     return out
 
 
@@ -399,6 +477,7 @@ def main():
 
     regs = montar_registros(tabela)
     resultado = conv(regs, num, args.escala_pct)
+    checar_taxas(resultado)
 
     if args.tipo in ("leilao", "campanhas"):
         # emite as DUAS chaves: keyword_auction.py lê "registros", os scripts que
