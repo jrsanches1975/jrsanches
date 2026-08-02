@@ -85,10 +85,9 @@ ausente declarado.
 
 ---
 
-## 4. Primeira coleta
+## 4. Primeira coleta — CONCLUÍDA (2026-08-02)
 
-**Atualizado em 2026-08-02 à noite — já processei o que você colou.** Três dos
-quatro pedidos já vieram reais e estão gravados em `outputs/`:
+Os quatro pedidos vieram reais e estão processados em `outputs/`:
 
 - [x] `google_ads auction_insight_domain` (leilão por domínio) — 771 registros,
       03/07 a 31/07 → `outputs/auction-windsor.json`
@@ -96,23 +95,27 @@ quatro pedidos já vieram reais e estão gravados em `outputs/`:
       registros, 03/07 a 01/08 → `outputs/meta-insights.json`
 - [x] Lado GA4 das mesmas campanhas Meta (via MCP, sem precisar de URL) →
       `outputs/ga4-campanhas-facebook.json`
-- [ ] **Ainda falta:** `google_ads` por **palavra-chave** (não por campanha).
-      O que você mandou foi clique/gasto agregado por campanha — a aba
-      Keywords & Leilão precisa do nível de keyword para ficar 100% real:
+- [x] `google_ads` por palavra-chave (42 keywords) → `outputs/gads-keywords.json`,
+      já processado por `gerar_relatorio_keywords.py` **sem** `--simulado` em
+      `outputs/keywords-relatorio.json` — a aba Keywords & Leilão já pode
+      ficar 100% real na próxima vez que rodar o comando do item 5
 
-```
-fields=date,campaign,keyword_text,impressions,clicks,ctr,cpc,
-       search_impression_share,search_rank_lost_impression_share,
-       quality_score
-```
+**Dois achados na coleta de keyword, pra você saber:**
 
-- [ ] Rodar essa URL no painel do Windsor (conta do Google Ads) e me mandar o
-      JSON, do mesmo jeito que mandou os outros três
-
-Não precisa mais rodar `windsor_api.py` você mesmo pelas contas — continue
-colando o JSON do painel do Windsor aqui que eu normalizo e gravo. O script
-`windsor_api.py` só entraria em jogo se você preferir automatizar via linha de
-comando mais pra frente.
+1. **Sem quebra por dia.** Toda linha veio com uma chave `"fields=date": null`
+   em vez de `"date"` — sinal de que o `fields=` foi colado duas vezes na URL
+   (`...&fields=fields=date,...`). Não quebra nada agora (o relatório atual
+   não usa data), mas se um dia eu precisar comparar "antes x depois" por
+   keyword, essa URL vai precisar ser refeita sem o `fields=` duplicado.
+2. **`quality_score` fora da escala esperada** — valores reais chegaram até
+   **290** (ex.: "Joie" = 290), mas a Quality Score do Google Ads é sempre
+   1-10. Não consigo confirmar o que esse campo do Windsor representa de
+   verdade (a conta do Google Ads não está acessível por aqui). **Não apliquei
+   nenhuma correção** — gravei o valor bruto como veio.
+   - [ ] Confira a coluna "Nível de qualidade" no Google Ads pra keyword
+         "Joie" ou "magnésio quelato" e me diga o número real — só assim eu
+         sei se o campo do Windsor é outra coisa ou se precisa de ajuste antes
+         de mostrar no painel
 
 ---
 
@@ -291,8 +294,7 @@ de Keywords e Descoberta. Autentique e me avise que eu integro.
 |---|---|
 | GA4 · Jornada | **real medido** (GA4 via Windsor MCP) |
 | Metas & Evolução | **real** (cruza GA4 com as metas do config) |
-| Mercado Livre / Radar | **real** (Apify, precisa do `APIFY_TOKEN`) |
+| Mercado Livre / Radar | **real** (Apify, precisa do `APIFY_TOKEN`; ator karamelo ativo desde 2026-08-02) |
 | Meta Ads (lado GA4 + lado plataforma) | **real** desde 2026-08-02 (as duas pontas — falta só rodar o comando do item 5 pra entrar no HTML/XLSX) |
-| Keywords & Leilão — leilão por domínio | **real coletado** (`outputs/auction-windsor.json`), ainda não plugado na aba — falta o item 4 (keyword) pra trocar a fixture pela versão real de uma vez |
-| Keywords & Leilão — por palavra-chave | simulado — falta o item 4 |
+| Keywords & Leilão | **real** desde 2026-08-02 (`outputs/keywords-relatorio.json`, `"simulado": false`) — falta só rodar o comando do item 5 pra entrar no HTML/XLSX; `quality_score` com ressalva, ver item 4 |
 | Marketplaces (Google Shopping) | simulado |

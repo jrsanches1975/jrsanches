@@ -816,6 +816,42 @@ Livre: `JOIE`.
     mesclar à mão a partir do `config.example.json` atualizado. Registrado em
     `PROXIMOS-PASSOS.md`.
 
+40. **Google Ads por keyword processado, 100% real — mas com dois achados de
+    qualidade de dado (2026-08-02, mesmo dia).** Usuário colou a resposta real
+    da URL de keyword que eu tinha passado (42 linhas, campos: `campaign`,
+    `keyword_text`, `impressions`, `clicks`, `ctr`, `cpc`,
+    `search_impression_share`, `search_rank_lost_impression_share`,
+    `quality_score`). Rodado `gerar_relatorio_keywords.py` **sem** `--simulado`
+    contra ela + `outputs/auction-windsor.json` (real, da entrada 36) — export
+    em `outputs/keywords-relatorio.json` com `"simulado": false`, primeira vez
+    que a aba Keywords & Leilão tem as duas partes (keyword E leilão) reais ao
+    mesmo tempo.
+    **Achado 1 — bug de URL, não meu:** toda linha veio com uma chave
+    `"fields=date": null` em vez de um campo `"date"` de verdade. Causa
+    provável: o usuário colou o bloco `fields=date,campaign,...` inteiro como
+    valor de um parâmetro `fields=` já existente na URL do painel do Windsor,
+    resultando em `...&fields=fields=date,campaign,...` — o Windsor split por
+    vírgula e o primeiro token ficou com o prefixo `fields=` grudado. Efeito
+    prático: **não há quebra por dia nesta coleta**, é uma agregação do
+    período inteiro. Não quebra o relatório atual (`agregar_keywords()` em
+    `keyword_auction.py` nunca usou o campo `date`, só agrega por
+    campanha+keyword), mas vai importar se algum dia for preciso comparar
+    "antes x depois" por keyword (`detectar_quedas`) — nesse caso a URL
+    precisa ser refeita SEM o `fields=` duplicado.
+    **Achado 2 — quality_score fora da escala esperada, sinalizado ao usuário,
+    NÃO corrigido.** Valores reais chegaram até **290** (ex.: "Joie" = 290,
+    "Joie suplementos" = 261, "magnésio quelato" = 145) — a Quality Score
+    pública do Google Ads é sempre 1-10. `get_fields` não pôde confirmar o que
+    esse campo representa de verdade (a conta `google_ads` não está conectada
+    nesta sessão MCP, só a `googleanalytics4` — mesma limitação de sempre).
+    Duas hipóteses possíveis, nenhuma confirmada: (a) o campo do Windsor não é
+    a Quality Score 1-10 e sim outra métrica com nome parecido; (b) é a QS
+    correta mas nalgum agregado/multiplicador. **Não assumi nenhuma das duas
+    nem apliquei fator de correção** (seria fabricar) — o valor bruto foi
+    gravado como veio, e o usuário foi avisado para conferir contra o valor
+    que aparece na coluna "Nível de qualidade" do Google Ads Editor/UI para
+    uma dessas keywords antes de confiar no número exibido no painel.
+
 ## Princípios que NUNCA devem ser quebrados
 
 - **Nunca fabricar dado.** Se uma fonte não existe ou não responde, dizer
