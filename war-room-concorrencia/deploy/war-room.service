@@ -1,0 +1,47 @@
+[Unit]
+Description=War Room competitivo — backend (seleção manual + disparo de rodada)
+Documentation=file://__APP_DIR__/SKILL.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__APP_USER__
+Group=__APP_USER__
+WorkingDirectory=__APP_DIR__/scripts
+
+# segredos ficam fora do repositório, em arquivo modo 640 de root:warroom
+EnvironmentFile=/etc/war-room/env
+
+# escuta SÓ em 127.0.0.1: quem publica na internet é o Caddy, que põe HTTPS e
+# senha na frente. Assim a porta do app nunca fica exposta.
+ExecStart=__APP_DIR__/.venv/bin/python __APP_DIR__/scripts/servidor.py \
+    --config __APP_DIR__/scripts/config.json \
+    --host 127.0.0.1 --porta __PORTA__ \
+    --out __APP_DIR__/outputs/war-room.xlsx \
+    --html __APP_DIR__/outputs/war-room.html
+
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# ---- contenção: o serviço executa subprocesso, então vale apertar o cerco ----
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+# ProtectSystem=strict deixa tudo somente-leitura; estas são as duas pastas que
+# a rodada precisa escrever (snapshot/histórico e config em scripts/, saídas em
+# outputs/). Sem isto o serviço sobe e falha na hora de gravar.
+ReadWritePaths=__APP_DIR__/outputs __APP_DIR__/scripts
+
+[Install]
+WantedBy=multi-user.target

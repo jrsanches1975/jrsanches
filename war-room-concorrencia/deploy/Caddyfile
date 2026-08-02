@@ -1,0 +1,57 @@
+# Caddy: publica o war room com HTTPS automático (Let's Encrypt) e senha.
+# Gerado pelo deploy/instalar.sh — os __PLACEHOLDERS__ são substituídos lá.
+#
+# Por que Caddy e não deixar o servidor.py exposto: o painel EXECUTA comando no
+# servidor. Aqui ele ganha três camadas que o servidor.py não tem sozinho —
+# criptografia, autenticação e um processo endurecido lidando com a internet.
+
+__DOMINIO__ {
+	# senha na frente de TUDO, inclusive da API. O navegador reenvia a
+	# credencial sozinho depois do login, então os botões do painel continuam
+	# funcionando sem precisar de token embutido no HTML.
+	basic_auth {
+		__USUARIO__ __HASH__
+	}
+
+	reverse_proxy 127.0.0.1:__PORTA__ {
+		# preserva o Host original: o servidor.py compara Origin com Host para
+		# recusar pedido de outra origem, e a checagem quebraria se o Host
+		# chegasse como 127.0.0.1
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	encode zstd gzip
+
+	header {
+		# o painel é autocontido: não busca script, fonte nem imagem de fora.
+		# 'unsafe-inline' é necessário porque o CSS e o JS são embutidos no HTML
+		# pelo gerador (é o que faz o arquivo funcionar offline também).
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	log {
+		output file /var/log/caddy/war-room.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
+
+# ---------------------------------------------------------------------------
+# Outras aplicações suas na MESMA máquina: cada uma num subdomínio, cada uma na
+# sua porta local. É só descomentar e ajustar — o Caddy cuida do certificado de
+# cada domínio sozinho.
+#
+# outroapp.seudominio.com.br {
+# 	reverse_proxy 127.0.0.1:3000
+# }
+#
+# site.seudominio.com.br {
+# 	root * /var/www/site
+# 	file_server
+# }

@@ -587,6 +587,12 @@ atualizar, nunca criar um novo):
 - **War Room — Joie · Painel de Produtos** (avulso, só produtos,
   `outputs/painel-produtos.html`): `https://claude.ai/code/artifact/cbab392a-cf2e-42bf-8f2f-bef7bcdeb495`
 
+Kit de publicação em VPS: `deploy/` (instalar.sh + war-room.service + Caddyfile +
+atualizar.sh + README). Hospedagem compartilhada de cPanel NÃO serve — precisa
+root/SSH. GitHub Actions foi comparado e descartado para este uso: sem processo
+vivo o botão de rodar na hora perde a graça, o `history/` precisaria ser
+commitado a cada rodada, e Pages em repo privado publica o painel aberto.
+
 Branch de trabalho: `claude/competitor-monitoring-war-room-pkhhlo`.
 
 Importante: `contexto-e-apoio/arquivos-finais/` é uma **fotografia versionada**
