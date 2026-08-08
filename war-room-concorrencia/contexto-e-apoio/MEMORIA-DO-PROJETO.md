@@ -1410,6 +1410,42 @@ Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
     dois estados (slide 1 e slide 2, avançando por clique) mais a lista
     completa expandida.
 
+54. **Efeito do vídeo de referência trazido com dado real, motor de contagem
+    "morto" religado (2026-08-08).** Usuário mandou um `.mp4` real (anúncio
+    Instagram "aure.digital": 3 KPIs revelando com barra esqueleto→sólida,
+    linha de tendência tracejada, número grande `-28%`/`+10%` contando) e
+    pediu esse efeito. Sem `ffmpeg`/`opencv` no ambiente — instalado
+    `imageio-ffmpeg` via pip on-the-fly, extraídos os frames com `ffmpeg -vf
+    fps=1`, analisados quadro a quadro antes de tocar em código (mesma
+    disciplina de nunca implementar "no chute" a partir de descrição).
+    Perguntado ao usuário (`AskUserQuestion`) ONDE aplicar, já que os dois
+    lugares visualmente parecidos (Diagnóstico vs. Desempenho Próprio) têm
+    bases de dado real diferentes por trás — ele escolheu os dois. Feito:
+    (1) sparkline do Diagnóstico trocado pra 10 barras largas + linha de
+    tendência SVG + delta % grande, calculados da série diária real (média 2ª
+    metade vs 1ª metade da janela — sem inventar regressão bonita); cor do
+    delta é neutra de propósito (sessão subindo não é sempre "boa notícia"
+    num achado de diagnóstico, diferente do vídeo onde investimento caindo É
+    a notícia boa); (2) **achado incidental grande**: os atributos
+    `data-count`/`data-count-dec`/`data-count-suf` já existiam em 3 lugares
+    do código (KPIs GA4, KPIs Meta Ads, ROAS do Desempenho Próprio) sem
+    NENHUM JS consumindo — funcionalidade pronta, nunca ligada. Construído um
+    motor de contagem único (ease-out cúbico, respeita
+    `prefers-reduced-motion`) que anima todos de uma vez, incluindo o delta
+    novo do story; (3) ícone-em-círculo (`⬈`) no card de Desempenho Próprio,
+    SEM seta direcional (não existe comparação período-a-período no dado de
+    `own_performance.py` hoje — usuário concordou com essa limitação depois
+    de eu explicar). Decidido explicitamente NÃO replicar: ilustração 3D,
+    narração em áudio, moldura do Instagram — não fazem sentido num painel
+    interno. **Bug pego no teste, de novo por causa de screenshot cedo
+    demais**: o card de Desempenho Próprio pareceu "sumido" — não é bug novo,
+    é o `.fx-reveal` (scroll-reveal por `IntersectionObserver`, já existia em
+    `_fx_neon.py`) que só anima quando o elemento entra na viewport;
+    `scroll_into_view_if_needed()` antes do print resolveu. Confirmado
+    visualmente nos 3 pontos: sparkline com tendência+delta reais, KPIs da
+    GA4 contando até o valor final correto, ROAS do Desempenho Próprio com
+    ícone e contando 0→5,00×.
+
 ## Onde estão os detalhes completos
 
 Se precisar de mais profundidade sobre qualquer ponto acima (trechos de

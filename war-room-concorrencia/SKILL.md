@@ -803,6 +803,65 @@ no `<i>` (relativo à altura fixa do container `.story-spark`) pra escalonar
 alguma coisa de verdade. Pego só depois de olhar o screenshot Playwright — o
 código "parecia certo" sem isso.
 
+### 17c. Efeito do vídeo de referência (esqueleto→sólido, tendência, contagem)
+
+Usuário mandou um vídeo real (anúncio Instagram da "aure.digital": 3 cards
+Investimento/Faturamento/ROAS revelando em sequência, cada um com barras
+"esqueleto→sólidas", linha de tendência tracejada + seta, e número grande
+colorido `-28% MENOR ↓` / `+10% MAIOR ↑` contando). Extraí os frames do `.mp4`
+com `ffmpeg` (via `imageio-ffmpeg`, instalado on-the-fly — não tinha `ffmpeg`
+nem `opencv` no ambiente) pra analisar o efeito quadro a quadro antes de
+implementar — sem isso seria "chutar" a partir de descrição, o que o projeto
+não faz.
+
+**Decisão consciente do que NÃO replicar:** a ilustração 3D das caixas, a
+narração em áudio e a moldura do Instagram ("Seguir" etc.) são material de
+anúncio, não fazem sentido num painel interno — não foram construídos.
+
+**O que foi trazido, com dado real por trás, em dois lugares:**
+
+1. **Sparkline do Diagnóstico (`render_diagnostico_story`)** — trocado de 14
+   barras finas pra 10 mais largas (formato do vídeo), com:
+   - Linha de tendência tracejada (`<svg class="story-trend">`, `<line>` +
+     `<circle>` no ponto final) calculada a partir da média da 1ª metade da
+     janela vs a 2ª metade da série real (não é regressão bonita, é a mesma
+     comparação simples que o vídeo mostra).
+   - Delta grande animado (`.story-delta`, ícone ▲/▼ + `data-count`): mesma
+     conta (média 2ª metade ÷ média 1ª metade - 1) × 100, nunca inventado.
+     Sem pontos suficientes (`< 4` dias válidos), o delta simplesmente não
+     aparece.
+   - Cor do delta é NEUTRA (não vermelho/verde) de propósito: ao contrário do
+     vídeo (onde "investimento caindo" É a notícia boa), num achado de
+     diagnóstico "sessões subindo" não significa necessariamente algo bom
+     (ex.: o achado "Paid Shopping traz volume e não converte" — sessão
+     subindo ali não é vitória). Quem carrega o julgamento de gravidade
+     continua sendo só o badge de nível (`.story-nivel`, alta/média/baixa).
+
+2. **Motor de contagem animada (global, novo `<script>` logo antes do script
+   principal de abas)** — os atributos `data-count`/`data-count-dec`/
+   `data-count-suf` já existiam em 3 lugares do código (KPIs da GA4, KPIs do
+   Meta Ads, ROAS do Desempenho Próprio) **sem nenhum JS consumindo** — uma
+   funcionalidade preparada e nunca ligada. Agora um único motor
+   (`querySelectorAll('[data-count]')`, ease-out cúbico, ~1,1s, respeitando
+   `prefers-reduced-motion`) anima TODOS de uma vez, incluindo o novo delta do
+   story. Nenhum HTML mudou — só a apresentação do número que já estava lá.
+
+3. **Ícone-em-círculo no card de Desempenho Próprio** (`.gauge-icon`, glifo
+   "⬈" ao lado do ROAS) — visual equivalente ao ícone circular do vídeo. Sem
+   seta direcional aqui: não existe comparação período-a-período no dado de
+   `own_performance.py` hoje (só o valor do período atual), então uma seta
+   pra cima/baixo seria inventar uma tendência que não foi medida. Perguntei
+   ao usuário antes de decidir isso (`AskUserQuestion`) e ele confirmou os
+   dois lugares mesmo sabendo dessa limitação.
+
+**Bug pego só no screenshot, de novo:** o card de Desempenho Próprio pareceu
+"sumido" (opacity 0) no primeiro teste — não é bug novo, é o `.fx-reveal`
+(scroll-reveal via `IntersectionObserver`, `_fx_neon.py`) que já existia:
+só anima quando o elemento entra na viewport. `scroll_into_view_if_needed()`
+antes do screenshot resolveu — lição: ao testar visualmente qualquer seção
+abaixo da dobra, rolar até ela antes de tirar print, senão parece quebrado
+sem estar.
+
 ### 18. Visual cósmico (`_cosmos.py`)
 
 A arte do hero (nebulosa, disco de acreção, buraco negro, cometa, starfield) é

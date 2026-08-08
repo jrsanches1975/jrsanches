@@ -1090,6 +1090,7 @@ def render_own_kpi(produto, v):
     <div class="gauge">
       <div class="gauge-produto">{produto}</div>
       <div class="gauge-main">
+        <span class="gauge-icon" aria-hidden="true">⬈</span>
         <span class="gauge-value"{roas_count}>{roas}</span><span class="gauge-tag">ROAS</span>
       </div>
       <div class="gauge-row"><span>CPA</span><strong>{cpa}</strong></div>
@@ -2214,16 +2215,43 @@ def render_diagnostico_story(achados, id_prefix, serie=None, campo_serie="sessio
     if not achados:
         return ""
 
-    pontos = [p for p in (serie or []) if isinstance(p.get(campo_serie), (int, float))][-14:]
+    # menos barras e mais largas (10, não 14): é o formato do card de referência
+    # (bar chart + linha de tendência tracejada), que fica ilegível com barra fina.
+    pontos = [p for p in (serie or []) if isinstance(p.get(campo_serie), (int, float))][-10:]
     spark_html, spark_nota = "", ""
-    if len(pontos) >= 3:
-        maximo = max(p[campo_serie] for p in pontos) or 1
+    if len(pontos) >= 4:
+        valores = [p[campo_serie] for p in pontos]
+        maximo = max(valores) or 1
+        metade = len(valores) // 2
+        media1 = sum(valores[:metade]) / metade
+        media2 = sum(valores[metade:]) / (len(valores) - metade)
+        # delta REAL: média da 2ª metade da janela vs a 1ª — o mesmo tipo de
+        # comparação que os cards do vídeo mostram, só que calculado, não
+        # inventado; None quando não dá pra calcular (média1 = 0).
+        delta_pct = ((media2 - media1) / media1 * 100) if media1 else None
         barras = "".join(
-            f'<i style="--h:{max(0.04, p[campo_serie] / maximo):.3f}; --d:{i * 0.045:.2f}s" '
-            f'title="{p.get("data", "")}: {_f_int(p[campo_serie])}"></i>'
-            for i, p in enumerate(pontos)
+            f'<i style="--h:{max(0.04, v / maximo):.3f}; --d:{i * 0.06:.2f}s" '
+            f'title="{pontos[i].get("data", "")}: {_f_int(v)}"></i>'
+            for i, v in enumerate(valores)
         )
-        spark_html = f'<div class="story-spark" aria-hidden="true">{barras}</div>'
+        y1 = 100 - min(96, max(4, media1 / maximo * 100))
+        y2 = 100 - min(96, max(4, media2 / maximo * 100))
+        trend_svg = (f'<svg class="story-trend" viewBox="0 0 100 100" preserveAspectRatio="none" '
+                     f'aria-hidden="true"><line x1="4" y1="{y1:.1f}" x2="94" y2="{y2:.1f}"/>'
+                     f'<circle cx="94" cy="{y2:.1f}" r="2.4"/></svg>')
+        delta_html = ""
+        if delta_pct is not None:
+            icone = "▲" if delta_pct >= 0 else "▼"
+            sentido = "subindo" if delta_pct >= 0 else "caindo"
+            delta_html = f"""
+      <div class="story-delta">
+        <span class="story-delta-icon">{icone}</span>
+        <span class="story-delta-num" data-count="{abs(delta_pct):.1f}" data-count-dec="1" data-count-suf="%">
+          {abs(delta_pct):.1f}%</span>
+        <span class="story-delta-label">{rotulo_serie} {sentido} no período</span>
+      </div>"""
+        spark_html = (f'<div class="story-spark-wrap">{delta_html}'
+                      f'<div class="story-spark" aria-hidden="true">{barras}</div>{trend_svg}</div>')
         spark_nota = f'<p class="story-spark-nota">{rotulo_serie} · últimos {len(pontos)} dias (dado real)</p>'
 
     slides, segs = [], []
@@ -3154,7 +3182,12 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .gauge {{ min-width: 178px; }}
   .gauge-produto {{ font-size: .72rem; letter-spacing: .03em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 10px; }}
   .gauge-main {{ display: flex; align-items: baseline; gap: 6px; margin-bottom: 10px; }}
-  .gauge-value {{ font-size: 1.7rem; font-weight: 700; color: var(--text); }}
+  .gauge-icon {{
+    display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+    border-radius: 50%; border: 1.5px solid var(--accent-strong); color: var(--accent-strong);
+    font-size: .78rem; align-self: center; margin-right: 2px;
+  }}
+  .gauge-value {{ font-size: 1.7rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }}
   .gauge-tag {{ font-size: .66rem; color: var(--text-mute); letter-spacing: .06em; }}
   .gauge-row {{ display: flex; justify-content: space-between; gap: 12px; font-size: .78rem;
                 color: var(--text-dim); font-variant-numeric: tabular-nums; margin-top: 4px; }}
@@ -3937,20 +3970,34 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .story-slide.sev-alta .story-nivel {{ color: #ff9c96; border-color: rgba(224,66,107,.5); background: var(--critical-bg); }}
   .story-slide.sev-media .story-nivel {{ color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }}
   .story-slide.sev-baixa .story-nivel {{ color: #8fe38f; border-color: rgba(12,163,12,.5); background: var(--good-bg); }}
-  .story-titulo {{ font-size: 1.28rem; font-weight: 800; line-height: 1.28; margin: 0 0 14px; }}
-  .story-spark {{ display: flex; align-items: flex-end; gap: 3px; height: 64px; max-width: 380px; margin-bottom: 4px; }}
+  .story-titulo {{ font-size: 1.28rem; font-weight: 800; line-height: 1.28; margin: 0 0 12px; }}
+  .story-delta {{ display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }}
+  .story-delta-icon {{ font-size: 1rem; color: var(--accent-strong); }}
+  .story-delta-num {{ font-size: 1.7rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }}
+  .story-delta-label {{ font-size: .72rem; color: var(--text-mute); }}
+  .story-spark-wrap {{ max-width: 380px; margin-bottom: 4px; }}
+  .story-spark {{ position: relative; z-index: 1; display: flex; align-items: flex-end; gap: 5px; height: 64px; }}
   .story-spark i {{
     flex: 1; height: 100%; background: linear-gradient(180deg, var(--accent-strong), var(--violet));
     border-radius: 3px 3px 0 0; transform: scaleY(var(--h)); transform-origin: bottom; opacity: 0;
     animation: story-bar .55s ease forwards; animation-delay: var(--d, 0s);
   }}
   @keyframes story-bar {{ from {{ opacity: 0; transform: scaleY(0); }} to {{ opacity: 1; transform: scaleY(var(--h)); }} }}
+  .story-trend {{ position: relative; z-index: 2; width: 100%; height: 64px; margin-top: -64px; pointer-events: none; }}
+  .story-trend line, .story-trend circle {{ stroke: #fff; fill: #fff; }}
+  .story-trend line {{
+    stroke-width: 1.6; stroke-dasharray: 5 4; stroke-linecap: round; opacity: 0;
+    animation: story-trend-fade .5s ease forwards; animation-delay: .6s;
+  }}
+  .story-trend circle {{ opacity: 0; animation: story-trend-fade .3s ease forwards; animation-delay: 1.05s; }}
+  @keyframes story-trend-fade {{ to {{ opacity: .9; }} }}
   .story-spark-nota {{ font-size: .62rem; color: var(--text-mute); margin: 0 0 14px; }}
   .story-detalhe {{ font-size: .92rem; line-height: 1.55; color: var(--text-dim); margin: 0; }}
   .story-pausado .story-seg.active .story-seg-fill {{ transition: none; }}
   @media (prefers-reduced-motion: reduce) {{
     .story-slide.active {{ animation: none; }}
     .story-spark i {{ animation: none; opacity: 1; }}
+    .story-trend line, .story-trend circle {{ animation: none; opacity: .9; }}
     .story-seg.active .story-seg-fill {{ transition: none; width: 100%; }}
   }}
   @media (prefers-reduced-motion: reduce) {{
@@ -4068,6 +4115,42 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   </div>
 </div>
 
+<script>
+/* Motor de contagem animada — lê todo [data-count] da página (KPIs da GA4, Meta
+   Ads, ROAS do Desempenho Próprio, delta do Diagnóstico) e anima de 0 até o
+   valor REAL já calculado no HTML. Os atributos data-count/-dec/-suf existiam
+   em vários lugares do código sem nenhum JS consumindo — isso liga todos de
+   uma vez, sem inventar número nenhum: o alvo da animação é sempre o mesmo
+   valor que já estava escrito no texto. */
+(function () {{
+  var reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduzido) return;   // o valor final estático já está no HTML, nada a fazer
+  function fmt(v, dec) {{
+    var s = v.toFixed(dec);
+    var partes = s.split('.');
+    partes[0] = partes[0].replace(/\\B(?=(\\d{{3}})+(?!\\d))/g, '.');
+    return dec > 0 ? partes.join(',') : partes[0];
+  }}
+  document.querySelectorAll('[data-count]').forEach(function (el, idx) {{
+    var alvo = parseFloat(el.getAttribute('data-count'));
+    if (isNaN(alvo)) return;
+    var dec = parseInt(el.getAttribute('data-count-dec') || '0', 10);
+    var suf = el.getAttribute('data-count-suf') || '';
+    var dur = 1100;
+    setTimeout(function () {{
+      var t0 = null;
+      function passo(ts) {{
+        if (!t0) t0 = ts;
+        var p = Math.min(1, (ts - t0) / dur);
+        var facil = 1 - Math.pow(1 - p, 3);
+        el.textContent = fmt(alvo * facil, dec) + suf;
+        if (p < 1) requestAnimationFrame(passo); else el.textContent = fmt(alvo, dec) + suf;
+      }}
+      requestAnimationFrame(passo);
+    }}, Math.min(idx * 70, 700));
+  }});
+}})();
+</script>
 <script>
 (function () {{
   var btns = document.querySelectorAll('.tab-btn');
