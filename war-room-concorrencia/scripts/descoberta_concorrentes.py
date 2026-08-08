@@ -38,21 +38,21 @@ import math
 import sys
 from collections import defaultdict
 
-from apify_common import apify_run, get_token, load_json, norm
+from apify_common import apify_run_multi, get_tokens, load_json, norm
 from war_room import ML_ACTOR_PADRAO, montar_payload_ml, _campos_listagem, match_oficial
 
 MAX_REVIEWS_REFERENCIA = 2000  # teto pra normalizar autoridade/vendas (log-scale)
 
 
 # --------------------------------------------------------------------- descoberta
-def buscar_raw(config, termo, token, max_items):
+def buscar_raw(config, termo, tokens, max_items):
     """Usa o MESMO ator/formato configurado em war_room.py (apify_actors/
     apify_actors_campos/apify_actors_formato) — antes este script tinha o ator e o
     payload fixos, dessincronizados do que o Radar (collect_snapshot) realmente usa.
     Trocar de ator num lugar só e os dois ficarem alinhados."""
     actor = config.get("apify_actors", {}).get("mercado_livre", ML_ACTOR_PADRAO)
     payload = montar_payload_ml(config, termo, max_items)
-    items, err = apify_run(actor, payload, token)
+    items, err, _ = apify_run_multi(actor, payload, tokens)
     if err:
         print(f"  ERRO ao buscar '{termo}': {err}", file=sys.stderr)
     return items or []
@@ -329,11 +329,12 @@ def main():
     formato = config.get("apify_actors_formato", {}).get("mercado_livre", "viralanalyzer")
 
     simulado = load_json(args.simulate_raw, {}) if args.simulate_raw else None
-    token = None
+    tokens = []
     if simulado is None:
-        token = get_token(config, args.token)
-        if not token:
-            print("ERRO: sem token Apify. Exporte APIFY_TOKEN, ou use --simulate-raw para testar.", file=sys.stderr)
+        tokens = get_tokens(config, args.token)
+        if not tokens:
+            print("ERRO: sem token Apify. Exporte APIFY_TOKEN (uma ou mais contas separadas por "
+                  "vírgula), ou use --simulate-raw para testar.", file=sys.stderr)
             sys.exit(1)
 
     por_produto_pontuado = {}
@@ -344,7 +345,7 @@ def main():
             raw = simulado.get(nome, [])
         else:
             print(f"  buscando variantes/concorrentes de '{nome}' ({termo})...", file=sys.stderr)
-            raw = buscar_raw(config, termo, token, args.per_produto)
+            raw = buscar_raw(config, termo, tokens, args.per_produto)
         descoberta = descobrir_por_produto(raw, official_sellers, formato)
         candidatos = compor_candidatos_produto(nome, descoberta, candidatos_manual)
         pontuados = [(c, pontuar(c, prod.get("preco_proprio"), ativos_ads, pesos)) for c in candidatos]

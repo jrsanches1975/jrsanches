@@ -1633,6 +1633,44 @@ visualmente, incluindo o card sem dado carregado (esmaecido/tracejado) e o
 card com achado (borda acesa). **Só a aba HTML recebeu isso, não o XLSX** —
 escopo mantido enxuto de propósito.
 
+### 30. Múltiplas contas Apify com troca automática quando uma esgota o saldo
+
+Usuário bateu o limite mensal de uma conta Apify em rodada real (erro real
+visto: `HTTP 403 platform-feature-disabled — "Monthly usage hard limit
+exceeded"`) e perguntou se dava pra cadastrar mais de uma conta pra trocar
+sozinho quando uma esgotasse.
+
+`apify_common.py` ganhou:
+
+- **`get_tokens(config, cli_token)`** — em vez de um token só, devolve uma
+  LISTA. Aceita mais de uma conta separando os tokens por vírgula na mesma
+  variável: `APIFY_TOKEN='apify_api_AAA,apify_api_BBB'` (ou no `--token` da
+  linha de comando). Continua vindo só de variável de ambiente/CLI — nunca do
+  `config.json`, mesma regra de sempre. `get_token()` (singular) continua
+  existindo, devolvendo só o primeiro, para quem ainda não foi migrado.
+- **`apify_run_multi(actor, payload, tokens)`** — tenta cada token em ordem;
+  só pula pro próximo quando `is_billing_error(err)` é verdadeiro (saldo/limite
+  da CONTA — 402/403/usage/memory-limit/hard-limit/paid-actor/actor-disabled).
+  Erro de rede/timeout **não** troca de conta (trocar de token não resolve
+  timeout; é o retry de cada script que já existia que continua cuidando
+  disso). Devolve `(itens, erro, indice_do_token_usado)`.
+
+Ligado nos 6 scripts que chamam Apify: `war_room.py` (Radar ML — o principal),
+`descoberta_concorrentes.py`, `google_shopping.py`,
+`google_ads_transparency.py`, `google_trends.py`, `meta_ads.py`. Todos agora
+recebem `tokens` (lista) em vez de `token` (string) internamente; a mensagem
+de "sem token" em cada um foi atualizada pra mencionar que aceita mais de uma
+conta.
+
+Testado com token fake via monkeypatch de `apify_run` em 4 cenários: (1) 1ª
+conta esgotada (erro com "hard limit") → troca sozinho pra 2ª e usa o
+resultado dela; (2) só 1 conta configurada e esgotada → erro final propagado
+normalmente, sem loop; (3) erro de rede ("timed out") → NÃO troca de conta,
+só usa a primeira mesmo (correto: character do erro é diferente);
+(4) `get_tokens` faz o parse correto de `"tokenA , tokenB"` (com espaços em
+volta da vírgula). Rodado também `war_room.py --simulate-ml` ponta a ponta
+depois da mudança pra confirmar que não quebrou o caminho sem token real.
+
 ## Mais insights, ferramentas e pontos a observar (roadmap honesto)
 
 O que seria natural somar depois, na ordem que mais amplia a guerra competitiva —

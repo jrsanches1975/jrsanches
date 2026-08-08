@@ -52,7 +52,7 @@ import argparse
 import re
 import sys
 
-from apify_common import apify_run, get_token, load_json, norm, save_json
+from apify_common import apify_run_multi, get_tokens, load_json, norm, save_json
 from war_room import match_oficial
 
 CAMPOS_ESPERADOS = {
@@ -174,7 +174,7 @@ def montar_input(termo, config):
     }
 
 
-def coletar(config, token, actor, debug_raw=False):
+def coletar(config, tokens, actor, debug_raw=False):
     concorrentes = config.get("concorrentes", [])
     official_sellers = config.get("official_sellers", [])
     produtos = config.get("produtos_monitorados", [])
@@ -184,7 +184,7 @@ def coletar(config, token, actor, debug_raw=False):
         nome, termo = prod["nome"], prod["termo_busca_ml"]
         print(f"  [google shopping] buscando '{termo}' (produto '{nome}')...", file=sys.stderr)
         payload = montar_input(termo, config)
-        items, err = apify_run(actor, payload, token)
+        items, err, _ = apify_run_multi(actor, payload, tokens)
         if err:
             print(f"  [google shopping] ERRO em '{nome}': {err}", file=sys.stderr)
             snapshot[nome] = {}
@@ -236,9 +236,10 @@ def main():
     args = ap.parse_args()
 
     config = load_json(args.config, {})
-    token = get_token(config, args.token)
-    if not token:
-        print("ERRO: sem token Apify. Exporte APIFY_TOKEN, ou passe --token.", file=sys.stderr)
+    tokens = get_tokens(config, args.token)
+    if not tokens:
+        print("ERRO: sem token Apify. Exporte APIFY_TOKEN (uma ou mais contas separadas por "
+              "vírgula), ou passe --token.", file=sys.stderr)
         sys.exit(1)
 
     actor = args.actor or config.get("apify_actors", {}).get("google_shopping")
@@ -248,7 +249,7 @@ def main():
               "deste arquivo pra como achar um.", file=sys.stderr)
         sys.exit(1)
 
-    snapshot, snapshot_proprio = coletar(config, token, actor, args.debug_raw)
+    snapshot, snapshot_proprio = coletar(config, tokens, actor, args.debug_raw)
 
     save_json(args.out, {"registros": snapshot, "actor_usado": actor})
     save_json(args.out_proprio, snapshot_proprio)

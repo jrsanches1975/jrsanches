@@ -24,7 +24,7 @@ import argparse
 import os
 import sys
 
-from apify_common import apify_run, get_token, is_billing_error, load_json, save_json
+from apify_common import apify_run_multi, get_tokens, is_billing_error, load_json, save_json
 
 DEFAULT_ACTOR = "apify~google-trends-scraper"
 
@@ -73,10 +73,10 @@ def media_valor(serie):
     return sum(valores) / len(valores) if valores else None
 
 
-def coletar(config, token, actor, termos, debug_raw=False):
+def coletar(config, tokens, actor, termos, debug_raw=False):
     payload = montar_input(termos, config)
     print(f"  [google trends] buscando {len(termos)} termo(s)...", file=sys.stderr)
-    items, err = apify_run(actor, payload, token)
+    items, err, _ = apify_run_multi(actor, payload, tokens)
     if err:
         print(f"  [google trends] ERRO: {err}", file=sys.stderr)
         return {}, err
@@ -120,9 +120,10 @@ def main():
     args = ap.parse_args()
 
     config = load_json(args.config, {})
-    token = get_token(config, args.token)
-    if not token:
-        print("ERRO: sem token Apify. Exporte APIFY_TOKEN.", file=sys.stderr)
+    tokens = get_tokens(config, args.token)
+    if not tokens:
+        print("ERRO: sem token Apify. Exporte APIFY_TOKEN (uma ou mais contas separadas por "
+              "vírgula).", file=sys.stderr)
         sys.exit(1)
 
     actor = args.actor or config.get("apify_actors", {}).get("google_trends", DEFAULT_ACTOR)
@@ -131,7 +132,7 @@ def main():
     termos = [t.strip() for t in args.termos.split(",")] if args.termos else termos_padrao(config)
 
     snapshot_antigo = load_json(snap_path, {})
-    snapshot_novo, err = coletar(config, token, actor, termos, args.debug_raw)
+    snapshot_novo, err = coletar(config, tokens, actor, termos, args.debug_raw)
 
     if err and is_billing_error(err):
         print("AVISO: erro de saldo/limite Apify — relatório pode sair vazio.", file=sys.stderr)

@@ -28,7 +28,7 @@ import hashlib
 import os
 import sys
 
-from apify_common import apify_run, get_token, is_billing_error, load_json, norm, save_json
+from apify_common import apify_run_multi, get_tokens, is_billing_error, load_json, norm, save_json
 
 DEFAULT_ACTOR = "apify~facebook-ads-scraper"
 
@@ -95,13 +95,13 @@ def montar_input(concorrente, config):
     }
 
 
-def coletar(config, token, actor, debug_raw=False):
+def coletar(config, tokens, actor, debug_raw=False):
     resultado = {}
     for c in config.get("concorrentes", []):
         nome = c["nome"]
         payload = montar_input(c, config)
         print(f"  [meta ads] buscando anúncios ativos de '{nome}'...", file=sys.stderr)
-        items, err = apify_run(actor, payload, token)
+        items, err, _ = apify_run_multi(actor, payload, tokens)
         if err:
             print(f"  [meta ads] ERRO em '{nome}': {err}", file=sys.stderr)
             resultado[nome] = {"anuncios": {}, "erro": err}
@@ -142,9 +142,10 @@ def main():
     args = ap.parse_args()
 
     config = load_json(args.config, {})
-    token = get_token(config, args.token)
-    if not token:
-        print("ERRO: sem token Apify. Exporte APIFY_TOKEN.", file=sys.stderr)
+    tokens = get_tokens(config, args.token)
+    if not tokens:
+        print("ERRO: sem token Apify. Exporte APIFY_TOKEN (uma ou mais contas separadas por "
+              "vírgula).", file=sys.stderr)
         sys.exit(1)
 
     actor = args.actor or config.get("apify_actors", {}).get("meta_ads", DEFAULT_ACTOR)
@@ -152,7 +153,7 @@ def main():
     snap_path = os.path.join(args.history_dir, f"{marca}-meta-ads-snapshot.json")
 
     snapshot_antigo = load_json(snap_path, {})
-    snapshot_novo = coletar(config, token, actor)
+    snapshot_novo = coletar(config, tokens, actor)
 
     erros = [d["erro"] for d in snapshot_novo.values() if d.get("erro")]
     if erros and is_billing_error(erros[0]):

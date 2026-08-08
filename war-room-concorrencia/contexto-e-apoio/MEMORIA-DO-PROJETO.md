@@ -1446,6 +1446,26 @@ Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
     GA4 contando até o valor final correto, ROAS do Desempenho Próprio com
     ícone e contando 0→5,00×.
 
+55. **Múltiplas contas Apify com troca automática (2026-08-08).** Usuário bateu
+    o limite mensal de uso da conta Apify em rodada real (log real: `HTTP 403
+    platform-feature-disabled — "Monthly usage hard limit exceeded"`, em TODOS
+    os produtos da busca no Mercado Livre) e perguntou se dava pra ter mais de
+    uma conta com troca automática. Já existia `is_billing_error()` em
+    `apify_common.py` desde antes (detecta erro terminal de saldo/limite), só
+    nunca tinha sido usada pra trocar de CONTA — só pra parar de tentar de
+    novo. Construído: `get_tokens()` (lista de tokens, aceita
+    `APIFY_TOKEN='token1,token2'` separado por vírgula) e `apify_run_multi()`
+    (tenta cada token em ordem, só pula pro próximo quando o erro é de saldo/
+    limite — erro de rede não troca de conta, porque trocar não resolve isso).
+    Ligado nos 6 scripts que chamam Apify (`war_room.py`,
+    `descoberta_concorrentes.py`, `google_shopping.py`,
+    `google_ads_transparency.py`, `google_trends.py`, `meta_ads.py`) — mudança
+    mecânica mas em 6 arquivos, `token` (string) virou `tokens` (lista) em
+    cada um. Testado com monkeypatch simulando 4 cenários (fallback funciona,
+    erro final sem loop quando só há 1 conta, erro de rede não troca de conta,
+    parse de vírgula com espaços) + rodada real de `war_room.py
+    --simulate-ml` pra confirmar que não quebrou nada.
+
 ## Onde estão os detalhes completos
 
 Se precisar de mais profundidade sobre qualquer ponto acima (trechos de

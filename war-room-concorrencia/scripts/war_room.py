@@ -36,7 +36,7 @@ from _fonts import FONT_ORBITRON_B64, FONT_SHARETECH_B64, FONT_SORA_B64
 from _effects import EFFECTS_CSS, EFFECTS_BODY_HTML, EFFECTS_JS
 from _fx_neon import FX_CSS, FX_BODY, FX_JS
 from _cosmos import COSMOS_TOKENS_CSS, hero_svg, nebula_strip_svg, planet_svg
-from apify_common import apify_run, get_token, load_json, norm, save_json
+from apify_common import apify_run_multi, get_tokens, load_json, norm, save_json
 
 ML_ACTOR_PADRAO = "viralanalyzer~mercadolivre-scraper"
 # nomes de campo do ator PADRÃO (viralanalyzer~mercadolivre-scraper), testado e
@@ -177,7 +177,7 @@ def _campos_listagem(item, position, formato="viralanalyzer"):
     }
 
 
-def collect_snapshot(config, token, produtos_filter, per_produto):
+def collect_snapshot(config, tokens, produtos_filter, per_produto):
     """Retorna (snapshot_concorrentes, snapshot_proprio).
 
     snapshot_concorrentes: {produto: {concorrente: {seller, title, price,
@@ -200,7 +200,7 @@ def collect_snapshot(config, token, produtos_filter, per_produto):
         termo = prod["termo_busca_ml"]
         print(f"  buscando '{termo}' no Mercado Livre (ator {actor})...", file=sys.stderr)
         payload = montar_payload_ml(config, termo, per_produto)
-        items, err = apify_run(actor, payload, token)
+        items, err, _ = apify_run_multi(actor, payload, tokens)
         if err:
             print(f"  ERRO ao buscar '{termo}': {err}", file=sys.stderr)
         por_concorrente = {}
@@ -4702,13 +4702,17 @@ def main():
     config.setdefault("concorrentes", [])
     config.setdefault("produtos_monitorados", [])
 
-    token = None
+    tokens = []
     if not args.simulate_ml:
-        token = get_token(config, args.token)
-        if not token:
-            print("ERRO: sem token Apify. Exporte APIFY_TOKEN, passe --token, ou use --simulate-ml "
-                  "para testar sem coleta real.", file=sys.stderr)
+        tokens = get_tokens(config, args.token)
+        if not tokens:
+            print("ERRO: sem token Apify. Exporte APIFY_TOKEN (uma ou mais contas separadas por "
+                  "vírgula), passe --token, ou use --simulate-ml para testar sem coleta real.",
+                  file=sys.stderr)
             sys.exit(1)
+        if len(tokens) > 1:
+            print(f"  {len(tokens)} conta(s) Apify configurada(s) — troca automática se uma "
+                  "esgotar o saldo/limite.", file=sys.stderr)
 
     playbook = load_playbook(os.path.join(SCRIPT_DIR, "playbook.json"))
     global AGENTES
@@ -4728,7 +4732,7 @@ def main():
         snapshot_proprio = load_json(args.simulate_ml_proprio, {}) if args.simulate_ml_proprio else {}
     else:
         print(f"Coletando snapshot atual ({marca})...", file=sys.stderr)
-        snapshot_novo, snapshot_proprio = collect_snapshot(config, token, produtos_filter, args.per_produto)
+        snapshot_novo, snapshot_proprio = collect_snapshot(config, tokens, produtos_filter, args.per_produto)
     primeira_rodada = not os.path.exists(snap_path)
     snapshot_antigo = load_json(snap_path, {})
     radar_ml = montar_radar_ml(snapshot_novo, snapshot_proprio)
