@@ -759,6 +759,50 @@ equivalente ao `meta_ads_api.py` (só o mapa manual acima) — se/quando isso fo
 construído, é só alimentar `--criativos` de `ga4_jornada.py` com uma lista por
 campanha, no mesmo formato.
 
+### 17b. "Modo story" no Diagnóstico (GA4 e Meta Ads) — `render_diagnostico_story()`
+
+Usuário mandou um exemplo de anúncio (Instagram Stories da "aure.digital") com
+KPIs revelados em sequência — barra de progresso no topo estilo Stories,
+gráfico de barras "desenhando" e legenda narrando o achado — e pediu esse tipo
+de animação/storytelling nos diagnósticos do war room.
+
+`render_diagnostico_story(achados, id_prefix, serie=None, campo_serie="sessions",
+rotulo_serie="sessões/dia")` transforma a mesma lista de achados que já
+alimenta `render_ga4_diagnostico()` (nível/título/detalhe — **nenhum texto
+novo, nenhum número inventado**) numa sequência de slides em tela cheia:
+
+- Barra de progresso por achado (`.story-seg`), preenchendo em 5,2s por slide
+  (autoplay), clicável pra pular direto pra qualquer um.
+- Sparkline (`.story-spark`) desenhando as barras com `scaleY` + delay
+  escalonado — usa a **série diária REAL** já coletada pela GA4 (`serie`,
+  campo `sessions` por padrão); sem `serie` ou com menos de 3 pontos válidos,
+  o sparkline simplesmente não aparece (nunca um gráfico decorativo no lugar
+  de dado real).
+- Clique na 1/3 esquerda do palco = slide anterior; nos outros 2/3 = próximo
+  (mesma convenção do Instagram Stories). Botão de pausa (`❚❚`/`►`) some o
+  timer; passar o mouse por cima também pausa.
+- `prefers-reduced-motion: reduce` desliga o autoplay inteiro e o desenho do
+  sparkline (mostra tudo já "pronto", sem animação) — never trava quem
+  desabilitou movimento no SO.
+
+**Não substitui a grade estática** — ela continua embaixo, dentro de um
+`<details>` ("Ver todos os achados em lista", via o helper `_lista_completa()`),
+pra quem quer ler tudo de uma vez sem esperar o autoplay.
+
+Ligado nos dois lugares que já usavam `render_ga4_diagnostico()`: aba GA4 ·
+Jornada (`render_ga4_tab`, com sparkline usando `ga4['serie']`) e aba Meta Ads
+(`render_meta_tab`, sem sparkline — Meta não tem série diária própria neste
+modelo de dado). Cada instância tem um `id_prefix` único (`ga4-diag-story`,
+`meta-diag-story`) porque o JS de cada uma é um `<script>` próprio, autocontido,
+sem estado global — pode haver várias na mesma página sem colidir.
+
+**Bug pego e corrigido durante o teste:** o `<i>` de cada barra do sparkline é
+um elemento vazio — sem altura intrínseca, `transform: scaleY()` escalona
+*zero* e a barra simplesmente não aparece. Precisa de `height: 100%` explícito
+no `<i>` (relativo à altura fixa do container `.story-spark`) pra escalonar
+alguma coisa de verdade. Pego só depois de olhar o screenshot Playwright — o
+código "parecia certo" sem isso.
+
 ### 18. Visual cósmico (`_cosmos.py`)
 
 A arte do hero (nebulosa, disco de acreção, buraco negro, cometa, starfield) é

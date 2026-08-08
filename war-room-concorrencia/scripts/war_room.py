@@ -2200,6 +2200,116 @@ demais para embasar decisão. "Sem compra" marca tráfego que chega e não fecha
 ordenada por sessão perdida.</p>"""
 
 
+_STORY_NIVEL_LABEL = {"alta": "Prioridade alta", "media": "Atenção", "baixa": "Contexto"}
+
+
+def render_diagnostico_story(achados, id_prefix, serie=None, campo_serie="sessions", rotulo_serie="sessões/dia"):
+    """Camada 'modo story' sobre o diagnóstico — cada achado real vira um slide
+    em tela cheia com barra de progresso (estilo Stories), autoplay e narrativa
+    (nível → título → contexto). NENHUM número é inventado: título/detalhe são
+    exatamente os do achado já calculado; o sparkline (quando `serie` é dado)
+    usa a série diária REAL já coletada, nunca uma curva decorativa. Não
+    substitui a grade estática (`render_ga4_diagnostico`) — fica em cima dela,
+    como uma segunda forma de ler o mesmo dado."""
+    if not achados:
+        return ""
+
+    pontos = [p for p in (serie or []) if isinstance(p.get(campo_serie), (int, float))][-14:]
+    spark_html, spark_nota = "", ""
+    if len(pontos) >= 3:
+        maximo = max(p[campo_serie] for p in pontos) or 1
+        barras = "".join(
+            f'<i style="--h:{max(0.04, p[campo_serie] / maximo):.3f}; --d:{i * 0.045:.2f}s" '
+            f'title="{p.get("data", "")}: {_f_int(p[campo_serie])}"></i>'
+            for i, p in enumerate(pontos)
+        )
+        spark_html = f'<div class="story-spark" aria-hidden="true">{barras}</div>'
+        spark_nota = f'<p class="story-spark-nota">{rotulo_serie} · últimos {len(pontos)} dias (dado real)</p>'
+
+    slides, segs = [], []
+    for i, a in enumerate(achados):
+        nivel = a.get("nivel", "baixa")
+        segs.append(f'<span class="story-seg" data-i="{i}"><span class="story-seg-fill"></span></span>')
+        slides.append(f"""
+    <div class="story-slide sev-{nivel}" data-i="{i}">
+      <span class="story-nivel">{_STORY_NIVEL_LABEL.get(nivel, nivel)}</span>
+      <h3 class="story-titulo">{a['titulo']}</h3>
+      {spark_html}
+      {spark_nota}
+      <p class="story-detalhe">{a['detalhe']}</p>
+    </div>""")
+
+    return f"""
+<div class="story-wrap" id="{id_prefix}">
+  <div class="story-progress">{''.join(segs)}</div>
+  <div class="story-stage">
+    <div class="story-nav" aria-hidden="true">
+      <div class="story-nav-prev" data-nav="prev"></div>
+      <div class="story-nav-next" data-nav="next"></div>
+    </div>
+    <button type="button" class="story-pause" data-role="pause" title="Pausar/retomar">❚❚</button>
+    <span class="story-counter" data-role="counter">1 / {len(achados)}</span>
+    {''.join(slides)}
+  </div>
+</div>
+<script>
+(function (id) {{
+  var root = document.getElementById(id);
+  if (!root) return;
+  var slides = root.querySelectorAll('.story-slide');
+  var segs = root.querySelectorAll('.story-seg');
+  var counter = root.querySelector('[data-role="counter"]');
+  var btnPause = root.querySelector('[data-role="pause"]');
+  var reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var DUR = 5200;
+  var i = 0, timer = null, pausado = false;
+
+  function mostrar(novo) {{
+    i = (novo + slides.length) % slides.length;
+    slides.forEach(function (s, k) {{ s.classList.toggle('active', k === i); }});
+    segs.forEach(function (s, k) {{
+      s.classList.toggle('done', k < i);
+      s.classList.toggle('active', k === i);
+      s.querySelector('.story-seg-fill').style.animationDuration = DUR + 'ms';
+    }});
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    reiniciar();
+  }}
+
+  function reiniciar() {{
+    clearTimeout(timer);
+    if (reduzido || pausado || slides.length < 2) return;
+    timer = setTimeout(function () {{ mostrar(i + 1); }}, DUR);
+  }}
+
+  root.querySelector('[data-nav="prev"]').addEventListener('click', function () {{ mostrar(i - 1); }});
+  root.querySelector('[data-nav="next"]').addEventListener('click', function () {{ mostrar(i + 1); }});
+  btnPause.addEventListener('click', function (e) {{
+    e.stopPropagation();
+    pausado = !pausado;
+    btnPause.textContent = pausado ? '►' : '❚❚';
+    root.classList.toggle('story-pausado', pausado);
+    if (!pausado) reiniciar(); else clearTimeout(timer);
+  }});
+  root.addEventListener('mouseenter', function () {{ if (!pausado) {{ clearTimeout(timer); }} }});
+  root.addEventListener('mouseleave', function () {{ if (!pausado) reiniciar(); }});
+
+  mostrar(0);
+  if (reduzido) {{ segs.forEach(function (s) {{ s.querySelector('.story-seg-fill').style.transitionDuration = '0s'; }}); }}
+}})('{id_prefix}');
+</script>"""
+
+
+def _lista_completa(html):
+    if not html:
+        return ""
+    return f"""
+  <details class="story-lista-completa">
+    <summary>Ver todos os achados em lista</summary>
+    {html}
+  </details>"""
+
+
 def render_ga4_diagnostico(achados):
     if not achados:
         return ""
@@ -2734,7 +2844,8 @@ def render_meta_tab(md):
 </section>
 <section>
   <h2>Diagnóstico</h2>
-  {render_ga4_diagnostico(md.get('diagnostico', []))}
+  {render_diagnostico_story(md.get('diagnostico', []), 'meta-diag-story')}
+  {_lista_completa(render_ga4_diagnostico(md.get('diagnostico', [])))}
 </section>
 <div class="cosmos-divider"></div>
 <section>
@@ -2767,7 +2878,8 @@ def render_ga4_tab(ga4):
 </section>
 <section>
   <h2>Diagnóstico — onde agir primeiro</h2>
-  {render_ga4_diagnostico(ga4.get('diagnostico', []))}
+  {render_diagnostico_story(ga4.get('diagnostico', []), 'ga4-diag-story', ga4.get('serie', []))}
+  {_lista_completa(render_ga4_diagnostico(ga4.get('diagnostico', [])))}
 </section>
 <div class="cosmos-divider"></div>
 <section>
@@ -3779,6 +3891,68 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
   .ga4-diag.sev-media .ga4-diag-nivel {{ color: #ffd68a; }}
   .ga4-diag-titulo {{ font-size: .88rem; font-weight: 700; margin-bottom: 6px; }}
   .ga4-diag-detalhe {{ margin: 0; font-size: .8rem; color: var(--text-dim); line-height: 1.55; }}
+
+  /* --------------------------------------------- modo story do diagnóstico */
+  .story-lista-completa {{ margin-top: 14px; }}
+  .story-lista-completa summary {{
+    cursor: pointer; font-size: .76rem; font-weight: 700; color: var(--text-dim);
+    padding: 6px 0; list-style: none;
+  }}
+  .story-lista-completa summary::-webkit-details-marker {{ display: none; }}
+  .story-lista-completa summary::before {{ content: "▸ "; color: var(--accent-strong); }}
+  .story-lista-completa[open] summary::before {{ content: "▾ "; }}
+  .story-lista-completa .ga4-diag-grid {{ margin-top: 10px; }}
+
+  .story-wrap {{
+    position: relative; border-radius: 16px; overflow: hidden; margin-bottom: 8px;
+    background: linear-gradient(160deg, var(--surface-2), var(--surface-3));
+    border: 1px solid var(--border-strong);
+  }}
+  .story-progress {{ display: flex; gap: 5px; padding: 12px 16px 0; }}
+  .story-seg {{ flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,.15); overflow: hidden; }}
+  .story-seg-fill {{ display: block; height: 100%; width: 0%; background: var(--accent-strong); }}
+  .story-seg.done .story-seg-fill {{ width: 100%; }}
+  .story-seg.active .story-seg-fill {{ width: 100%; transition-property: width; transition-timing-function: linear; }}
+  .story-stage {{ position: relative; min-height: 240px; padding: 28px 30px 26px; cursor: pointer; }}
+  .story-nav {{ position: absolute; inset: 0 0 44px 0; display: flex; z-index: 3; }}
+  .story-nav-prev {{ flex: 1; }}
+  .story-nav-next {{ flex: 2; }}
+  .story-pause {{
+    position: absolute; top: 10px; right: 44px; z-index: 4; background: rgba(0,0,0,.35);
+    border: 1px solid var(--border-strong); color: var(--text-dim); border-radius: 999px;
+    width: 26px; height: 26px; font-size: .6rem; cursor: pointer; line-height: 1;
+  }}
+  .story-counter {{
+    position: absolute; top: 14px; right: 16px; font-size: .64rem; color: var(--text-mute);
+    font-weight: 700; z-index: 2;
+  }}
+  .story-slide {{ display: none; position: relative; z-index: 1; max-width: 620px; }}
+  .story-slide.active {{ display: block; animation: story-fadein .45s ease; }}
+  @keyframes story-fadein {{ from {{ opacity: 0; transform: translateY(8px); }} to {{ opacity: 1; transform: none; }} }}
+  .story-nivel {{
+    display: inline-block; font-size: .62rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 999px; background: var(--surface-3); color: var(--text-dim);
+    border: 1px solid var(--border); margin-bottom: 12px;
+  }}
+  .story-slide.sev-alta .story-nivel {{ color: #ff9c96; border-color: rgba(224,66,107,.5); background: var(--critical-bg); }}
+  .story-slide.sev-media .story-nivel {{ color: #ffd68a; border-color: rgba(250,178,25,.5); background: var(--warning-bg); }}
+  .story-slide.sev-baixa .story-nivel {{ color: #8fe38f; border-color: rgba(12,163,12,.5); background: var(--good-bg); }}
+  .story-titulo {{ font-size: 1.28rem; font-weight: 800; line-height: 1.28; margin: 0 0 14px; }}
+  .story-spark {{ display: flex; align-items: flex-end; gap: 3px; height: 64px; max-width: 380px; margin-bottom: 4px; }}
+  .story-spark i {{
+    flex: 1; height: 100%; background: linear-gradient(180deg, var(--accent-strong), var(--violet));
+    border-radius: 3px 3px 0 0; transform: scaleY(var(--h)); transform-origin: bottom; opacity: 0;
+    animation: story-bar .55s ease forwards; animation-delay: var(--d, 0s);
+  }}
+  @keyframes story-bar {{ from {{ opacity: 0; transform: scaleY(0); }} to {{ opacity: 1; transform: scaleY(var(--h)); }} }}
+  .story-spark-nota {{ font-size: .62rem; color: var(--text-mute); margin: 0 0 14px; }}
+  .story-detalhe {{ font-size: .92rem; line-height: 1.55; color: var(--text-dim); margin: 0; }}
+  .story-pausado .story-seg.active .story-seg-fill {{ transition: none; }}
+  @media (prefers-reduced-motion: reduce) {{
+    .story-slide.active {{ animation: none; }}
+    .story-spark i {{ animation: none; opacity: 1; }}
+    .story-seg.active .story-seg-fill {{ transition: none; width: 100%; }}
+  }}
   @media (prefers-reduced-motion: reduce) {{
     .card, .tab-panel.active, .status-pill {{ animation: none !important; }}
   }}

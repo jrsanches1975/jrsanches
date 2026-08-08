@@ -1386,6 +1386,30 @@ Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
     agora (0 alertas). Assim que uma rodada real tiver mudança de preço/desconto/
     visibilidade, o card do agente responsável aparece sozinho, sem código novo.
 
+53. **"Modo story" no diagnóstico — animação estilo Instagram Stories com dado
+    real (2026-08-02, mesmo dia).** Usuário mandou prints de um anúncio real
+    (aure.digital, Instagram Stories) com KPIs revelados em sequência — barra
+    de progresso no topo, gráfico de barras desenhando, legenda narrando —
+    e pediu esse tipo de animação/storytelling nos diagnósticos. Construído
+    `render_diagnostico_story()`: pega a MESMA lista de achados que já
+    alimentava `render_ga4_diagnostico()` (zero texto/número novo) e monta uma
+    sequência de slides em tela cheia com barra de progresso estilo Stories
+    (autoplay 5,2s/slide, clicável), sparkline usando a série diária REAL da
+    GA4 (sem série ou com <3 pontos válidos, o gráfico simplesmente não
+    aparece — nunca decorativo), navegação por clique (esquerda=anterior,
+    direita=próximo, mesma convenção do Instagram), pausa por hover/botão, e
+    respeito total a `prefers-reduced-motion`. A grade estática antiga
+    continua embaixo, num `<details>` colapsável, pra quem quer ler tudo de
+    uma vez. Ligado nas duas abas que já usavam a função antiga (GA4 · Jornada
+    com sparkline, Meta Ads sem — não tem série diária própria no modelo de
+    dado). **Bug real pego durante o teste visual:** as barras do sparkline
+    não apareciam — o `<i>` de cada barra é vazio, sem altura intrínseca, e
+    `transform: scaleY()` não tem o que escalonar sem um `height: 100%`
+    explícito. Só foi percebido olhando o screenshot Playwright (o código
+    parecia certo lendo por cima); corrigido e reconfirmado visualmente nos
+    dois estados (slide 1 e slide 2, avançando por clique) mais a lista
+    completa expandida.
+
 ## Onde estão os detalhes completos
 
 Se precisar de mais profundidade sobre qualquer ponto acima (trechos de
