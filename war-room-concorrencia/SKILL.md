@@ -1752,6 +1752,63 @@ relatório por rodada:
   tabela dedicada, os candidatos ranqueados por produto (e um para o leilão global) —
   mesma composição de fontes e score de relevância do passo 11.
 
+### 31. GSAP + ScrollTrigger + Three.js no hero (`scripts/vendor/`)
+
+Usuário pediu literalmente "gsap three scrolltrigger". Perguntei antes de
+construir porque Three.js é um motor 3D pesado (~700KB minificado) e o
+projeto já tinha decidido antes NÃO trazer elemento 3D pro painel (era da
+propaganda de referência) — ele confirmou que queria os três mesmo assim.
+
+**Nada vem de CDN** — mesmo princípio do `_cosmos.py` (arte gerada
+proceduralmente porque a rede é bloqueada pra hosts arbitrários neste
+ambiente E porque o `war-room.html` tem que continuar abrindo sozinho, sem
+internet, movido de pasta). As 3 libs foram baixadas uma vez via `npm install
+gsap three` (`registry.npmjs.org` é liberado, CDNs genéricos não) e ficam em
+`scripts/vendor/` (`gsap.min.js`, `ScrollTrigger.min.js`, `three.min.js`) —
+**arquivos versionados no repo**, não baixados a cada rodada. Three.js
+moderno (r185) não publica mais build UMD/global — só ES module —, então
+`three.min.js` é gerado com `esbuild` (`export * from 'three'` em modo
+`iife --global-name=THREE`), não é o arquivo puro do pacote.
+
+`render_cosmos_gl_assets()` em `war_room.py` lê os 3 arquivos
+(`_ler_vendor()`) e embute INLINE em `<script>` — se a pasta `vendor/` não
+existir (usuário esqueceu de copiar, ou zip antigo), a função devolve `""` e
+a página funciona exatamente como antes, sem nenhum erro (testado apagando a
+pasta e conferindo console limpo).
+
+**O que foi construído, tudo com fallback gracioso:**
+- Cena Three.js (`#cosmos-gl`, um `<canvas>` posto por cima da arte SVG do
+  hero dentro de `.cosmos-hero-art`): starfield de ~900 partículas, disco de
+  acreção (3 anéis `TorusGeometry` concêntricos com blend aditivo na mesma
+  paleta violeta→magenta→ciano do `_cosmos.py`), e uma esfera preta no centro
+  (horizonte de eventos) — rotação contínua + paralaxe sutil pelo mouse. A
+  arte SVG **continua sendo renderizada primeiro** (nunca troca antes); o
+  canvas só assume (`opacity:1`, esconde o SVG) depois que o
+  `WebGLRenderer` é criado com sucesso e a 1ª cena já renderizou — GPU
+  indisponível ou erro de WebGL = a SVG estática fica exatamente como sempre
+  esteve, sem tela em branco.
+- Efeito de scroll com GSAP + ScrollTrigger: o hero (arte + título) esmaece e
+  encolhe sutilmente conforme rola a página, com `scrub` (acompanha a
+  posição do scroll, não é uma animação disparada uma vez).
+- `prefers-reduced-motion: reduce` desliga os DOIS efeitos por completo (nem
+  inicia o Three.js, nem registra o ScrollTrigger) — a SVG estática cobre
+  esse caso sozinha.
+
+Testado com Playwright real (`--use-gl=swiftshader` pra WebGL funcionar
+headless): canvas ativo e SVG escondido depois do carregamento, zero erro no
+console; opacidade do hero caindo de 0,9 pra ~0,43 depois de rolar a página
+(efeito do ScrollTrigger confirmado); com `prefers-reduced-motion: reduce`
+emulado, canvas fica em opacity 0 e a SVG em opacity 1 (nem tentou rodar);
+sem a pasta `vendor/`, página renderiza normal e sem erro. Ajuste feito no
+raio dos anéis depois do primeiro screenshot mostrar o disco vazando pra fora
+do container.
+
+**Impacto no tamanho do arquivo:** `war-room.html` cresce de ~300KB pra
+~1,1MB com as 3 libs embutidas (Three.js sozinho é ~700KB minificado — não
+tem build menor disponível na versão atual). Isso é o preço de ser
+self-contained; avisar o usuário se o arquivo ficar pesado demais pra
+compartilhar por e-mail/WhatsApp em algum momento.
+
 ## Princípios
 
 - **Honestidade sobre o que é medido vs. estimado:** preço e desconto no Mercado Livre

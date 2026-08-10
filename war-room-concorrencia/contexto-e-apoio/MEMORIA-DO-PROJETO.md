@@ -1466,6 +1466,35 @@ Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
     parse de vírgula com espaços) + rodada real de `war_room.py
     --simulate-ml` pra confirmar que não quebrou nada.
 
+56. **GSAP + ScrollTrigger + Three.js no hero (2026-08-10).** Usuário pediu
+    "inclua efeitos gsap three scrolltrigger". Perguntado antes de construir
+    (`AskUserQuestion`) porque Three.js é 3D pesado e o projeto já tinha
+    decidido antes não trazer 3D pro painel — ele confirmou querer os três
+    mesmo assim. `registry.npmjs.org` está liberado neste ambiente (CDNs
+    genéricos como unpkg/jsdelivr/cdnjs continuam bloqueados, testado e
+    confirmado de novo) — baixadas as libs uma vez via `npm install gsap
+    three`. Three.js moderno (r185) não publica mais build UMD/global, só ES
+    module; usado `esbuild` (`export * from 'three'`, `--format=iife
+    --global-name=THREE`) pra gerar um `three.min.js` global de ~700KB.
+    Arquivos salvos em `scripts/vendor/` (versionados no repo, nunca
+    carregados de CDN — mesmo princípio do `_cosmos.py`). `war_room.py` lê e
+    embute os 3 INLINE (`render_cosmos_gl_assets()`); sem a pasta `vendor/`,
+    a função devolve `""` e a página funciona normal (testado). Construída
+    uma cena no hero (`#cosmos-gl`, canvas sobre a arte SVG existente):
+    starfield + disco de acreção (3 anéis concêntricos, mesma paleta
+    violeta/magenta/ciano) + esfera preta central, rotação contínua + leve
+    parallax do mouse — SVG sempre renderiza primeiro, canvas só assume se o
+    WebGL inicializar de verdade (GPU indisponível = SVG fica, sem tela
+    branca). Efeito de scroll com GSAP+ScrollTrigger: hero esmaece/encolhe
+    com `scrub` conforme rola a página. `prefers-reduced-motion: reduce`
+    desliga os dois efeitos por completo. Testado com Playwright real
+    (`--use-gl=swiftshader`): canvas ativo/SVG escondido sem erro de console,
+    opacidade do hero caindo de 0,9→0,43 ao rolar, reduced-motion
+    respeitado, e degradação graciosa sem a pasta vendor. Precisou de um
+    ajuste de raio dos anéis depois do 1º screenshot mostrar o disco vazando
+    pra fora do container. `war-room.html` cresce de ~300KB pra ~1,1MB com
+    as libs embutidas — avisado ao usuário.
+
 ## Onde estão os detalhes completos
 
 Se precisar de mais profundidade sobre qualquer ponto acima (trechos de

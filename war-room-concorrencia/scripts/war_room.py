@@ -60,6 +60,22 @@ def montar_payload_ml(config, termo, per_produto):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_HISTORY_DIR = os.path.join(SCRIPT_DIR, "history")
+VENDOR_DIR = os.path.join(SCRIPT_DIR, "vendor")
+
+
+def _ler_vendor(nome):
+    """Lê uma lib de terceiro já baixada em scripts/vendor/ (GSAP, ScrollTrigger,
+    Three.js) pra embutir INLINE no HTML — nada de <script src="https://...">,
+    porque o war-room.html tem que abrir sozinho, sem internet, movido de pasta,
+    igual a qualquer outro asset deste projeto (mesmo motivo do _cosmos.py gerar
+    a arte proceduralmente em vez de baixar imagem). Se o arquivo não existir
+    (ex.: alguém rodou sem antes buscar as libs), o efeito simplesmente não entra
+    — nunca quebra a página por falta de asset opcional."""
+    caminho = os.path.join(VENDOR_DIR, nome)
+    if not os.path.exists(caminho):
+        return ""
+    with open(caminho, encoding="utf-8") as f:
+        return f.read()
 
 SEVERIDADE_POR_NIVEL = {
     "agressiva": "alta", "forte": "alta", "critica": "alta",
@@ -1823,6 +1839,152 @@ dispara a coleta na hora. A cadência continua valendo para as rodadas automáti
     }, ensure_ascii=False)}</script>"""
 
 
+_COSMOS_GL_SCENE_JS = r"""
+(function () {
+  var canvas = document.getElementById('cosmos-gl');
+  var svgArt = document.querySelector('.cosmos-hero-art svg');
+  if (!canvas || typeof THREE === 'undefined') return;
+  var reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduzido) return;   // a arte SVG estática (sempre presente) já cobre este caso
+
+  var wrap = canvas.parentElement;
+  var w = wrap.clientWidth || 760, h = wrap.clientHeight || 560;
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  } catch (e) {
+    return;   // WebGL indisponível — a arte SVG por baixo continua visível, nada quebra
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h, false);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+  camera.position.set(0, 1.1, 7.5);
+
+  // estrelas — mesma paleta cósmica do SVG (violeta/ciano), sem baixar textura nenhuma
+  var nEstrelas = 900;
+  var pos = new Float32Array(nEstrelas * 3);
+  for (var i = 0; i < nEstrelas; i++) {
+    var r = 6 + Math.random() * 18;
+    var theta = Math.random() * Math.PI * 2, phi = Math.acos(2 * Math.random() - 1);
+    pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i * 3 + 2] = r * Math.cos(phi) - 4;
+  }
+  var estrelasGeo = new THREE.BufferGeometry();
+  estrelasGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  var estrelasMat = new THREE.PointsMaterial({
+    color: 0xcfe0ff, size: 0.045, transparent: true, opacity: 0.85,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  scene.add(new THREE.Points(estrelasGeo, estrelasMat));
+
+  // disco de acreção — 3 anéis concêntricos com blend aditivo, cor degradê
+  // violeta -> magenta -> ciano (mesma paleta do hero_svg em _cosmos.py)
+  var discoGrupo = new THREE.Group();
+  var camadas = [
+    { r: 1.5, esp: 0.17, cor: 0x8b5cf6, op: 0.55 },
+    { r: 1.9, esp: 0.12, cor: 0xd946ef, op: 0.42 },
+    { r: 2.3, esp: 0.08, cor: 0x22d3ee, op: 0.32 },
+  ];
+  camadas.forEach(function (c) {
+    var geo = new THREE.TorusGeometry(c.r, c.esp, 16, 96);
+    var mat = new THREE.MeshBasicMaterial({
+      color: c.cor, transparent: true, opacity: c.op,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    var anel = new THREE.Mesh(geo, mat);
+    discoGrupo.add(anel);
+  });
+  discoGrupo.rotation.x = Math.PI / 2.35;
+  scene.add(discoGrupo);
+
+  // horizonte de eventos — esfera preta ocupando o centro do disco
+  var horizonte = new THREE.Mesh(
+    new THREE.SphereGeometry(0.85, 48, 48),
+    new THREE.MeshBasicMaterial({ color: 0x030109 })
+  );
+  scene.add(horizonte);
+
+  var alvoMouse = { x: 0, y: 0 };
+  wrap.addEventListener('mousemove', function (e) {
+    var rect = wrap.getBoundingClientRect();
+    alvoMouse.x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    alvoMouse.y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+  });
+
+  var vivo = true;
+  function animar() {
+    if (!vivo) return;
+    requestAnimationFrame(animar);
+    discoGrupo.rotation.z += 0.0016;
+    horizonte.rotation.y += 0.0009;
+    // parelaxe suave da câmera seguindo o mouse, sem saltos
+    camera.position.x += (alvoMouse.x * 0.6 - camera.position.x) * 0.03;
+    camera.position.y += (1.1 - alvoMouse.y * 0.35 - camera.position.y) * 0.03;
+    camera.lookAt(0, 0, -1);
+    renderer.render(scene, camera);
+  }
+  animar();
+
+  // WebGL funcionou de verdade: some com o SVG estático (fica só como base de
+  // carregamento) e mostra o canvas — nunca os dois sobrepostos.
+  if (svgArt) svgArt.style.opacity = '0';
+  canvas.style.opacity = '1';
+
+  function redimensionar() {
+    var nw = wrap.clientWidth, nh = wrap.clientHeight;
+    if (!nw || !nh) return;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh, false);
+  }
+  window.addEventListener('resize', redimensionar);
+
+  document.addEventListener('visibilitychange', function () {
+    vivo = !document.hidden;
+    if (vivo) animar();
+  });
+})();
+"""
+
+_COSMOS_SCROLL_JS = r"""
+(function () {
+  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+  var reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduzido) return;
+  gsap.registerPlugin(ScrollTrigger);
+  gsap.to('.cosmos-hero-art, .head-grid > div:first-child', {
+    scrollTrigger: { trigger: 'header.top', start: 'top top', end: 'bottom top', scrub: 0.6 },
+    opacity: 0.18, y: -26, scale: 0.97, ease: 'none',
+  });
+})();
+"""
+
+
+def render_cosmos_gl_assets():
+    """Bloco opcional de efeitos (GSAP + ScrollTrigger + Three.js) — libs baixadas
+    uma vez via npm e guardadas em scripts/vendor/ (nunca carregadas de CDN: o
+    war-room.html tem que continuar abrindo sozinho, sem internet, movido de
+    pasta). Ausente = página funciona exatamente como sempre funcionou (a arte
+    SVG do hero é sempre renderizada primeiro; o WebGL só a substitui se e
+    quando o Three.js carregar e a GPU responder de verdade)."""
+    gsap_js = _ler_vendor("gsap.min.js")
+    st_js = _ler_vendor("ScrollTrigger.min.js")
+    three_js = _ler_vendor("three.min.js")
+    if not (gsap_js or three_js):
+        return ""
+    partes = [f"<script>{gsap_js}</script>" if gsap_js else "",
+              f"<script>{st_js}</script>" if (gsap_js and st_js) else "",
+              f"<script>{three_js}</script>" if three_js else ""]
+    if three_js:
+        partes.append(f"<script>{_COSMOS_GL_SCENE_JS}</script>")
+    if gsap_js and st_js:
+        partes.append(f"<script>{_COSMOS_SCROLL_JS}</script>")
+    return "\n".join(p for p in partes if p)
+
+
 def render_seal(config):
     """Selo circular do cabeçalho (motivo da referência visual) — texto em volta do
     círculo + a cadência configurada no centro. Só dado real do config."""
@@ -3008,6 +3170,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     metas_html = render_metas_tab(metas_data)
     meta_ads_html = render_meta_tab(meta_ads)
     hero_art = hero_svg()
+    cosmos_gl_html = render_cosmos_gl_assets()
 
     html = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -3593,6 +3756,13 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
     right: -6%; top: -20%; width: min(52%, 660px); opacity: .9;
   }}
   @media (max-width: 1180px) {{ .cosmos-hero-art {{ opacity: .45; }} }}
+  /* canvas WebGL (Three.js) por cima da arte SVG — só aparece (opacity:1) se a
+     cena carregar de verdade; até lá a SVG estática cobre o espaço sozinha. */
+  #cosmos-gl {{
+    position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+    opacity: 0; transition: opacity .8s ease;
+  }}
+  .cosmos-hero-art svg {{ transition: opacity .5s ease; }}
 
   /* ------------------------------------------------- medidas a serem tomadas */
   .medida-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }}
@@ -4008,7 +4178,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 <body>
 {FX_BODY}
 <header class="top">
-  <div class="cosmos-hero-art">{hero_art}</div>
+  <div class="cosmos-hero-art">{hero_art}<canvas id="cosmos-gl" aria-hidden="true"></canvas></div>
   <div class="head-grid">
     <div>
       <span class="pill-badge">War Room · Inteligência Competitiva · {meta['data'][:10]}</span>
@@ -4615,6 +4785,7 @@ def write_html(alertas_rodada, config, meta, path, own_perf=None, radar_ml=None,
 }})();
 </script>
 {FX_JS}
+{cosmos_gl_html}
 </body></html>"""
 
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
