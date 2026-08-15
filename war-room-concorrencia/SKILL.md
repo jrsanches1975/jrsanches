@@ -1809,6 +1809,52 @@ tem build menor disponível na versão atual). Isso é o preço de ser
 self-contained; avisar o usuário se o arquivo ficar pesado demais pra
 compartilhar por e-mail/WhatsApp em algum momento.
 
+### 32. Coletor próprio da GA4 (`ga4_api.py`) — sem Windsor
+
+O plano Free do Windsor.ai só libera 1 conector por vez; o usuário conectou o
+Meta Ads nele, o que **desconectou a GA4** (confirmado ao vivo via
+`get_connectors`: só `facebook` aparecia, `googleanalytics4` tinha sumido).
+Perguntado se queria resolver construindo um coletor direto de GA4 (como já
+existe pro Meta Ads e pro Google Ads) — confirmou que sim, e que já tinha
+credencial de API pro Google Ads também.
+
+`ga4_api.py` fala direto com a **Google Analytics Data API** via **conta de
+serviço** (JWT assinado RS256 → troca por access_token em
+`oauth2.googleapis.com` → `runReport` em `analyticsdata.googleapis.com`) —
+sem OAuth de usuário, sem tela de consentimento, sem token que expira em
+horas. Produz os MESMOS 7 arquivos que `ga4_jornada.py` já consome
+(`--overview/--funil/--canais/--devices/--landing/--serie/--campanhas`), com
+os nomes de campo locais já confirmados reais nas rodadas anteriores deste
+projeto (`CAMPO_API_PARA_LOCAL`, mapeando nome oficial da API tipo
+`totalUsers` pro nome local `totalusers`).
+
+**Testado de duas formas, sem precisar de credencial real** (que este agente
+nunca aceita colada no chat):
+1. **Autenticação contra o Google de verdade** — gerado um par de chaves RSA
+   de teste, montado e assinado o JWT, e feita a troca real contra
+   `oauth2.googleapis.com/token`. Resposta: `invalid_grant: account not
+   found` — confirma que a assinatura e o formato do pedido estão certos (só
+   a CONTA não existe, esperado com chave fake). `analyticsdata.googleapis.com`
+   e `oauth2.googleapis.com` respondem normalmente neste ambiente (diferente
+   de `api.apify.com` e dos CDNs genéricos, que ficam bloqueados).
+2. **Parse dos 7 relatórios** — testado ponta a ponta contra um servidor
+   HTTP local que imita o formato real de resposta do `runReport`
+   (`dimensionHeaders`/`metricHeaders`/`rows`), incluindo a reformatação de
+   data (`20260801` → `2026-08-01`) e a conversão de métrica (vem como texto
+   no JSON) pra número. Rodado o `main()` completo via CLI apontado pro
+   servidor fake, e a saída dos 7 arquivos alimentada de volta em
+   `ga4_jornada.py` sem nenhum erro.
+
+Duas métricas/dimensões marcadas no próprio script e no
+`references/ga4-api-setup.md` como precisando de conferência no primeiro uso
+real: `itemViewEvents` (depende de a loja disparar `view_item`) e
+`sessionDefaultChannelGroup` (pode divergir se a conta usa agrupamento de
+canal customizado).
+
+Guia completo de credencial (criar conta de serviço, ativar a API, dar
+acesso de Leitor à propriedade) em `references/ga4-api-setup.md` — mesmo
+estilo do `references/meta-api-setup.md` e `references/google-ads-api-setup.md`.
+
 ## Princípios
 
 - **Honestidade sobre o que é medido vs. estimado:** preço e desconto no Mercado Livre

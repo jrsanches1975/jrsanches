@@ -1495,6 +1495,36 @@ Google Ads (sem mensalidade, ~2 dias de trabalho, e o dado vem mais completo).
     pra fora do container. `war-room.html` cresce de ~300KB pra ~1,1MB com
     as libs embutidas — avisado ao usuário.
 
+57. **Coletor direto de GA4 (`ga4_api.py`) — Windsor perdeu a GA4 pro Meta, como
+    previsto (2026-08-15).** Conferido ao vivo via `get_connectors`: o Windsor
+    agora mostra só `facebook` conectado, a `googleanalytics4` sumiu —
+    confirma o trade-off do plano Free (1 conector por vez) que já vínhamos
+    discutindo. Usuário perguntado se o Google Ads e a GA4 seriam conectados
+    via API direta; ele confirmou que já tinha credenciais do Google Ads
+    prontas e pediu pra construir o caminho direto da GA4 (que ainda não
+    existia — só o Google Ads e o Meta Ads tinham coletor próprio até aqui).
+    Construído `ga4_api.py`: conta de serviço do Google Cloud, JWT RS256
+    assinado na mão (usando `cryptography` — biblioteca já instalada mas
+    quebrada neste sandbox por binário ausente; reinstalada com
+    `pip install --ignore-installed cryptography` só pra poder testar aqui).
+    Descoberta útil: `oauth2.googleapis.com` e `analyticsdata.googleapis.com`
+    respondem normalmente neste ambiente sandboxed (diferente de
+    `api.apify.com` e CDNs genéricos, que continuam bloqueados) — dava pra
+    testar a autenticação contra o Google de verdade com uma chave RSA de
+    teste (resposta real: `invalid_grant: account not found`, confirmando
+    assinatura/formato do pedido corretos). O parse dos 7 relatórios
+    (overview/funil/canais/devices/landing/serie/campanhas) foi testado
+    contra um servidor HTTP local fake imitando o formato real do
+    `runReport`, incluindo o `main()` inteiro via CLI, com a saída
+    alimentada de volta em `ga4_jornada.py` sem erro. Criado
+    `references/ga4-api-setup.md` (mesmo estilo do guia do Meta Ads) com o
+    passo a passo de criar a conta de serviço, ativar a API, e — o passo mais
+    fácil de esquecer — dar acesso de Leitor à propriedade GA4 pro e-mail da
+    conta de serviço. Marcado no script e no guia que `itemViewEvents` e
+    `sessionDefaultChannelGroup` precisam de conferência no primeiro uso real
+    (não puderam ser validados contra uma propriedade GA4 de verdade, já que
+    o agente nunca aceita credencial colada no chat).
+
 ## Onde estão os detalhes completos
 
 Se precisar de mais profundidade sobre qualquer ponto acima (trechos de
