@@ -155,6 +155,24 @@ echo
 echo "--- Coleta real ($DIAS dias) ---"
 "$PY" ga4_api.py --dias "$DIAS" --saida-dir "$OUTPUTS" || erro "a coleta real falhou — veja a mensagem acima."
 
+# O ga4_api.py grava os 7 blocos crus e PARA: ele só imprime o comando da compilação,
+# não o executa. Sem este passo não existe ga4-jornada.json, que é o único arquivo
+# que o war_room.py consome.
+echo
+echo "--- Compilando a aba GA4 Jornada ---"
+"$PY" ga4_jornada.py \
+  --overview "$OUTPUTS/ga4-overview.json" \
+  --funil    "$OUTPUTS/ga4-funil.json" \
+  --canais   "$OUTPUTS/ga4-canais.json" \
+  --devices  "$OUTPUTS/ga4-devices.json" \
+  --landing  "$OUTPUTS/ga4-landing.json" \
+  --serie    "$OUTPUTS/ga4-serie.json" \
+  --campanhas "$OUTPUTS/ga4-campanhas.json" \
+  --periodo  "últimos $DIAS dias" \
+  --out      "$OUTPUTS/ga4-jornada.json" || erro "a compilação da aba GA4 falhou — veja a mensagem acima."
+
+[ -f "$OUTPUTS/ga4-jornada.json" ] || erro "a compilação terminou sem gerar o ga4-jornada.json."
+
 echo
 echo "Pronto. Os 7 blocos e o ga4-jornada.json estão em $OUTPUTS"
 echo

@@ -141,10 +141,14 @@ python war_room.py --config config.json \
   --out ../outputs/war-room.xlsx --html ../outputs/war-room.html
 ```
 
-(o `ga4_api.py` já roda o `ga4_jornada.py` sozinho por baixo — ele grava os 7
-arquivos crus E chama a compilação final; a última linha do `ga4_api.py`
-sempre imprime o comando exato do `ga4_jornada.py` caso você queira rodar de
-novo só a etapa de compilação, sem chamar a API de novo.)
+**Atenção:** o `ga4_api.py` grava apenas os 7 arquivos crus e para — ele
+**não** chama o `ga4_jornada.py`. A última linha que ele imprime é o comando
+da compilação, que precisa ser executado em seguida (é o `python
+ga4_jornada.py --overview ... --out ../outputs/ga4-jornada.json`). Sem essa
+etapa não existe `ga4-jornada.json`, e o `war_room.py` não tem o que consumir.
+
+Os scripts de `deploy/configurar-ga4.*` já executam as duas etapas em
+sequência; só quem roda o `ga4_api.py` à mão precisa lembrar da segunda.
 
 ## Erros que você provavelmente vai ver
 

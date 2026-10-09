@@ -158,10 +158,31 @@ try {
     Write-Host "--- Coleta real ($Dias dias) ---" -ForegroundColor Cyan
     & $py ga4_api.py --dias $Dias --saida-dir $outputs
     if ($LASTEXITCODE -ne 0) { Erro "a coleta real falhou. Veja a mensagem acima." }
+
+    # O ga4_api.py grava os 7 blocos crus e PARA: ele apenas imprime o comando da
+    # compilacao, nao o executa. Sem este passo nao existe ga4-jornada.json, que e
+    # o unico arquivo que o war_room.py consome.
+    Write-Host ""
+    Write-Host "--- Compilando a aba GA4 Jornada ---" -ForegroundColor Cyan
+    & $py ga4_jornada.py `
+        --overview "$outputs\ga4-overview.json" `
+        --funil    "$outputs\ga4-funil.json" `
+        --canais   "$outputs\ga4-canais.json" `
+        --devices  "$outputs\ga4-devices.json" `
+        --landing  "$outputs\ga4-landing.json" `
+        --serie    "$outputs\ga4-serie.json" `
+        --campanhas "$outputs\ga4-campanhas.json" `
+        --periodo  "ultimos $Dias dias" `
+        --out      "$outputs\ga4-jornada.json"
+    if ($LASTEXITCODE -ne 0) { Erro "a compilacao da aba GA4 falhou. Veja a mensagem acima." }
 } finally { Pop-Location }
 
+if (-not (Test-Path (Join-Path $outputs "ga4-jornada.json"))) {
+    Erro "a compilacao terminou sem gerar o ga4-jornada.json. Me avise com a mensagem acima."
+}
+
 Write-Host ""
-Write-Host "Pronto. Os 7 blocos e o ga4-jornada.json estao em:" -ForegroundColor Green
+Write-Host "Pronto. Os 7 blocos crus e o ga4-jornada.json estao em:" -ForegroundColor Green
 Write-Host "  $outputs"
 Write-Host ""
 Write-Host "Para montar o painel com a aba GA4 Jornada:"
