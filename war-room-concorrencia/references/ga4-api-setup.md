@@ -62,6 +62,32 @@ sem o prefixo `properties/`.
 
 ## 7. Configurar na sua máquina
 
+**Atalho — deixe o script fazer os passos 7, 8 e 9 para você.** Ele abre uma
+janela para você escolher o arquivo da chave com o mouse, pede o ID da
+propriedade numa caixa de diálogo, valida a credencial contra o Google
+*antes* de gravar qualquer coisa (inclusive se o passo 5 foi feito), grava as
+variáveis em definitivo e já roda a coleta de conferência e a real:
+
+```powershell
+# Windows (PowerShell), na pasta do projeto
+.\deploy\configurar-ga4.ps1
+```
+
+```bash
+# macOS / Linux
+bash deploy/configurar-ga4.sh
+```
+
+Para só conferir a credencial, sem gravar nem coletar: `-SomenteTestar`
+(PowerShell) ou `--somente-testar` (bash). Para checar a qualquer momento,
+depois de configurado: `cd scripts && python ga4_verificar.py`.
+
+O script **recusa** uma chave que esteja dentro da pasta do projeto — lá ela
+acabaria no Git.
+
+Se preferir fazer à mão, é isto:
+
+
 ```powershell
 # Windows (PowerShell) — vale só nesta janela
 $env:GA4_SERVICE_ACCOUNT_JSON = "C:\Users\SeuUsuario\credenciais\ga4-service-account.json"
